@@ -635,7 +635,7 @@ patch \
 ### 9.3 Configure と DWrite ビルド
 
 ```fish
-cd "$WINE_BUILD" \
+cd "$WINE_BUILD"
 
 "$WINE_SRC/configure" \
     --enable-win64
