@@ -134,7 +134,7 @@ set AVIUTL2_VERSION "2.1.2"
 set AVIUTL2_FILENAME (string join '' \
     "AviUtl2_v" "$AVIUTL2_VERSION" "_setup.exe")
 
-set DOWNLOAD_DIR "$ROOT/downloads"
+set DOWNLOAD_DIR "$HOME/Downloads"
 set AVIUTL2_INSTALLER "$DOWNLOAD_DIR/$AVIUTL2_FILENAME"
 set AVIUTL2_PART (string join '' "$AVIUTL2_INSTALLER" ".part")
 set AVIUTL2_URL \
