@@ -360,10 +360,16 @@ set DXVK_OUT \
 
 if not test -d "$DXVK_SRC/.git"
     git clone \
+        --recursive \
         --branch v2.7.1 \
         --depth 1 \
         https://github.com/doitsujin/dxvk.git \
         "$DXVK_SRC"
+else
+    git -C "$DXVK_SRC" submodule \
+        update \
+        --init \
+        --recursive
 end
 ```
 
