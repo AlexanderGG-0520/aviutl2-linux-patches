@@ -95,13 +95,15 @@ GPU driver, desktop environment, or input method.
 ### DXVK
 
 ```fish
-git -C /path/to/dxvk apply     patches/dxvk/0001-aviutl2-format-support.patch
+git -C /path/to/dxvk apply \
+  patches/dxvk/0001-aviutl2-format-support.patch
 ```
 
 ### L-SMASH Works
 
 ```fish
-git -C /path/to/L-SMASH-Works am     patches/l-smash-works/0001-transfer-hardware-frames-before-output.patch
+git -C /path/to/L-SMASH-Works am \
+  patches/l-smash-works/0001-transfer-hardware-frames-before-output.patch
 ```
 
 ### Wine
@@ -111,7 +113,8 @@ The Wine source tree does not need to be a Git repository.
 ```fish
 cd /path/to/wine-source
 
-patch -p1 <     /path/to/aviutl2-linux-patches/patches/wine/0001-implement-dwrite-hit-testing.patch
+patch -p1 < \
+  /path/to/aviutl2-linux-patches/patches/wine/0001-implement-dwrite-hit-testing.patch
 ```
 
 ## Rebuilding DirectWrite
@@ -121,18 +124,24 @@ For the tested Wine build tree:
 ```fish
 set WINE_BUILD "/path/to/wine-build"
 
-rm -f     "$WINE_BUILD/dlls/dwrite/x86_64-windows/layout.o"     "$WINE_BUILD/dlls/dwrite/x86_64-windows/dwrite.dll"
+rm -f \
+  "$WINE_BUILD/dlls/dwrite/x86_64-windows/layout.o" \
+  "$WINE_BUILD/dlls/dwrite/x86_64-windows/dwrite.dll"
 
-make -C "$WINE_BUILD"     -j(nproc)     dlls/dwrite/x86_64-windows/dwrite.dll
+make -C "$WINE_BUILD" \
+  -j(nproc) \
+  dlls/dwrite/x86_64-windows/dwrite.dll
 ```
 
 Do not use `make -B` unless the entire Wine configure environment is complete.
 It can force `configure` to run again and fail on unrelated dependencies.
 
-## Installing the patched DWrite DLL
+## Installing the patched DirectWrite DLL
 
 ```fish
-scripts/install-dwrite.fish     /path/to/wine-build     /path/to/GE-Proton11-1
+scripts/install-dwrite.fish \
+  /path/to/wine-build \
+  /path/to/GE-Proton11-1
 ```
 
 The script modifies only the selected GE-Proton installation and creates a
@@ -146,6 +155,8 @@ timestamped backup first.
 
 ## Documentation
 
+- `docs/FINAL-SUMMARY.md` — completed project summary and final state
+- `docs/REPRODUCTION.md` — full reproduction procedure
 - `docs/STATUS.md`
 - `docs/TECHNICAL-NOTES.md`
 - `docs/TROUBLESHOOTING.md`
