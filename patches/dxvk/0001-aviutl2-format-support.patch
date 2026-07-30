@@ -1,51 +1,30 @@
 diff --git a/src/d3d11/d3d11_device.cpp b/src/d3d11/d3d11_device.cpp
-index 5f43ea3..d70b01e 100644
 --- a/src/d3d11/d3d11_device.cpp
 +++ b/src/d3d11/d3d11_device.cpp
-@@ -1549,8 +1549,8 @@ namespace dxvk {
-           UINT*       pFormatSupport) {
-     return GetFormatSupportFlags(Format, pFormatSupport, nullptr);
-   }
--  
--  
-+
-+
-   HRESULT STDMETHODCALLTYPE D3D11Device::CheckMultisampleQualityLevels(
-           DXGI_FORMAT Format,
-           UINT        SampleCount,
-@@ -1974,15 +1974,48 @@ namespace dxvk {
+@@ -30,6 +30,7 @@
+ 
+ #include "../wsi/wsi_window.h"
+ 
++#include "../util/util_env.h"
+ #include "../util/util_shared_res.h"
+ 
+ namespace dxvk {
+@@ -1976,12 +1977,24 @@
  
  
    HRESULT D3D11Device::GetFormatSupportFlags(DXGI_FORMAT Format, UINT* pFlags1, UINT* pFlags2) const {
-+    // AviUtl2 compatibility: format 69 probe
-+    //
-+    // DXGI_FORMAT_G8R8_G8B8_UNORM is a valid packed 4:2:2
-+    // format, but the Vulkan driver may not expose the corresponding
-+    // VkFormat. Report a successful query with no supported usages so
-+    // that AviUtl2 can select another media format.
-+    if (Format == DXGI_FORMAT_G8R8_G8B8_UNORM) {
-+      if (pFlags1 != nullptr)
-+        *pFlags1 = 0;
-+
-+      if (pFlags2 != nullptr)
-+        *pFlags2 = 0;
-+
-+      Logger::warn(
-+        "AviUtl2 compatibility: format 69 unsupported; returning S_OK");
-+
-+      return S_OK;
-+    }
-+
++    static const bool isAviUtl2 = env::getExeName() == "aviutl2.exe";
      const DXGI_VK_FORMAT_INFO fmtMapping = LookupFormat(Format, DXGI_VK_FORMAT_MODE_ANY);
  
      // Reset output flags preemptively
      if (pFlags1 != nullptr) *pFlags1 = 0;
      if (pFlags2 != nullptr) *pFlags2 = 0;
  
-+    // AviUtl2 probes this packed 4:2:2 format while initializing
-+    // Media::Direct3DService. The application only requires the query itself
-+    // to succeed and can handle an empty support mask.
-+    if (Format == DXGI_FORMAT_G8R8_G8B8_UNORM
++    // AviUtl2 probes this valid packed 4:2:2 format during startup.
++    // Limit the workaround to AviUtl2 and only when DXVK has no
++    // Vulkan mapping, preserving normal format reporting elsewhere.
++    if (isAviUtl2
++     && Format == DXGI_FORMAT_G8R8_G8B8_UNORM
 +     && fmtMapping.Format == VK_FORMAT_UNDEFINED) {
 +      Logger::warn("AviUtl2 compatibility: treating unsupported "
 +        "DXGI_FORMAT_G8R8_G8B8_UNORM query as successful");
@@ -53,13 +32,5 @@ index 5f43ea3..d70b01e 100644
 +    }
 +
      // Unsupported or invalid format
--    if (Format && fmtMapping.Format == VK_FORMAT_UNDEFINED)
-+    if (Format && fmtMapping.Format == VK_FORMAT_UNDEFINED) {
-+      Logger::warn(str::format(
-+        "D3D11: CheckFormatSupport unsupported DXGI_FORMAT ",
-+        uint32_t(Format)));
+     if (Format && fmtMapping.Format == VK_FORMAT_UNDEFINED)
        return E_FAIL;
-+    }
-     
-     // Query Vulkan format properties and supported features for it
-     const DxvkFormatInfo* fmtProperties = lookupFormatInfo(fmtMapping.Format);
