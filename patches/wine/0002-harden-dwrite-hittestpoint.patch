@@ -1,0 +1,45 @@
+--- a/dlls/dwrite/layout.c
++++ b/dlls/dwrite/layout.c
+@@ -4000,10 +4000,20 @@
+ 
+         memset(&current, 0, sizeof(current));
+ 
+         hr = dwritetextlayout_HitTestTextPosition(iface, position, FALSE,
+                 &current_x, &current_y, &current);
++        if (hr == E_FAIL)
++        {
++            TRACE("No effective run for text position %u; skipping.\n", position);
++
++            if (position == layout->len)
++                break;
++
++            position++;
++            continue;
++        }
+         if (FAILED(hr))
+             return hr;
+ 
+         left = current.left;
+         right = current.left + current.width;
+@@ -4050,11 +4060,20 @@
+ 
+         position = min(next, layout->len);
+     }
+ 
+     if (!found)
+-        return E_FAIL;
++    {
++        metrics->textPosition = point_y >= layout->metrics.height ? layout->len : 0;
++        metrics->length = 0;
++        metrics->left = 0.0f;
++        metrics->top = 0.0f;
++        metrics->width = 0.0f;
++        metrics->height = layout->metrics.height;
++        metrics->isText = TRUE;
++        return S_OK;
++    }
+ 
+     *metrics = best;
+ 
+     if (best.width > 0.0f)
+     {
