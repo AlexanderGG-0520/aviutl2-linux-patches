@@ -7,7 +7,15 @@
 AviUtl2 queried D3D11 format support for DXGI format ID 69. The original DXVK
 behavior caused AviUtl2 to terminate during startup.
 
-The DXVK patch adjusts this format-support path.
+The DXVK patch changes the result only when all of the following are true:
+
+- the current executable name is `aviutl2.exe`;
+- the requested format is `DXGI_FORMAT_G8R8_G8B8_UNORM`;
+- DXVK has no Vulkan mapping for that format.
+
+In that case, the query succeeds with an empty support mask so AviUtl2 can
+select another media format. All other applications and supported format
+mappings keep the upstream DXVK behavior.
 
 ### Hardware-decoded AV1 frames
 
