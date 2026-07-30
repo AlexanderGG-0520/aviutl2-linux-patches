@@ -522,15 +522,13 @@ Install data not found
 ### 8.5 生成物確認
 
 ```fish
-for dll in \
-    d3d11.dll \
-    dxgi.dll \
-    d3d10core.dll
+for dll in d3d11.dll dxgi.dll d3d10core.dll
+    set dll_path "$DXVK_OUT/bin/$dll"
 
-    if test -f "$DXVK_OUT/bin/$dll"
-        echo "OK: $DXVK_OUT/bin/$dll"
+    if test -f "$dll_path"
+        echo "OK: $dll_path"
     else
-        echo "MISSING: $DXVK_OUT/bin/$dll"
+        echo "ERROR: Missing DLL: $dll_path"
     end
 end
 ```
