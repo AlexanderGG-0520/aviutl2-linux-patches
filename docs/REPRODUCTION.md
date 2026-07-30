@@ -1,4 +1,4 @@
-# AviUtl2 on Linux — ZIP直接展開による再現手順
+# AviUtl2 on Linux — 再現手順
 
 最終更新日: 2026-07-31
 
