@@ -1,84 +1,41 @@
-# Lutris で AviUtl2 Catalog を導入・管理する
+# Lutris / AviUtl2 Catalog
 
-この手順は、既存の AviUtl2 用 Wine prefix と、パッチ済み GE-Proton をそのまま維持したまま、AviUtl2 Catalog を Lutris のライブラリへ登録して管理するためのものです。
+最終更新日: 2026-07-31
 
-## 設計方針
+## 方針
 
-Lutris の Wine runner に実行環境の選択を任せず、Lutris から Bash ラッパーを起動します。
+Lutris の Wine Runner に Wine、Proton、DXVK の選択を任せない。
+Linux Runner から固定管理スクリプトを起動する。
 
-ラッパーが次を固定します。
-
-- 既存 prefix: `~/Games/aviutl2/prefix-ge-nvdec-test`
-- パッチ済み GE-Proton: `GE-Proton11-1-aviutl2-test`
-- カスタム DXVK 設定
-- NVIDIA/CUDA、DXVK、DirectWrite の DLL override
-- パッチ済み `dwrite.dll`
-
-Lutris 側の runner は `linux` です。ただし、AviUtl2 Catalog 本体はラッパーから Wine で起動します。
-
-この構成により、Lutris や UMU が Wine/Proton/DXVK を自動で切り替えて、検証済み環境から外れることを避けます。
-
-## 前提
-
-次のコマンドが必要です。
-
-```fish
-sudo pacman -S --needed lutris github-cli xdg-utils desktop-file-utils
-```
-
-GitHub CLI は public release の取得に使用します。
-
-```fish
-gh auth status
-```
-
-既定パスは次の通りです。
+管理スクリプト:
 
 ```text
-AviUtl2 root:
-  ~/Games/aviutl2
-
-Wine prefix:
-  ~/Games/aviutl2/prefix-ge-nvdec-test
-
-Patched GE-Proton:
-  ~/.local/share/Steam/compatibilitytools.d/GE-Proton11-1-aviutl2-test
+scripts/manage-aviutl2-catalog-lutris.sh
 ```
 
-別の場所を使う場合は、環境変数で上書きできます。
+## スクリプトの既定値
 
-```fish
-set -x AVIUTL2_ROOT "/path/to/aviutl2"
-set -x AVIUTL2_PREFIX "/path/to/prefix"
-set -x GE_PROTON_ROOT "/path/to/patched-ge-proton"
+```text
+AVIUTL2_ROOT=$HOME/Games/aviutl2
+AVIUTL2_PREFIX=$AVIUTL2_ROOT/prefix-ge-nvdec-test
+GE_PROTON_ROOT=$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1-aviutl2-test
+GE_WINE=$GE_PROTON_ROOT/files/lib/wine/x86_64-unix/wine
+GE_WINESERVER=$GE_PROTON_ROOT/files/bin/wineserver
+DXVK_CONFIG_FILE=$AVIUTL2_ROOT/nvidia-dxvk.conf
 ```
+
+Wine の入口は、実際のスクリプトと同じ `files/lib/wine/x86_64-unix/wine` を使用する。
 
 ## 初回導入
 
-スクリプトを実行可能にします。
-
 ```fish
-chmod +x scripts/manage-aviutl2-catalog-lutris.sh
+scripts/manage-aviutl2-catalog-lutris.sh \
+    lutris-install
 ```
 
-Lutris のローカルインストーラーを起動します。
+このコマンドは、ローカル Lutris installer YAML を生成し、既存の patched prefix へ Catalog を導入する。
 
-```fish
-scripts/manage-aviutl2-catalog-lutris.sh lutris-install
-```
-
-このコマンドは次を行います。
-
-1. GitHub Releases から AviUtl2 Catalog の最新版 x64 setup EXE を取得
-2. 既存のパッチ済み prefix で公式インストーラーを起動
-3. Lutris に「AviUtl2 Catalog」を登録
-4. Linux 側へ `aviutl2-catalog://` の URL handler を登録
-
-インストーラーは対話式です。画面に従ってインストールしてください。
-
-## AviUtl2 Catalog の初期設定
-
-Catalog のセットアップでは、既存の AviUtl2 を使用します。
+## Catalog の初期設定
 
 ```text
 AviUtl2:
@@ -91,45 +48,50 @@ Portable mode:
   無効
 ```
 
-この prefix では AviUtl2 本体が `C:\AviUtl2` にあり、プラグインとスクリプトは非ポータブル構成の次の場所にあります。
+非ポータブル構成:
 
 ```text
 C:\ProgramData\aviutl2\Plugin
 C:\ProgramData\aviutl2\Script
 ```
 
-Portable mode を有効にすると `C:\AviUtl2\data` が管理対象になり、現在の構成と分離してしまいます。
+Portable mode を有効にしない。
+有効にすると `C:\AviUtl2\data` が管理対象になり、現在の構成と分離する。
 
-## 重要: カスタム版 L-SMASH Works を上書きしない
+## コマンド
 
-現在の `lwinput.aui2` は NVDEC hardware frame transfer を追加したカスタムビルドです。
+状態確認:
 
-Catalog から通常版 L-SMASH Works をインストールまたは更新すると、カスタム版が上書きされ、AV1/NVDEC の検証済み動作を失う可能性があります。
+```fish
+scripts/manage-aviutl2-catalog-lutris.sh status
+```
 
-Catalog のアップデートセンターで L-SMASH Works の更新を一時停止するか、L-SMASH Works を Catalog の管理対象から外してください。
-
-次のものは Catalog の管理対象ではありません。
-
-- パッチ済み GE-Proton
-- パッチ済み Wine DirectWrite
-- カスタム DXVK
-- カスタム L-SMASH Works build
-
-Catalog は、それ以外の通常の AviUtl2 プラグインやスクリプトの検索・導入・更新に使用します。
-
-## 起動
-
-Lutris のライブラリから「AviUtl2 Catalog」を起動できます。
-
-CLI から直接起動する場合:
+起動:
 
 ```fish
 scripts/manage-aviutl2-catalog-lutris.sh launch
 ```
 
-## Deep Link
+更新または再インストール:
 
-Linux のブラウザから次の形式を開くと、Wine 上の Catalog を起動できます。
+```fish
+scripts/manage-aviutl2-catalog-lutris.sh update
+```
+
+バックアップ:
+
+```fish
+scripts/manage-aviutl2-catalog-lutris.sh backup
+```
+
+URL handler 再登録:
+
+```fish
+scripts/manage-aviutl2-catalog-lutris.sh \
+    register-url-handler
+```
+
+## Deep Link
 
 ```text
 aviutl2-catalog://
@@ -138,116 +100,40 @@ aviutl2-catalog://package/<package-id>
 aviutl2-catalog://package/<package-id>?install=true
 ```
 
-URL handler を再登録する場合:
+## L-SMASH Works を上書きしない
+
+現在の `lwinput.aui2` は NVDEC hardware frame transfer を追加したカスタムビルドである。
+Catalog から通常版 L-SMASH Works を更新すると、カスタム版が上書きされる。
+
+復旧:
 
 ```fish
-scripts/manage-aviutl2-catalog-lutris.sh register-url-handler
+set PLUGIN_DIR \
+    "$PREFIX/drive_c/ProgramData/aviutl2/Plugin"
+
+cp \
+    "$LSW_SRC/AviUtl2/lwinput.aui2" \
+    "$PLUGIN_DIR/lwinput.aui2"
+
+cp \
+    "$REPO/config/lsmash.ini" \
+    "$PLUGIN_DIR/lsmash.ini"
 ```
 
-## Catalog の更新
+復旧後に確認する。
 
-AviUtl2 Catalog 自身は、起動時に利用可能な更新を案内します。
+- AV1 読み込み
+- 再生
+- シーク
+- `av1_cuvid`
 
-Wine 上の自動更新に問題がある場合は、最新版インストーラーを再実行します。
+Catalog 側で停止できる場合は、L-SMASH Works の更新を停止する。
 
-```fish
-scripts/manage-aviutl2-catalog-lutris.sh update
-```
+## Catalog が管理しないもの
 
-`update` は先にバックアップを作成し、prefix 内の Wine プロセスを停止してから最新版をインストールします。AviUtl2 と Catalog を閉じてから実行してください。
+- patched GE-Proton
+- patched Wine DirectWrite
+- custom DXVK
+- custom L-SMASH Works build
 
-Lutris の起動構成から「Update or reinstall Catalog」を選ぶこともできます。
-
-## バックアップ
-
-Catalog でパッケージを大量更新する前に実行します。
-
-```fish
-scripts/manage-aviutl2-catalog-lutris.sh backup
-```
-
-既定の保存先:
-
-```text
-~/Backups/aviutl2-catalog/
-```
-
-バックアップには次が含まれます。
-
-- `C:\ProgramData\aviutl2`
-- AviUtl2 Catalog の `settings.json`
-
-prefix 全体の完全バックアップではありません。
-
-## 状態確認
-
-```fish
-scripts/manage-aviutl2-catalog-lutris.sh status
-```
-
-表示項目:
-
-- 使用中の prefix
-- 使用中のパッチ済み GE-Proton
-- Catalog EXE の検出結果
-- Catalog の設定ファイル
-- 設定された AviUtl2 root
-- Portable mode
-- インストール済み Catalog version
-- upstream latest release
-
-## アンインストール
-
-Catalog のみをアンインストールします。
-
-```fish
-scripts/manage-aviutl2-catalog-lutris.sh uninstall
-```
-
-実行前に `C:\ProgramData\aviutl2` と Catalog 設定のバックアップを作成します。
-
-AviUtl2 本体、prefix、プラグイン、スクリプトは自動削除しません。
-
-Lutris のライブラリエントリは Lutris 側から削除してください。
-
-## 生成される Lutris installer
-
-次のコマンドは、ローカル Lutris installer YAML だけを再生成します。
-
-```fish
-scripts/manage-aviutl2-catalog-lutris.sh write-lutris-yaml
-```
-
-生成先:
-
-```text
-lutris/aviutl2-catalog-local.yml
-```
-
-手動で読み込む場合:
-
-```fish
-lutris -i lutris/aviutl2-catalog-local.yml
-```
-
-## コマンド一覧
-
-```text
-lutris-install        Lutris 経由で初回インストールと登録
-install-only          Catalog installer のみ実行
-launch                Catalog を起動
-open-url URL          Deep Link を Catalog へ渡す
-update                バックアップ後に最新版を再インストール
-backup                ProgramData と Catalog 設定を保存
-status                現在の構成と version を表示
-register-url-handler  Linux の Deep Link handler を登録
-write-lutris-yaml     ローカル Lutris installer を生成
-uninstall             Catalog の uninstaller を実行
-```
-
-## 参照した upstream 仕様
-
-- `Neosku/aviutl2-catalog` README
-- AviUtl2 Catalog v0.3.3 release
-- `Neosku/aviutl2-catalog` の Tauri 設定と path 管理実装
-- `lutris/lutris` の local installer documentation
+Catalog は、通常の AviUtl2 プラグインとスクリプトの検索・導入・更新に使用する。
