@@ -169,7 +169,7 @@ wine-staging 11.0
 
 ```fish
 set PREFIX "$ROOT/prefix-ge-nvdec-test"
-set GE_WINE "$GE_TEST/files/lib/wine/x86_64-unix/wine"
+set GE_WINE "$GE_TEST/files/bin/wine"
 set GE_WINESERVER "$GE_TEST/files/bin/wineserver"
 ```
 
