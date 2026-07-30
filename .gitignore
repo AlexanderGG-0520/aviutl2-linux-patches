@@ -1,0 +1,12 @@
+*.dll
+*.so
+*.exe
+*.log
+*.zip
+*.tar
+*.tar.gz
+build/
+dist/
+prefix*/
+.cache/
+__pycache__/

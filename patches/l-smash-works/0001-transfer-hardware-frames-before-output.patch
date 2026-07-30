@@ -1,0 +1,133 @@
+From 393df5ef669707f776261e4ac1bcc7e9a9a227ab Mon Sep 17 00:00:00 2001
+From: alexandergg-0520 <uket.panda.1st@gmail.com>
+Date: Fri, 31 Jul 2026 03:58:59 +0900
+Subject: [PATCH] Fix hardware frame transfer before video output
+
+---
+ common/lwlibav_video.c | 27 ++++++++++++++++++++++++---
+ common/video_output.c  | 31 +++++++++++++++++++++++++++++++
+ common/video_output.h  |  6 ++++++
+ 3 files changed, 61 insertions(+), 3 deletions(-)
+
+diff --git a/common/lwlibav_video.c b/common/lwlibav_video.c
+index 9a87e18..6819d12 100644
+--- a/common/lwlibav_video.c
++++ b/common/lwlibav_video.c
+@@ -637,7 +637,12 @@ got_frame:
+     if( *got_picture )
+     {
+         av_frame_unref( frame );
+-        av_frame_move_ref( frame, mov_frame );
++        if( transfer_frame_data( frame, mov_frame ) < 0 )
++        {
++            lw_log_show( &vdhp->lh, LW_LOG_ERROR,
++                         "Failed to transfer a video frame from hardware memory." );
++            return -1;
++        }
+         vdhp->last_dec_frame = frame;
+     }
+     *pkt_pts = pkt->pts;
+@@ -1020,11 +1025,19 @@ static int get_frame
+             }
+             AVPacket pkt = { 0 };
+             av_frame_unref( frame );
+-            if( decode_video_packet( vdhp->ctx, frame, &got_picture, &pkt ) < 0 )
++            AVFrame *mov_frame = vdhp->movable_frame_buffer;
++            av_frame_unref( mov_frame );
++            if( decode_video_packet( vdhp->ctx, mov_frame, &got_picture, &pkt ) < 0 )
+             {
+                 lw_log_show( &vdhp->lh, LW_LOG_ERROR, "Failed to decode and flush a video frame." );
+                 return -1;
+             }
++            if( transfer_frame_data( frame, mov_frame ) < 0 )
++            {
++                lw_log_show( &vdhp->lh, LW_LOG_ERROR,
++                             "Failed to transfer a flushed video frame from hardware memory." );
++                return -1;
++            }
+             vdhp->last_fed_picture_number = current;
+             if( !got_picture )
+                 break;
+@@ -1617,7 +1630,15 @@ int lwlibav_video_find_first_valid_frame
+         av_frame_unref( vdhp->frame_buffer );
+         set_output_order_id( vdhp, pkt, i );
+         int got_picture;
+-        int ret = decode_video_packet( vdhp->ctx, vdhp->frame_buffer, &got_picture, pkt );
++        AVFrame *mov_frame = vdhp->movable_frame_buffer;
++        av_frame_unref( mov_frame );
++        int ret = decode_video_packet( vdhp->ctx, mov_frame, &got_picture, pkt );
++        if( transfer_frame_data( vdhp->frame_buffer, mov_frame ) < 0 )
++        {
++            lw_log_show( &vdhp->lh, LW_LOG_ERROR,
++                         "Failed to transfer the initial video frame from hardware memory." );
++            return -1;
++        }
+         /* Handle decoder delay derived from PAFF field coded pictures. */
+         if( i <= vsip->frame_count && i > decoder_delay
+          && !got_picture && vsip->frame_list[i].repeat_pict == 0 )
+diff --git a/common/video_output.c b/common/video_output.c
+index 53b0329..0e2db58 100644
+--- a/common/video_output.c
++++ b/common/video_output.c
+@@ -27,6 +27,7 @@ extern "C"
+ {
+ #endif  /* __cplusplus */
+ #include <libavutil/opt.h>
++#include <libavutil/hwcontext.h>
+ #include <libavcodec/avcodec.h>
+ #include <libswscale/swscale.h>
+ #ifdef __cplusplus
+@@ -203,3 +204,33 @@ void lw_cleanup_video_output_handler
+         vohp->scaler.sws_ctx = NULL;
+     }
+ }
++
++int transfer_frame_data
++(
++    AVFrame *dst,
++    AVFrame *src
++)
++{
++    /*
++     * Hardware decoders such as av1_cuvid return frames whose image
++     * data resides in GPU memory. Convert those frames to the software
++     * pixel format associated with hw_frames_ctx before any scaler or
++     * application-specific output path accesses AVFrame::data.
++     */
++    if( src->hw_frames_ctx )
++    {
++        int ret = av_hwframe_transfer_data( dst, src, 0 );
++        if( ret < 0 )
++        {
++            av_frame_unref( src );
++            return ret;
++        }
++
++        ret = av_frame_copy_props( dst, src );
++        av_frame_unref( src );
++        return ret;
++    }
++
++    av_frame_move_ref( dst, src );
++    return 0;
++}
+diff --git a/common/video_output.h b/common/video_output.h
+index 01a7376..d538e2c 100644
+--- a/common/video_output.h
++++ b/common/video_output.h
+@@ -103,6 +103,12 @@ void lw_cleanup_video_output_handler
+     lw_video_output_handler_t *vohp
+ );
+ 
++int transfer_frame_data
++(
++    AVFrame *dst,
++    AVFrame *src
++);
++
+ #ifdef __cplusplus
+ }
+ #endif  /* __cplusplus */
+-- 
+2.55.0
+

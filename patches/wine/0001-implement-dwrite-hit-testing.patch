@@ -1,0 +1,199 @@
+--- a/dlls/dwrite/layout.c
++++ b/dlls/dwrite/layout.c
+@@ -3962,12 +3962,113 @@
+     return S_OK;
+ }
+ 
++static HRESULT WINAPI dwritetextlayout_HitTestTextPosition(IDWriteTextLayout4 *iface,
++        UINT32 position, BOOL is_trailinghit, FLOAT *point_x, FLOAT *point_y,
++        DWRITE_HIT_TEST_METRICS *metrics);
++
+ static HRESULT WINAPI dwritetextlayout_HitTestPoint(IDWriteTextLayout4 *iface,
+-    FLOAT pointX, FLOAT pointY, BOOL* is_trailinghit, BOOL* is_inside, DWRITE_HIT_TEST_METRICS *metrics)
++        FLOAT point_x, FLOAT point_y, BOOL *is_trailinghit, BOOL *is_inside,
++        DWRITE_HIT_TEST_METRICS *metrics)
+ {
+-    FIXME("%p, %.8e, %.8e, %p, %p, %p): stub\n", iface, pointX, pointY, is_trailinghit, is_inside, metrics);
++    struct dwrite_textlayout *layout = impl_from_IDWriteTextLayout4(iface);
++    DWRITE_HIT_TEST_METRICS current, best = {0};
++    FLOAT current_x, current_y;
++    FLOAT best_distance = 1.0e30f;
++    UINT32 position = 0;
++    BOOL found = FALSE;
++    HRESULT hr;
++
++    TRACE("%p, %.8e, %.8e, %p, %p, %p.\n",
++            iface, point_x, point_y, is_trailinghit, is_inside, metrics);
++
++    if (!is_trailinghit || !is_inside || !metrics)
++        return E_INVALIDARG;
++
++    *is_trailinghit = FALSE;
++    *is_inside = FALSE;
++    memset(metrics, 0, sizeof(*metrics));
++
++    if (!layout->len)
++    {
++        metrics->isText = TRUE;
++        return S_OK;
++    }
++
++    while (position <= layout->len)
++    {
++        FLOAT left, right, top, bottom;
++        FLOAT dx, dy, distance;
++        UINT32 next;
++
++        memset(&current, 0, sizeof(current));
++
++        hr = dwritetextlayout_HitTestTextPosition(iface, position, FALSE,
++                &current_x, &current_y, &current);
++        if (FAILED(hr))
++            return hr;
++
++        left = current.left;
++        right = current.left + current.width;
++        top = current.top;
++        bottom = current.top + current.height;
++
++        if (point_x < left)
++            dx = left - point_x;
++        else if (point_x > right)
++            dx = point_x - right;
++        else
++            dx = 0.0f;
++
++        if (point_y < top)
++            dy = top - point_y;
++        else if (point_y > bottom)
++            dy = point_y - bottom;
++        else
++            dy = 0.0f;
+ 
+-    return E_NOTIMPL;
++        distance = dx * dx + dy * dy;
++
++        if (!found || distance < best_distance)
++        {
++            best = current;
++            best_distance = distance;
++            found = TRUE;
++        }
++
++        if (dx == 0.0f && dy == 0.0f)
++        {
++            best = current;
++            *is_inside = TRUE;
++            break;
++        }
++
++        if (position == layout->len)
++            break;
++
++        next = current.textPosition + current.length;
++
++        if (next <= position)
++            next = position + 1;
++
++        position = min(next, layout->len);
++    }
++
++    if (!found)
++        return E_FAIL;
++
++    *metrics = best;
++
++    if (best.width > 0.0f)
++    {
++        FLOAT middle = best.left + best.width / 2.0f;
++
++        if (best.bidiLevel & 1)
++            *is_trailinghit = point_x < middle;
++        else
++            *is_trailinghit = point_x >= middle;
++    }
++
++    return S_OK;
+ }
+ 
+ static HRESULT WINAPI dwritetextlayout_HitTestTextPosition(IDWriteTextLayout4 *iface,
+@@ -4185,10 +4286,77 @@
+     UINT32 textPosition, UINT32 textLength, FLOAT originX, FLOAT originY,
+     DWRITE_HIT_TEST_METRICS *metrics, UINT32 max_metricscount, UINT32* actual_metricscount)
+ {
+-    FIXME("%p, %u, %u, %f, %f, %p, %u, %p): stub\n", iface, textPosition, textLength, originX, originY, metrics,
++    struct dwrite_textlayout *layout = impl_from_IDWriteTextLayout4(iface);
++    DWRITE_HIT_TEST_METRICS start_metrics, end_metrics;
++    UINT32 range_start, range_end;
++    HRESULT hr;
++    FLOAT x1, y1, x2, y2;
++
++    TRACE("%p, %u, %u, %f, %f, %p, %u, %p.\n", iface, textPosition, textLength, originX, originY, metrics,
+         max_metricscount, actual_metricscount);
+ 
+-    return E_NOTIMPL;
++    if (FAILED(hr = layout_compute_effective_runs(layout)))
++        return hr;
++
++    if (actual_metricscount)
++        *actual_metricscount = 1;
++
++    range_start = min(textPosition, layout->len);
++    range_end = min(textPosition + textLength, layout->len);
++
++    if (!max_metricscount)
++        return S_OK;
++
++    if (!metrics)
++        return E_INVALIDARG;
++
++    if (range_start == range_end)
++    {
++        if (FAILED(hr = dwritetextlayout_HitTestTextPosition(iface, range_start, FALSE, &x1, &y1, &start_metrics)))
++            return hr;
++        metrics[0] = start_metrics;
++        metrics[0].length = 0;
++        return S_OK;
++    }
++
++    if (FAILED(hr = dwritetextlayout_HitTestTextPosition(iface, range_start, FALSE, &x1, &y1, &start_metrics)))
++        return hr;
++    if (FAILED(hr = dwritetextlayout_HitTestTextPosition(iface, range_end, FALSE, &x2, &y2, &end_metrics)))
++        return hr;
++
++    metrics[0].textPosition = range_start;
++    metrics[0].length = range_end - range_start;
++    metrics[0].bidiLevel = start_metrics.bidiLevel;
++    metrics[0].isText = start_metrics.isText;
++    metrics[0].isTrimmed = start_metrics.isTrimmed;
++
++    if (start_metrics.top == end_metrics.top)
++    {
++        metrics[0].top = start_metrics.top;
++        metrics[0].height = start_metrics.height;
++        if (x1 <= x2)
++        {
++            metrics[0].left = x1;
++            metrics[0].width = x2 - x1;
++        }
++        else
++        {
++            metrics[0].left = x2;
++            metrics[0].width = x1 - x2;
++        }
++    }
++    else
++    {
++        /* Multi-line: fall back to the whole layout rectangle. This is not
++         * pixel-perfect for selections spanning multiple lines, but it avoids
++         * crashes in callers such as AviUtl2's EditControl::drawSelectRange(). */
++        metrics[0].left = 0.0f;
++        metrics[0].width = layout->metrics.width;
++        metrics[0].height = layout->metrics.height;
++        metrics[0].top = start_metrics.top < end_metrics.top ? start_metrics.top : end_metrics.top;
++    }
++
++    return S_OK;
+ }
+ 
+ static HRESULT WINAPI dwritetextlayout1_SetPairKerning(IDWriteTextLayout4 *iface, BOOL is_pairkerning_enabled,
