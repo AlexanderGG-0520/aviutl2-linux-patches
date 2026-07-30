@@ -38,6 +38,11 @@ patches/dxvk/0001-aviutl2-format-support.patch
 Adjusts the D3D11 format-support path used by AviUtl2. This prevents the
 application from failing while checking support for DXGI format ID 69.
 
+The workaround is limited to the `aviutl2.exe` process and only activates when
+DXVK has no Vulkan mapping for `DXGI_FORMAT_G8R8_G8B8_UNORM`. Other
+applications, and systems where the format has a valid mapping, retain the
+upstream DXVK behavior.
+
 ### L-SMASH Works
 
 File:
