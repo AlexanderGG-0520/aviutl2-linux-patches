@@ -419,17 +419,58 @@ patch does not apply
 ### 8.3 MinGW 側 Vulkan-Headers の検査
 
 ```fish
+# DXVKソースの場所を確認
+echo "$DXVK_SRC"
+
+if not test -d "$DXVK_SRC/.git"
+    echo "ERROR: DXVK source repository not found: $DXVK_SRC"
+    return 1
+end
+
+# サブモジュール設定を同期して取得
+git -C "$DXVK_SRC" submodule sync --recursive
+
+and git -C "$DXVK_SRC" submodule update \
+    --init \
+    --recursive
+
+or begin
+    echo "ERROR: Failed to initialize DXVK submodules"
+    return 1
+end
+
+# Vulkan-Headersの実体を確認
+set VK_INCLUDE "$DXVK_SRC/include/vulkan/include"
+set VK_HEADER  "$VK_INCLUDE/vulkan/vulkan.h"
+
+if not test -f "$VK_HEADER"
+    echo "ERROR: Vulkan header not found:"
+    echo "$VK_HEADER"
+
+    echo
+    echo "Submodule status:"
+    git -C "$DXVK_SRC" submodule status --recursive
+
+    return 1
+end
+
+echo "OK: Vulkan-Headers found:"
+echo "$VK_HEADER"
+
+# DXVKのinclude pathを明示してMinGWで検査
 printf '#include <vulkan/vulkan.h>\nint main(void){return 0;}\n' \
     | x86_64-w64-mingw32-gcc \
+        -I"$VK_INCLUDE" \
         -x c \
         -E - \
         >/dev/null
 
-if test $status -eq 0
-    echo "OK: MinGW can include vulkan/vulkan.h"
-else
-    echo "ERROR: MinGW cannot include vulkan/vulkan.h"
+if test $status -ne 0
+    echo "ERROR: MinGW cannot include DXVK Vulkan-Headers"
+    return 1
 end
+
+echo "OK: MinGW can include DXVK Vulkan-Headers"
 ```
 
 `ERROR` の場合は Meson を実行しない。
@@ -456,16 +497,19 @@ meson setup \
     --buildtype release \
     --prefix "$DXVK_OUT"
 
-if test $status -eq 0
-    meson compile \
-        -C "$DXVK_SRC/build.w64" \
-        -j (nproc)
+and meson compile \
+    -C "$DXVK_SRC/build.w64" \
+    -j (nproc)
 
-    and meson install \
-        -C "$DXVK_SRC/build.w64"
-else
-    echo "ERROR: meson setup failed; compile/install were not run"
+and meson install \
+    -C "$DXVK_SRC/build.w64"
+
+or begin
+    echo "ERROR: DXVK build failed"
+    return 1
 end
+
+echo "OK: DXVK build and install completed"
 ```
 
 `meson setup` が失敗した後に出る次のエラーは二次障害である。
