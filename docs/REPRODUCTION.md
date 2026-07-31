@@ -635,29 +635,35 @@ patch \
 ### 9.3 Configure と DWrite ビルド
 
 ```fish
-if not git -C "$WINE_SRC" rev-parse \
-    --is-inside-work-tree \
-    >/dev/null 2>&1
+printf 'WINE_SRC=%s\n' "$WINE_SRC"
 
-    echo "ERROR: Wine submodule is not initialized:"
+if not test -d "$WINE_SRC"
+    echo "ERROR: Wine source directory is missing:"
     echo "$WINE_SRC"
-    return 1
-end
 
-if not test -f "$WINE_SRC/configure.ac"
+else if not test -f "$WINE_SRC/configure.ac"
     echo "ERROR: Wine configure.ac is missing:"
     echo "$WINE_SRC/configure.ac"
-    return 1
-end
 
-if not test -f "$WINE_SRC/dlls/dwrite/layout.c"
+else if not test -f "$WINE_SRC/dlls/dwrite/layout.c"
     echo "ERROR: DirectWrite source is missing:"
     echo "$WINE_SRC/dlls/dwrite/layout.c"
-    return 1
-end
 
-echo "OK: Wine source and DirectWrite source exist"
-git -C "$WINE_SRC" rev-parse HEAD
+else
+    echo "OK: Wine source and DirectWrite source exist"
+    echo "$WINE_SRC"
+
+    if git -C "$WINE_SRC" rev-parse \
+        --is-inside-work-tree \
+        >/dev/null 2>&1
+
+        echo "INFO: Wine source is a Git worktree"
+        git -C "$WINE_SRC" rev-parse HEAD
+    else
+        echo "INFO: Wine source is not a Git worktree"
+        echo "INFO: Git revision checks will be skipped"
+    end
+end
 ```
 
 `make dlls/dwrite` と `make -B` は使用しない。
