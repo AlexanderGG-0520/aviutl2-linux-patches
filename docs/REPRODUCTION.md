@@ -1,79 +1,138 @@
-# AviUtl2 on Linux — 再現手順
+# AviUtl2 on Linux — ローカル修正の再現手順
 
 最終更新日: 2026-07-31
 
-> [!IMPORTANT]
-> この文書は、元環境で成功した構成を基準に、別環境で再現確認するための手順である。
-> 2026-07-31 時点では、クリーン環境からの全工程は未完了である。
-> 未確認の工程を「再現済み」とは記載しない。
+## 1. この文書の目的
 
-## 1. 対象構成
-
-- AviUtl2 2.1.2
-- GE-Proton 11-1 / wine-staging 11.0
-- DXVK 2.7.1
-- Wine DirectWrite patch
-- NVIDIA NVDEC
-- patched L-SMASH Works
-- Fcitx5 + Mozc
-- 非ポータブル構成
-- Lutris の Linux Runner から固定ランチャーを起動
-
-最終構成:
+この文書は、次のリポジトリに保存されているローカル修正を別環境へ適用し、元環境と同じAviUtl2実行構成を再現するための手順である。
 
 ```text
-Lutris
-└── Linux Runner
-    └── 固定ランチャー
-        ├── GE-Proton11-1-aviutl2-test
-        ├── prefix-ge-nvdec-test
-        ├── patched DXVK
-        ├── patched Wine DWrite
-        ├── patched L-SMASH Works
-        ├── AviUtl2
-        └── AviUtl2 Catalog
+https://github.com/AlexanderGG-0520/aviutl2-linux-patches
 ```
 
-## 2. 重要な前提
-
-### 2.1 `setup.exe` は使用しない
-
-AviUtl2 本体は公式 ZIP を Linux 側で取得・検証・展開し、次へ直接配置する。
+対象となる修正は次の3つである。
 
 ```text
-C:\AviUtl2
+patches/dxvk/0001-aviutl2-format-support.patch
+
+patches/wine/0001-implement-dwrite-hit-testing.patch
+
+patches/l-smash-works/0001-transfer-hardware-frames-before-output.patch
 ```
 
-Wine 上で `setup.exe` を実行すると、環境によって次のエラーが発生する。
+これらに加えて、次の設定と導入・起動スクリプトを使用する。
 
 ```text
-zipFile->BindToHandler() failed
-HRESULT: 0x80070002
-Place: System::Zip::openFile()
+config/nvidia-dxvk.conf
+config/lsmash.ini
+
+scripts/install-dwrite.fish
+scripts/launch-aviutl2.example.fish
+scripts/manage-aviutl2-catalog-lutris.sh
 ```
 
-### 2.2 実行バイナリを混在させない
+単にAviUtl2、DXVK、Wine、L-SMASH Worksの公式版を導入しただけでは、元環境の修正は再現されない。
 
-元環境と管理スクリプトで実際に使用した値は次である。
+必ずこのリポジトリのパッチ、設定ファイル、導入スクリプトを使用する。
+
+---
+
+## 2. 確認済みの構成
+
+元環境では次の構成で動作を確認した。
+
+| 項目             | 使用環境                                                                   |
+| -------------- | ---------------------------------------------------------------------- |
+| OS             | CachyOS                                                                |
+| GPU            | NVIDIA GeForce RTX 4060 Ti 8 GB                                        |
+| NVIDIA Driver  | 610.43.3                                                               |
+| GE-Proton      | GE-Proton 11-1                                                         |
+| Wine           | wine-staging 11.0                                                      |
+| DXVK           | 2.7.1                                                                  |
+| AviUtl2        | 2.1.2                                                                  |
+| IME            | Fcitx5 + Mozc                                                          |
+| Wine prefix    | `~/Games/aviutl2/prefix-ge-nvdec-test`                                 |
+| パッチ済みGE-Proton | `~/.local/share/Steam/compatibilitytools.d/GE-Proton11-1-aviutl2-test` |
+
+確認済みの機能:
 
 ```text
-Wine:
-$GE_TEST/files/lib/wine/x86_64-unix/wine
-
-wineserver:
-$GE_TEST/files/bin/wineserver
+AviUtl2の起動
+DXVK format 69問題の回避
+AV1ファイルの読み込み
+AV1の再生
+AV1のシーク
+NVIDIA NVDECの利用
+テキスト選択
+テキスト編集状態への移行
+Fcitx5 / Mozcによる入力・変換・確定
+AviUtl2 Catalogの同一prefixでの利用
+Catalog更新後のパッチ済みL-SMASH Works復旧
 ```
 
-`$GE_TEST/files/bin/wine` を使う別手順と混在させない。
+別のWine、GE-Proton、DXVK、GPU、ドライバ、IME、デスクトップ環境で同じ結果になることは保証しない。
 
-### 2.3 Lutris の Wine Runner を使わない
+---
 
-Lutris には Wine、Proton、DXVK の選択を任せない。
-Linux Runner からリポジトリ内の固定ランチャーを呼ぶ。
+## 3. このリポジトリだけでは生成できないもの
 
-## 3. 必要パッケージ
+このリポジトリには、次をゼロから生成するスクリプトは現時点では収録されていない。
 
-CachyOS / Arch Linux 系の基本パッケージ:
+```text
+GE-Proton 11-1相当のWineソースツリー
+設定済みWineビルドツリー
+MinGW向けFFmpeg・L-SMASH・dav1d・libvpx・libvpl等の依存関係
+```
+
+そのため、Wine DWriteの再ビルドには、次の2つが既に存在することを前提とする。
+
+```text
+$WINE_SRC
+$WINE_BUILD
+```
+
+期待する内容:
+
+```text
+$WINE_SRC/dlls/dwrite/layout.c
+
+$WINE_BUILD/Makefile
+$WINE_BUILD/dlls/dwrite/x86_64-windows/
+```
+
+L-SMASH Worksのビルドには、MinGW向け依存関係を格納した次のprefixが既に存在することを前提とする。
+
+```text
+$CROSS_PREFIX
+```
+
+この前提が満たされていない状態を「再現完了」とは扱わない。
+
+---
+
+## 4. 使用するシェル
+
+対話用コマンドはFish 4.xを前提とする。
+
+```text
+fish
+```
+
+次は使用しない。
+
+```text
+Fish対話シェル直下での return
+Fish対話シェル直下での exit
+Bash用の heredoc をFishへ貼り付けること
+```
+
+リポジトリ内の`.sh`スクリプトはBashで実行する。
+
+---
+
+## 5. 必要パッケージ
+
+CachyOS / Arch Linux系:
 
 ```fish
 sudo pacman -S --needed \
@@ -91,15 +150,19 @@ sudo pacman -S --needed \
     pkgconf \
     mingw-w64-gcc \
     freetype2 \
-    lutris
+    lutris \
+    github-cli
 ```
 
-この一覧だけでは、MinGW 側の Vulkan-Headers が揃うとは限らない。
-DXVK ビルド前に必ずヘッダー検査を行う。
+`bsdtar`は`libarchive`に含まれる。
 
-## 4. 共通変数
+NVIDIAドライバ、Vulkan、Fcitx5、Mozcは各環境に合わせて導入する。
 
-Fish で次を設定する。
+---
+
+## 6. 共通変数
+
+Fishで次を設定する。
 
 ```fish
 set ROOT "$HOME/Games/aviutl2"
@@ -111,7 +174,8 @@ set GE_ORIGINAL \
 set GE_TEST \
     "$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1-aviutl2-test"
 
-set PREFIX "$ROOT/prefix-ge-nvdec-test"
+set PREFIX \
+    "$ROOT/prefix-ge-nvdec-test"
 
 set GE_WINE \
     "$GE_TEST/files/lib/wine/x86_64-unix/wine"
@@ -122,10 +186,38 @@ set GE_WINESERVER \
 set GE_LIBS \
     "$GE_TEST/files/lib64:$GE_TEST/files/lib:$GE_TEST/files/lib/wine/x86_64-unix:$GE_TEST/files/lib/wine/i386-unix"
 
-set DXVK_CONFIG_FILE "$ROOT/nvidia-dxvk.conf"
+set DXVK_SRC \
+    "$ROOT/src/dxvk-2.7.1-aviutl2"
+
+set DXVK_OUT \
+    "$ROOT/runtime/dxvk-2.7.1-aviutl2"
+
+set WINE_SRC \
+    "$ROOT/src/wine-ge11-1-dwrite"
+
+set WINE_BUILD \
+    "$ROOT/build/wine-ge11-1-dwrite"
+
+set LSW_SRC \
+    "$ROOT/src/L-SMASH-Works-nvdec"
+
+set LSW_BUILD \
+    "$ROOT/build/l-smash-works-nvdec"
+
+set CROSS_PREFIX \
+    "$LSW_BUILD/prefix"
+
+set AVIUTL2_TARGET \
+    "$PREFIX/drive_c/AviUtl2"
+
+set PLUGIN_DIR \
+    "$PREFIX/drive_c/ProgramData/aviutl2/Plugin"
+
+set DXVK_CONFIG_FILE \
+    "$ROOT/nvidia-dxvk.conf"
 ```
 
-作業ディレクトリ:
+作業ディレクトリを作成する。
 
 ```fish
 mkdir -p \
@@ -136,7 +228,9 @@ mkdir -p \
     "$ROOT/logs"
 ```
 
-リポジトリ:
+---
+
+## 7. パッチリポジトリを取得
 
 ```fish
 if test -d "$REPO/.git"
@@ -148,7 +242,30 @@ else
 end
 ```
 
-DXVK 設定を管理スクリプトの既定パスへ配置する。
+必要なファイルを確認する。
+
+```fish
+for path in \
+    "$REPO/patches/dxvk/0001-aviutl2-format-support.patch" \
+    "$REPO/patches/wine/0001-implement-dwrite-hit-testing.patch" \
+    "$REPO/patches/l-smash-works/0001-transfer-hardware-frames-before-output.patch" \
+    "$REPO/config/nvidia-dxvk.conf" \
+    "$REPO/config/lsmash.ini" \
+    "$REPO/scripts/install-dwrite.fish" \
+    "$REPO/scripts/launch-aviutl2.example.fish" \
+    "$REPO/scripts/manage-aviutl2-catalog-lutris.sh"
+
+    if test -f "$path"
+        echo "OK: $path"
+    else
+        echo "MISSING: $path"
+    end
+end
+```
+
+`MISSING`が1つでも出た場合は、以降へ進まない。
+
+DXVK設定を、既存ランチャーが参照する場所へ配置する。
 
 ```fish
 cp \
@@ -156,29 +273,52 @@ cp \
     "$DXVK_CONFIG_FILE"
 ```
 
-## 5. GE-Proton を複製
-
-元の GE-Proton を直接変更しない。
+確認:
 
 ```fish
-if not test -d "$GE_ORIGINAL"
-    echo "ERROR: GE-Proton 11-1 not found: $GE_ORIGINAL"
-end
-
-if test -d "$GE_TEST"
-    set TS (date +%Y%m%d-%H%M%S)
-
-    mv \
-        "$GE_TEST" \
-        "$GE_TEST.before-recreate-$TS"
-end
-
-cp -a \
-    "$GE_ORIGINAL" \
-    "$GE_TEST"
+cat "$DXVK_CONFIG_FILE"
 ```
 
-### 5.1 パス検査
+期待値:
+
+```text
+dxgi.hideNvidiaGpu = False
+```
+
+---
+
+## 8. GE-Proton 11-1をテスト用に複製
+
+元のGE-Protonを直接変更しない。
+
+最初に存在確認する。
+
+```fish
+if test -d "$GE_ORIGINAL"
+    echo "OK: Original GE-Proton exists"
+    echo "$GE_ORIGINAL"
+else
+    echo "ERROR: Original GE-Proton is missing"
+    echo "$GE_ORIGINAL"
+end
+```
+
+`GE_TEST`が既に存在する場合は、内容を確認せず上書きしない。
+
+```fish
+if test -d "$GE_TEST"
+    echo "INFO: Test GE-Proton already exists"
+    echo "$GE_TEST"
+else
+    cp -a \
+        "$GE_ORIGINAL" \
+        "$GE_TEST"
+
+    echo "OK: Test GE-Proton was created"
+end
+```
+
+実際に使用するWineとwineserverを確認する。
 
 ```fish
 for path in \
@@ -191,7 +331,11 @@ for path in \
         echo "MISSING: $path"
     end
 end
+```
 
+ライブラリーディレクトリを確認する。
+
+```fish
 for path in \
     "$GE_TEST/files/lib64" \
     "$GE_TEST/files/lib" \
@@ -206,9 +350,7 @@ for path in \
 end
 ```
 
-`MISSING` が1つでも出た場合は、以降へ進まない。
-
-Wine バージョン確認:
+Wineバージョン確認:
 
 ```fish
 env \
@@ -223,10 +365,17 @@ env \
 wine-staging 11.0
 ```
 
-## 6. Wine prefix を作成
+---
+
+## 9. Wine prefixを準備
+
+prefixが存在しない場合のみ作成する。
 
 ```fish
-if not test -d "$PREFIX/drive_c"
+if test -d "$PREFIX/drive_c"
+    echo "INFO: Wine prefix already exists"
+    echo "$PREFIX"
+else
     env \
         WINEPREFIX="$PREFIX" \
         LD_LIBRARY_PATH="$GE_LIBS" \
@@ -238,22 +387,41 @@ end
 確認:
 
 ```fish
-test -d "$PREFIX/drive_c"
-and echo "OK: prefix exists"
+if test -d "$PREFIX/drive_c"
+    echo "OK: Wine prefix exists"
+else
+    echo "ERROR: Wine prefix was not created"
+end
 ```
 
-## 7. AviUtl2 を公式 ZIP から配置
+---
+
+## 10. AviUtl2本体を公式ZIPから配置
+
+AviUtl2本体の`setup.exe`は使用しない。
+
+Wine上でセットアップを実行すると、環境によって次のエラーが発生するためである。
+
+```text
+zipFile->BindToHandler() failed
+HRESULT: 0x80070002
+Place: System::Zip::openFile()
+```
+
+公式ZIPをLinux側で取得・検証・展開し、Wine prefixへ直接配置する。
+
+### 10.1 ダウンロード
 
 ```fish
 set AVIUTL2_VERSION "2.1.2"
 set AVIUTL2_FILE "aviutl2_v$AVIUTL2_VERSION.zip"
+
 set AVIUTL2_URL \
     "https://spring-fragrance.mints.ne.jp/aviutl/$AVIUTL2_FILE"
+
 set AVIUTL2_ZIP \
     "$ROOT/downloads/$AVIUTL2_FILE"
 ```
-
-取得:
 
 ```fish
 rm -f "$AVIUTL2_ZIP.part"
@@ -270,57 +438,85 @@ if test $status -eq 0
     mv \
         "$AVIUTL2_ZIP.part" \
         "$AVIUTL2_ZIP"
+
+    echo "OK: Downloaded"
+    echo "$AVIUTL2_ZIP"
 else
     echo "ERROR: AviUtl2 ZIP download failed"
 end
 ```
 
-検証:
+### 10.2 ZIPを検証
 
 ```fish
 file "$AVIUTL2_ZIP"
-bsdtar -tf "$AVIUTL2_ZIP" >/dev/null
-and echo "OK: ZIP archive is readable"
+
+if bsdtar -tf "$AVIUTL2_ZIP" >/dev/null
+    echo "OK: ZIP archive is readable"
+else
+    echo "ERROR: ZIP archive is invalid"
+end
 
 sha256sum "$AVIUTL2_ZIP"
 ```
 
-展開と配置:
+### 10.3 展開と配置
 
 ```fish
 set STAGE (mktemp -d)
 
-bsdtar -xf \
+if bsdtar -xf \
     "$AVIUTL2_ZIP" \
     -C "$STAGE"
 
+    echo "OK: ZIP extracted"
+else
+    echo "ERROR: ZIP extraction failed"
+end
+```
+
+```fish
 set AVIUTL2_EXE (find \
     "$STAGE" \
     -type f \
     -iname aviutl2.exe \
     | head -n 1)
 
-set AVIUTL2_TARGET \
-    "$PREFIX/drive_c/AviUtl2"
-
-if test -z "$AVIUTL2_EXE"
-    echo "ERROR: aviutl2.exe was not found in ZIP"
+if test -n "$AVIUTL2_EXE"
+    echo "OK: Found AviUtl2"
+    echo "$AVIUTL2_EXE"
 else
-    env \
-        WINEPREFIX="$PREFIX" \
-        "$GE_WINESERVER" -k \
-        2>/dev/null
+    echo "ERROR: aviutl2.exe was not found"
+end
+```
 
-    sleep 1
+AviUtl2とwineserverを停止する。
 
-    if test -d "$AVIUTL2_TARGET"
-        set TS (date +%Y%m%d-%H%M%S)
+```fish
+env \
+    WINEPREFIX="$PREFIX" \
+    "$GE_WINESERVER" -k \
+    2>/dev/null
 
-        mv \
-            "$AVIUTL2_TARGET" \
-            "$AVIUTL2_TARGET.before-zip-install-$TS"
-    end
+sleep 1
+```
 
+既存のAviUtl2をバックアップする。
+
+```fish
+if test -d "$AVIUTL2_TARGET"
+    set TS (date +%Y%m%d-%H%M%S)
+
+    mv \
+        "$AVIUTL2_TARGET" \
+        "$AVIUTL2_TARGET.before-zip-install-$TS"
+end
+```
+
+配置する。
+
+```fish
+if test -n "$AVIUTL2_EXE"
     set AVIUTL2_SOURCE \
         (dirname "$AVIUTL2_EXE")
 
@@ -330,134 +526,145 @@ else
         "$AVIUTL2_SOURCE/." \
         "$AVIUTL2_TARGET/"
 end
-
-rm -rf "$STAGE"
 ```
 
-非ポータブル構成を維持する。
+非ポータブル構成を維持するため、本体フォルダ内の`data`を削除する。
 
 ```fish
-rm -rf "$AVIUTL2_TARGET/data"
+rm -rf \
+    "$AVIUTL2_TARGET/data"
 ```
 
 確認:
 
 ```fish
-test -f "$AVIUTL2_TARGET/aviutl2.exe"
-and echo "OK: AviUtl2 installed"
+if test -f "$AVIUTL2_TARGET/aviutl2.exe"
+    echo "OK: AviUtl2 installed"
+    echo "$AVIUTL2_TARGET/aviutl2.exe"
+else
+    echo "ERROR: AviUtl2 installation failed"
+end
 ```
 
-## 8. DXVK 2.7.1
-
-### 8.1 ソース取得
+一時ディレクトリを削除する。
 
 ```fish
-set DXVK_SRC \
-    "$ROOT/src/dxvk-2.7.1-aviutl2"
+rm -rf "$STAGE"
+```
 
-set DXVK_OUT \
-    "$ROOT/runtime/dxvk-2.7.1-aviutl2"
+---
 
-if not test -d "$DXVK_SRC/.git"
+## 11. DXVK 2.7.1へローカル修正を適用
+
+使用するパッチ:
+
+```text
+patches/dxvk/0001-aviutl2-format-support.patch
+```
+
+このパッチは、次の条件をすべて満たした問い合わせだけを回避する。
+
+```text
+実行ファイル名がaviutl2.exe
+DXGI formatがDXGI_FORMAT_G8R8_G8B8_UNORM
+Vulkan mappingがVK_FORMAT_UNDEFINED
+```
+
+### 11.1 DXVKをサブモジュール込みで取得
+
+```fish
+if test -d "$DXVK_SRC/.git"
+    echo "INFO: Existing DXVK source tree found"
+    echo "$DXVK_SRC"
+
+    git -C "$DXVK_SRC" submodule \
+        sync \
+        --recursive
+
+    git -C "$DXVK_SRC" submodule \
+        update \
+        --init \
+        --recursive
+else
     git clone \
         --recursive \
         --branch v2.7.1 \
         --depth 1 \
         https://github.com/doitsujin/dxvk.git \
         "$DXVK_SRC"
-else
-    git -C "$DXVK_SRC" submodule \
-        update \
-        --init \
-        --recursive
 end
 ```
 
-必ず基準を確認する。
+基準バージョンを確認する。
 
 ```fish
-git -C "$DXVK_SRC" rev-parse HEAD
-git -C "$DXVK_SRC" describe --tags --always --dirty
+git -C "$DXVK_SRC" describe \
+    --tags \
+    --exact-match \
+    HEAD
+
 git -C "$DXVK_SRC" status --short
 ```
 
-期待する基準:
+期待値:
 
 ```text
-c3dd74be6baec53786d4e064a572185b70347a17
 v2.7.1
 ```
 
-### 8.2 パッチ適用
+`v2.7.1`以外の場合は、パッチを適用しない。
 
-```fish
-set DXVK_PATCH \
-    "$REPO/patches/dxvk/0001-aviutl2-format-support.patch"
+### 11.2 DXVK同梱Vulkan-Headersを確認
 
-if git -C "$DXVK_SRC" apply --check "$DXVK_PATCH"
-    git -C "$DXVK_SRC" apply "$DXVK_PATCH"
-    echo "OK: DXVK patch applied"
-else if git -C "$DXVK_SRC" apply --reverse --check "$DXVK_PATCH"
-    echo "OK: DXVK patch is already applied"
-else
-    echo "ERROR: DXVK patch does not match this source tree"
-    git -C "$DXVK_SRC" describe --tags --always --dirty
-    git -C "$DXVK_SRC" status --short
-end
-```
-
-最後の `ERROR` が出た場合は、ビルドへ進まない。
-`--reject` や手動の部分適用で「再現成功」と扱わない。
-
-2026-07-31 の別環境では、次で停止している。
+DXVK 2.7.1は、次のサブモジュールを使用する。
 
 ```text
-patch failed: src/d3d11/d3d11_device.cpp:30
-patch does not apply
+include/vulkan
+include/spirv
+include/native/directx
+subprojects/libdisplay-info
 ```
 
-### 8.3 MinGW 側 Vulkan-Headers の検査
+Vulkanヘッダーを確認する。
 
 ```fish
-# DXVKソースの場所を確認
-echo "$DXVK_SRC"
+set VK_INCLUDE \
+    "$DXVK_SRC/include/vulkan/include"
 
-if not test -d "$DXVK_SRC/.git"
-    echo "ERROR: DXVK source repository not found: $DXVK_SRC"
-    return 1
-end
+set VK_HEADER \
+    "$VK_INCLUDE/vulkan/vulkan.h"
 
-# サブモジュール設定を同期して取得
-git -C "$DXVK_SRC" submodule sync --recursive
-
-and git -C "$DXVK_SRC" submodule update \
-    --init \
-    --recursive
-
-or begin
-    echo "ERROR: Failed to initialize DXVK submodules"
-    return 1
-end
-
-# Vulkan-Headersの実体を確認
-set VK_INCLUDE "$DXVK_SRC/include/vulkan/include"
-set VK_HEADER  "$VK_INCLUDE/vulkan/vulkan.h"
-
-if not test -f "$VK_HEADER"
-    echo "ERROR: Vulkan header not found:"
+if test -f "$VK_HEADER"
+    echo "OK: DXVK Vulkan-Headers exists"
     echo "$VK_HEADER"
-
-    echo
-    echo "Submodule status:"
+else
+    echo "ERROR: DXVK Vulkan-Headers is missing"
     git -C "$DXVK_SRC" submodule status --recursive
-
-    return 1
 end
+```
 
-echo "OK: Vulkan-Headers found:"
-echo "$VK_HEADER"
+SPIR-Vヘッダーも確認する。
 
-# DXVKのinclude pathを明示してMinGWで検査
+```fish
+set SPIRV_HEADER \
+    "$DXVK_SRC/include/spirv/include/spirv/unified1/spirv.hpp"
+
+if test -f "$SPIRV_HEADER"
+    echo "OK: DXVK SPIRV-Headers exists"
+else
+    echo "ERROR: DXVK SPIRV-Headers is missing"
+end
+```
+
+MinGWの標準include pathだけを検査する次のコマンドは、DXVKのサブモジュールを参照しないため、DXVKビルドの必須判定には使用しない。
+
+```text
+x86_64-w64-mingw32-gcc -x c -E -
+```
+
+必要ならDXVKのinclude pathを明示して検査する。
+
+```fish
 printf '#include <vulkan/vulkan.h>\nint main(void){return 0;}\n' \
     | x86_64-w64-mingw32-gcc \
         -I"$VK_INCLUDE" \
@@ -465,277 +672,492 @@ printf '#include <vulkan/vulkan.h>\nint main(void){return 0;}\n' \
         -E - \
         >/dev/null
 
-if test $status -ne 0
+if test $status -eq 0
+    echo "OK: MinGW can include DXVK Vulkan-Headers"
+else
     echo "ERROR: MinGW cannot include DXVK Vulkan-Headers"
-    return 1
 end
-
-echo "OK: MinGW can include DXVK Vulkan-Headers"
 ```
 
-`ERROR` の場合は Meson を実行しない。
-ホスト側で Vulkan が動作していても、MinGW クロスコンパイラからヘッダーが見えるとは限らない。
-
-2026-07-31 の別環境では、次で停止している。
-
-```text
-Check usable header "vulkan/vulkan.h" : NO
-ERROR: Missing Vulkan-Headers
-```
-
-### 8.4 ビルド
-
-パッチ適用と Vulkan-Headers 検査の両方が通った場合だけ実行する。
+### 11.3 DXVKパッチを適用
 
 ```fish
-rm -rf "$DXVK_SRC/build.w64"
+set DXVK_PATCH \
+    "$REPO/patches/dxvk/0001-aviutl2-format-support.patch"
+```
 
+```fish
+if git -C "$DXVK_SRC" apply \
+    --check \
+    "$DXVK_PATCH"
+
+    git -C "$DXVK_SRC" apply \
+        "$DXVK_PATCH"
+
+    if test $status -eq 0
+        echo "OK: DXVK patch applied"
+    else
+        echo "ERROR: DXVK patch application failed"
+    end
+
+else if git -C "$DXVK_SRC" apply \
+    --reverse \
+    --check \
+    "$DXVK_PATCH"
+
+    echo "INFO: DXVK patch is already applied"
+
+else
+    echo "ERROR: DXVK patch does not match this source tree"
+    echo
+    git -C "$DXVK_SRC" describe \
+        --tags \
+        --always \
+        --dirty
+
+    git -C "$DXVK_SRC" status --short
+end
+```
+
+次が出た場合はビルドへ進まない。
+
+```text
+patch does not apply
+```
+
+`--reject`による部分適用や、失敗したhunkを無視した状態を再現成功とは扱わない。
+
+### 11.4 DXVKをビルド
+
+失敗済みのMesonディレクトリを削除する。
+
+```fish
+rm -rf \
+    "$DXVK_SRC/build.w64"
+```
+
+Meson setup:
+
+```fish
 meson setup \
     "$DXVK_SRC/build.w64" \
     "$DXVK_SRC" \
     --cross-file "$DXVK_SRC/build-win64.txt" \
     --buildtype release \
     --prefix "$DXVK_OUT"
-
-and meson compile \
-    -C "$DXVK_SRC/build.w64" \
-    -j (nproc)
-
-and meson install \
-    -C "$DXVK_SRC/build.w64"
-
-or begin
-    echo "ERROR: DXVK build failed"
-    return 1
-end
-
-echo "OK: DXVK build and install completed"
 ```
 
-`meson setup` が失敗した後に出る次のエラーは二次障害である。
-
-```text
-Current directory is not a meson build directory
-Install data not found
-```
-
-### 8.5 生成物確認
+`meson setup`が成功したことを確認する。
 
 ```fish
-for dll in d3d11.dll dxgi.dll d3d10core.dll
-    set dll_path "$DXVK_OUT/bin/$dll"
-
-    if test -f "$dll_path"
-        echo "OK: $dll_path"
-    else
-        echo "ERROR: Missing DLL: $dll_path"
-    end
+if test -f "$DXVK_SRC/build.w64/build.ninja"
+    echo "OK: Meson build directory created"
+else
+    echo "ERROR: Meson setup failed"
 end
 ```
 
-パッチ文字列:
+成功した場合のみコンパイルする。
 
 ```fish
-strings "$DXVK_OUT/bin/d3d11.dll" \
-    | grep -E \
-        'AviUtl2 compatibility|AviUtl2 trace'
+if test -f "$DXVK_SRC/build.w64/build.ninja"
+    meson compile \
+        -C "$DXVK_SRC/build.w64" \
+        -j (nproc)
+else
+    echo "ERROR: DXVK compile skipped because setup failed"
+end
 ```
 
-### 8.6 Prefix へ導入
+コンパイル成功後にインストールする。
 
 ```fish
-set SYSTEM32 \
-    "$PREFIX/drive_c/windows/system32"
-set TS (date +%Y%m%d-%H%M%S)
+if test -f "$DXVK_SRC/build.w64/build.ninja"
+    meson install \
+        -C "$DXVK_SRC/build.w64"
+else
+    echo "ERROR: DXVK install skipped because setup failed"
+end
+```
 
+生成物を確認する。
+
+```fish
 for dll in \
     d3d11.dll \
     dxgi.dll \
     d3d10core.dll
 
-    if test -f "$SYSTEM32/$dll"
-        cp -a \
-            "$SYSTEM32/$dll" \
-            "$SYSTEM32/$dll.backup-$TS"
+    if test -f "$DXVK_OUT/bin/$dll"
+        echo "OK: $DXVK_OUT/bin/$dll"
+    else
+        echo "MISSING: $DXVK_OUT/bin/$dll"
     end
+end
+```
 
-    cp \
+### 11.5 パッチ済みDXVKをprefixへ導入
+
+```fish
+set SYSTEM32 \
+    "$PREFIX/drive_c/windows/system32"
+
+set TS \
+    (date +%Y%m%d-%H%M%S)
+```
+
+```fish
+for dll in \
+    d3d11.dll \
+    dxgi.dll \
+    d3d10core.dll
+
+    set DLL_SRC \
+        "$DXVK_OUT/bin/$dll"
+
+    set DLL_DST \
+        "$SYSTEM32/$dll"
+
+    if not test -f "$DLL_SRC"
+        echo "ERROR: Source DLL is missing"
+        echo "$DLL_SRC"
+
+    else
+        if test -f "$DLL_DST"
+            cp -a \
+                "$DLL_DST" \
+                "$DLL_DST.backup-$TS"
+        end
+
+        cp \
+            "$DLL_SRC" \
+            "$DLL_DST"
+
+        echo "Installed:"
+        echo "$DLL_DST"
+    end
+end
+```
+
+SHA-256を確認する。
+
+```fish
+for dll in \
+    d3d11.dll \
+    dxgi.dll \
+    d3d10core.dll
+
+    sha256sum \
         "$DXVK_OUT/bin/$dll" \
         "$SYSTEM32/$dll"
 end
 ```
 
-## 9. Wine DirectWrite
+各ペアのSHA-256が一致していることを確認する。
 
-> [!WARNING]
-> 元環境では DWrite パッチ済み DLL の動作を確認済みだが、クリーンな別環境でパッチ適用から導入までの全工程は未確認である。
-> `patch --dry-run` が失敗した場合は、そのまま適用しない。
+---
 
-### 9.1 ソース取得
+## 12. Wine DirectWriteへローカル修正を適用
 
-```fish
-set WINE_COMMIT \
-    "31af7f983b2e345d11340b120ae3a39d88c9338a"
+使用するパッチ:
 
-set WINE_SRC \
-    "$ROOT/src/wine-ge11-1-dwrite"
-
-set WINE_BUILD \
-    "$ROOT/build/wine-ge11-1-dwrite"
-
-set WINE_ARCHIVE \
-    "$ROOT/downloads/wine-$WINE_COMMIT.tar.gz"
-
-rm -rf \
-    "$WINE_SRC" \
-    "$WINE_BUILD"
-
-mkdir -p \
-    "$WINE_SRC" \
-    "$WINE_BUILD"
-
-curl \
-    --fail \
-    --location \
-    --output "$WINE_ARCHIVE" \
-    "https://github.com/ValveSoftware/wine/archive/$WINE_COMMIT.tar.gz"
-
-tar \
-    --extract \
-    --file "$WINE_ARCHIVE" \
-    --directory "$WINE_SRC" \
-    --strip-components=1
+```text
+patches/wine/0001-implement-dwrite-hit-testing.patch
 ```
 
-### 9.2 パッチ検査と適用
+このパッチはWine DWriteの次を修正する。
 
-```fish
-set DWRITE_PATCH \
-    "$REPO/patches/wine/0001-implement-dwrite-hit-testing.patch"
-
-patch \
-    --directory="$WINE_SRC" \
-    --strip=1 \
-    --dry-run \
-    < "$DWRITE_PATCH"
+```text
+HitTestTextRange()
+HitTestPoint()
+HitTestTextPosition()を利用するヒットテスト処理
 ```
 
-この dry-run が成功した場合だけ適用する。
+### 12.1 既存Wineソース・ビルドツリーを確認
 
-```fish
-patch \
-    --directory="$WINE_SRC" \
-    --strip=1 \
-    < "$DWRITE_PATCH"
-```
+このリポジトリは、`$WINE_SRC`と`$WINE_BUILD`をゼロから生成しない。
 
-失敗時は `.rej` を残したまま作業を続けない。
-元の開発ログでは、異なるパッチ版を使用した際に一部 hunk が失敗し、手動調整が必要だった。
-
-### 9.3 Configure と DWrite ビルド
+次が存在することを確認する。
 
 ```fish
 printf 'WINE_SRC=%s\n' "$WINE_SRC"
+printf 'WINE_BUILD=%s\n' "$WINE_BUILD"
+```
 
-if not test -d "$WINE_SRC"
-    echo "ERROR: Wine source directory is missing:"
-    echo "$WINE_SRC"
+```fish
+for path in \
+    "$WINE_SRC/dlls/dwrite/layout.c" \
+    "$WINE_BUILD/Makefile" \
+    "$REPO/patches/wine/0001-implement-dwrite-hit-testing.patch" \
+    "$GE_TEST/files/lib/wine/x86_64-windows/dwrite.dll"
 
-else if not test -f "$WINE_SRC/configure.ac"
-    echo "ERROR: Wine configure.ac is missing:"
-    echo "$WINE_SRC/configure.ac"
-
-else if not test -f "$WINE_SRC/dlls/dwrite/layout.c"
-    echo "ERROR: DirectWrite source is missing:"
-    echo "$WINE_SRC/dlls/dwrite/layout.c"
-
-else
-    echo "OK: Wine source and DirectWrite source exist"
-    echo "$WINE_SRC"
-
-    if git -C "$WINE_SRC" rev-parse \
-        --is-inside-work-tree \
-        >/dev/null 2>&1
-
-        echo "INFO: Wine source is a Git worktree"
-        git -C "$WINE_SRC" rev-parse HEAD
+    if test -e "$path"
+        echo "OK: $path"
     else
-        echo "INFO: Wine source is not a Git worktree"
-        echo "INFO: Git revision checks will be skipped"
+        echo "MISSING: $path"
     end
 end
 ```
 
-`make dlls/dwrite` と `make -B` は使用しない。
+`$WINE_SRC`はGitリポジトリである必要はない。
+
+必要なのは、対象ソースと設定済みビルドツリーが存在することである。
+
+### 12.2 Wineパッチを適用
+
+```fish
+set DWRITE_PATCH \
+    "$REPO/patches/wine/0001-implement-dwrite-hit-testing.patch"
+```
+
+まず通常方向のdry-runを行う。
+
+```fish
+patch \
+    --batch \
+    --forward \
+    --directory="$WINE_SRC" \
+    --strip=1 \
+    --dry-run \
+    <"$DWRITE_PATCH"
+
+set DWRITE_FORWARD_STATUS $status
+```
+
+未適用なら実際に適用する。
+
+```fish
+if test $DWRITE_FORWARD_STATUS -eq 0
+    patch \
+        --batch \
+        --forward \
+        --directory="$WINE_SRC" \
+        --strip=1 \
+        <"$DWRITE_PATCH"
+
+    if test $status -eq 0
+        echo "OK: DWrite patch applied"
+    else
+        echo "ERROR: DWrite patch application failed"
+    end
+else
+    echo "INFO: Forward dry-run failed; checking whether patch is already applied"
+end
+```
+
+適用済みか確認する。
+
+```fish
+if test $DWRITE_FORWARD_STATUS -ne 0
+    patch \
+        --batch \
+        --reverse \
+        --directory="$WINE_SRC" \
+        --strip=1 \
+        --dry-run \
+        <"$DWRITE_PATCH"
+
+    if test $status -eq 0
+        echo "INFO: DWrite patch is already applied"
+    else
+        echo "ERROR: DWrite patch does not match this Wine source"
+    end
+end
+```
+
+次が出た場合はビルドへ進まない。
+
+```text
+DWrite patch does not match this Wine source
+```
+
+### 12.3 DWriteだけを再ビルド
+
+次は使用しない。
+
+```text
+make dlls/dwrite
+make -B
+```
+
+対象オブジェクトとDLLを削除する。
 
 ```fish
 rm -f \
     "$WINE_BUILD/dlls/dwrite/x86_64-windows/layout.o" \
     "$WINE_BUILD/dlls/dwrite/x86_64-windows/dwrite.dll"
+```
 
-make -C "$WINE_BUILD" \
+PE DLLの完全なターゲット名を指定してビルドする。
+
+```fish
+make \
+    -C "$WINE_BUILD" \
     -j(nproc) \
     dlls/dwrite/x86_64-windows/dwrite.dll
 ```
 
-導入:
+生成物を確認する。
 
 ```fish
-"$REPO/scripts/install-dwrite.fish" \
+set DWRITE_DLL \
+    "$WINE_BUILD/dlls/dwrite/x86_64-windows/dwrite.dll"
+
+if test -f "$DWRITE_DLL"
+    echo "OK: Patched dwrite.dll was built"
+    sha256sum "$DWRITE_DLL"
+else
+    echo "ERROR: Patched dwrite.dll was not generated"
+    echo "$DWRITE_DLL"
+end
+```
+
+### 12.4 既存スクリプトでGE-Protonへ導入
+
+リポジトリ内の導入スクリプトを使用する。
+
+```fish
+fish \
+    "$REPO/scripts/install-dwrite.fish" \
     "$WINE_BUILD" \
     "$GE_TEST"
 ```
 
-確認:
+このスクリプトは、既存のGE-Proton側`dwrite.dll`をタイムスタンプ付きでバックアップし、生成済みDLLを次へコピーする。
 
-```fish
-test -f \
-    "$GE_TEST/files/lib/wine/x86_64-windows/dwrite.dll"
-
-and echo "OK: dwrite.dll exists"
+```text
+$GE_TEST/files/lib/wine/x86_64-windows/dwrite.dll
 ```
 
-## 10. L-SMASH Works NVDEC
-
-> [!WARNING]
-> パッチとビルド済み成果物の動作は元環境で確認済みである。
-> ただし、FFmpeg などの MinGW 静的依存関係をゼロから構築する完全自動手順は、このリポジトリにまだ存在しない。
-> したがって、この章だけではクリーン環境から完全再現できない。
-
-### 10.1 ソースとパッチ
+SHA-256を再確認する。
 
 ```fish
-set LSW_SRC \
-    "$ROOT/src/L-SMASH-Works-nvdec"
+sha256sum \
+    "$WINE_BUILD/dlls/dwrite/x86_64-windows/dwrite.dll" \
+    "$GE_TEST/files/lib/wine/x86_64-windows/dwrite.dll"
+```
 
-if not test -d "$LSW_SRC/.git"
+2つのSHA-256が一致していることを確認する。
+
+---
+
+## 13. L-SMASH WorksへNVDEC修正を適用
+
+使用するパッチ:
+
+```text
+patches/l-smash-works/0001-transfer-hardware-frames-before-output.patch
+```
+
+このパッチは、FFmpegのハードウェアデコーダが返したGPU側フレームを、出力前に次でCPU側フレームへ転送する。
+
+```c
+av_hwframe_transfer_data()
+```
+
+### 13.1 対象コミットを取得
+
+```fish
+if test -d "$LSW_SRC/.git"
+    echo "INFO: Existing L-SMASH Works source tree found"
+    echo "$LSW_SRC"
+else
     git clone \
         https://github.com/Mr-Ojii/L-SMASH-Works.git \
         "$LSW_SRC"
 end
+```
 
+対象コミットへcheckoutする。
+
+```fish
 git -C "$LSW_SRC" checkout \
     a47764915f06fcd472e26ba2fbf25aff4b9d252e
+```
 
-git -C "$LSW_SRC" am \
+状態確認:
+
+```fish
+git -C "$LSW_SRC" rev-parse HEAD
+git -C "$LSW_SRC" status --short
+```
+
+期待値:
+
+```text
+a47764915f06fcd472e26ba2fbf25aff4b9d252e
+```
+
+### 13.2 L-SMASH Worksパッチを適用
+
+```fish
+set LSW_PATCH \
     "$REPO/patches/l-smash-works/0001-transfer-hardware-frames-before-output.patch"
 ```
 
-期待するコミット:
-
-```text
-393df5ef669707f776261e4ac1bcc7e9a9a227ab
-```
-
-### 10.2 既存のクロスビルド依存関係を使う場合
+新しいcheckoutへ適用する場合:
 
 ```fish
-set LSW_BUILD \
-    "$ROOT/build/l-smash-works-nvdec"
+git -C "$LSW_SRC" am \
+    "$LSW_PATCH"
+```
 
-set CROSS_PREFIX \
-    "$LSW_BUILD/prefix"
+成功確認:
 
+```fish
+if test -d "$LSW_SRC/.git/rebase-apply"
+    echo "ERROR: git am is incomplete"
+    echo "Resolve or abort before continuing"
+else
+    echo "INFO: No incomplete git am state detected"
+end
+```
+
+パッチが適用されたことを確認する。
+
+```fish
+grep -Rni \
+    "av_hwframe_transfer_data" \
+    "$LSW_SRC/common"
+```
+
+期待する変更対象:
+
+```text
+common/lwlibav_video.c
+common/video_output.c
+common/video_output.h
+```
+
+`git am`が失敗した場合は、次で中断状態を戻す。
+
+```fish
+git -C "$LSW_SRC" am --abort
+```
+
+失敗した状態を無視してビルドしない。
+
+### 13.3 MinGW依存関係を確認
+
+このリポジトリは、L-SMASH Worksが必要とするMinGW向け依存関係を構築しない。
+
+```fish
+printf 'CROSS_PREFIX=%s\n' "$CROSS_PREFIX"
+```
+
+最低限、pkg-config情報を確認する。
+
+```fish
+if test -d "$CROSS_PREFIX/lib/pkgconfig"
+    echo "OK: MinGW pkg-config directory exists"
+else
+    echo "ERROR: MinGW pkg-config directory is missing"
+end
+```
+
+環境変数を設定する。
+
+```fish
 set -gx PATH \
     "$LSW_BUILD/bin" \
     $PATH
@@ -747,12 +1169,22 @@ set -gx PKG_CONFIG_LIBDIR \
     "$CROSS_PREFIX/lib/pkgconfig"
 ```
 
+### 13.4 AviUtl2 input pluginをビルド
+
 ```fish
 cd "$LSW_SRC/AviUtl2"
+```
 
-make distclean 2>/dev/null
-or true
+既存の生成物を消す。
 
+```fish
+make distclean \
+    2>/dev/null
+```
+
+configure:
+
+```fish
 env \
     PKG_CONFIG_PATH="$CROSS_PREFIX/lib/pkgconfig" \
     PKG_CONFIG_LIBDIR="$CROSS_PREFIX/lib/pkgconfig" \
@@ -762,49 +1194,151 @@ env \
     --extra-cflags="-I$CROSS_PREFIX/include" \
     --extra-ldflags="-L$CROSS_PREFIX/lib -static-libgcc -static-libstdc++ -static" \
     --extra-libs="-lpthread"
+```
 
+ビルド:
+
+```fish
 make \
     -j(nproc) \
     input
 ```
 
-配置:
+生成物を検索する。
 
 ```fish
-set PLUGIN_DIR \
-    "$PREFIX/drive_c/ProgramData/aviutl2/Plugin"
+set LWINPUT (find \
+    "$LSW_SRC" \
+    -type f \
+    -name lwinput.aui2 \
+    | head -n 1)
 
+if test -n "$LWINPUT"
+    echo "OK: lwinput.aui2 was built"
+    echo "$LWINPUT"
+else
+    echo "ERROR: lwinput.aui2 was not found"
+end
+```
+
+### 13.5 パッチ済みプラグインと設定を配置
+
+```fish
 mkdir -p "$PLUGIN_DIR"
+```
 
-cp \
-    "$LSW_SRC/AviUtl2/lwinput.aui2" \
-    "$PLUGIN_DIR/lwinput.aui2"
+```fish
+if test -n "$LWINPUT"
+    cp \
+        "$LWINPUT" \
+        "$PLUGIN_DIR/lwinput.aui2"
 
+    echo "Installed:"
+    echo "$PLUGIN_DIR/lwinput.aui2"
+else
+    echo "ERROR: lwinput.aui2 installation skipped"
+end
+```
+
+NVDEC設定を配置する。
+
+```fish
 cp \
     "$REPO/config/lsmash.ini" \
     "$PLUGIN_DIR/lsmash.ini"
 ```
 
-## 11. 起動
+期待する主要設定:
+
+```ini
+libavsmash_disabled=1
+libav_disabled=0
+preferred_decoders=av1_cuvid
+```
+
+確認:
 
 ```fish
-set WINEDLLOVERRIDES_VALUE \
-    "nvcuda,nvcuvid,nvencodeapi64=n;d3d11,dxgi,d3d10core=n,b;d3dcompiler_47=n,b;dwrite=b"
+grep -E \
+    '^(libavsmash_disabled|libav_disabled|preferred_decoders)=' \
+    "$PLUGIN_DIR/lsmash.ini"
+```
 
+---
+
+## 14. AviUtl2を既存ランチャーで起動
+
+リポジトリ内のFishランチャーを使用する。
+
+```fish
+env \
+    AVIUTL2_ROOT="$ROOT" \
+    AVIUTL2_PREFIX="$PREFIX" \
+    GE_PROTON_ROOT="$GE_TEST" \
+    fish "$REPO/scripts/launch-aviutl2.example.fish"
+```
+
+このランチャーは次を使用する。
+
+```text
+Wine:
+$GE_TEST/files/lib/wine/x86_64-unix/wine
+
+wineserver:
+$GE_TEST/files/bin/wineserver
+```
+
+DLL override:
+
+```text
+nvcuda,nvcuvid,nvencodeapi64=n
+d3d11,dxgi,d3d10core=n,b
+d3dcompiler_47=n,b
+dwrite=b
+```
+
+DXVK設定:
+
+```text
+$ROOT/nvidia-dxvk.conf
+```
+
+---
+
+## 15. DXVKログを有効にして確認
+
+```fish
+mkdir -p \
+    "$ROOT/logs/dxvk"
+```
+
+```fish
 env \
     WINEPREFIX="$PREFIX" \
     LD_LIBRARY_PATH="$GE_LIBS" \
-    WINEDLLOVERRIDES="$WINEDLLOVERRIDES_VALUE" \
+    WINEDLLOVERRIDES="nvcuda,nvcuvid,nvencodeapi64=n;d3d11,dxgi,d3d10core=n,b;d3dcompiler_47=n,b;dwrite=b" \
     DXVK_CONFIG_FILE="$DXVK_CONFIG_FILE" \
-    DXVK_LOG_LEVEL=warn \
+    DXVK_LOG_LEVEL=info \
+    DXVK_LOG_PATH="$ROOT/logs/dxvk" \
     WINEDEBUG=-all \
     "$GE_WINE" \
-    "$PREFIX/drive_c/AviUtl2/aviutl2.exe"
+    "$AVIUTL2_TARGET/aviutl2.exe"
 ```
 
-実運用では、同じ値を使用する固定ランチャーを Lutris の Linux Runner から起動する。
+確認項目:
 
-## 12. AviUtl2 Catalog
+```text
+DXVKログが生成される
+d3d11.dllがDXVKとして読み込まれる
+dxgi.dllがDXVKとして読み込まれる
+AviUtl2がformat 69問い合わせで停止しない
+```
+
+---
+
+## 16. AviUtl2 Catalogを同じprefixへ導入
+
+AviUtl2本体の導入では`setup.exe`を使用しないが、AviUtl2 Catalogはリポジトリの管理スクリプトから公式インストーラを既存prefixへ導入する。
 
 管理スクリプト:
 
@@ -812,98 +1346,244 @@ env \
 scripts/manage-aviutl2-catalog-lutris.sh
 ```
 
-初回:
+最初に状態を確認する。
 
 ```fish
-"$REPO/scripts/manage-aviutl2-catalog-lutris.sh" \
+env \
+    AVIUTL2_ROOT="$ROOT" \
+    AVIUTL2_PREFIX="$PREFIX" \
+    GE_PROTON_ROOT="$GE_TEST" \
+    bash "$REPO/scripts/manage-aviutl2-catalog-lutris.sh" \
+    status
+```
+
+Lutris用インストール:
+
+```fish
+env \
+    AVIUTL2_ROOT="$ROOT" \
+    AVIUTL2_PREFIX="$PREFIX" \
+    GE_PROTON_ROOT="$GE_TEST" \
+    bash "$REPO/scripts/manage-aviutl2-catalog-lutris.sh" \
     lutris-install
 ```
 
-Catalog 設定:
+Lutrisを介さずインストールだけ行う場合:
+
+```fish
+env \
+    AVIUTL2_ROOT="$ROOT" \
+    AVIUTL2_PREFIX="$PREFIX" \
+    GE_PROTON_ROOT="$GE_TEST" \
+    bash "$REPO/scripts/manage-aviutl2-catalog-lutris.sh" \
+    install-only
+```
+
+Catalog起動:
+
+```fish
+env \
+    AVIUTL2_ROOT="$ROOT" \
+    AVIUTL2_PREFIX="$PREFIX" \
+    GE_PROTON_ROOT="$GE_TEST" \
+    bash "$REPO/scripts/manage-aviutl2-catalog-lutris.sh" \
+    launch
+```
+
+Catalog側の初期設定:
 
 ```text
-AviUtl2:
-  インストール済み
-
-AviUtl2 root:
-  C:\AviUtl2
-
-Portable mode:
-  無効
+AviUtl2は既にインストール済み
+AviUtl2 root: C:\AviUtl2
+Portable mode: 無効
 ```
 
-詳細は [`LUTRIS-CATALOG.md`](LUTRIS-CATALOG.md) を参照する。
+非ポータブル構成では、プラグインと設定は次に保存される。
 
-## 13. 動作確認
-
-### 13.1 DXVK
-
-```fish
-strings \
-    "$PREFIX/drive_c/windows/system32/d3d11.dll" \
-    | grep -E \
-        'AviUtl2 compatibility|AviUtl2 trace'
+```text
+C:\ProgramData\aviutl2
 ```
 
-### 13.2 L-SMASH Works
+Linux側:
 
-```fish
-strings -a \
-    "$PREFIX/drive_c/ProgramData/aviutl2/Plugin/lwinput.aui2" \
-    | grep -E \
-        'av1_cuvid|av_hwframe_transfer_data|L-SMASH Works File Reader'
+```text
+$PREFIX/drive_c/ProgramData/aviutl2
 ```
 
-### 13.3 DWrite
+---
+
+## 17. Catalog更新後のL-SMASH Works復旧
+
+CatalogからL-SMASH Worksを更新すると、パッチ済み`lwinput.aui2`が公式版で上書きされる可能性がある。
+
+その場合は、パッチ済みプラグインと設定を再配置する。
 
 ```fish
-set LOG \
-    "$ROOT/logs/aviutl2-dwrite-check.log"
-
-env \
-    WINEPREFIX="$PREFIX" \
-    LD_LIBRARY_PATH="$GE_LIBS" \
-    WINEDLLOVERRIDES="$WINEDLLOVERRIDES_VALUE" \
-    DXVK_CONFIG_FILE="$DXVK_CONFIG_FILE" \
-    WINEDEBUG='-all,+dwrite,+seh' \
-    "$GE_WINE" \
-    "$PREFIX/drive_c/AviUtl2/aviutl2.exe" \
-    &> "$LOG"
+if test -n "$LWINPUT"
+    cp \
+        "$LWINPUT" \
+        "$PLUGIN_DIR/lwinput.aui2"
+else
+    echo "ERROR: LWINPUT is not set"
+end
 ```
 
 ```fish
-grep -nEi \
-    'HitTestPoint|HitTestTextRange|stub|E_NOTIMPL|80004001' \
-    "$LOG" \
-    | tail -n 100
+cp \
+    "$REPO/config/lsmash.ini" \
+    "$PLUGIN_DIR/lsmash.ini"
 ```
 
-### 13.4 実機テスト
+再配置後、AV1の読み込み、再生、シーク、NVDEC使用を再確認する。
 
-1. AviUtl2 が起動する
-2. AV1 を読み込める
-3. AV1 を再生できる
-4. 複数位置へシークできる
-5. `av1_cuvid` を使用できる
-6. テキストオブジェクトを追加できる
-7. テキスト選択でクラッシュしない
-8. 編集状態へ入れる
-9. Mozc で入力・変換・確定できる
-10. Catalog を同じ prefix で起動できる
+---
 
-## 14. 再現完了条件
+## 18. 動作確認
 
-次をすべて満たした場合だけ、別環境での再現完了とする。
+### 18.1 AviUtl2本体
 
-- クリーンな DXVK 2.7.1 ソースへパッチを自動適用できる
-- MinGW 側 Vulkan-Headers 検査が通る
-- DXVK の3 DLLを生成できる
-- DWrite パッチを dry-run から自動適用できる
-- DWrite DLLを生成・導入できる
-- L-SMASH Works の依存関係を含めてビルドできる
-- AviUtl2 が起動する
-- AV1、NVDEC、シークを確認できる
-- テキスト編集と Mozc を確認できる
-- Catalog を確認できる
+```fish
+if test -f "$AVIUTL2_TARGET/aviutl2.exe"
+    echo "OK: AviUtl2 executable exists"
+else
+    echo "ERROR: AviUtl2 executable is missing"
+end
+```
 
-2026-07-31 時点では、この条件を別環境で満たしていない。
+### 18.2 DXVK
+
+確認項目:
+
+```text
+AviUtl2が起動する
+format 69問い合わせで停止しない
+DXVKログが生成される
+パッチ済みd3d11.dllがprefixへ配置されている
+```
+
+### 18.3 Wine DirectWrite
+
+確認項目:
+
+```text
+テキストオブジェクトを追加できる
+選択範囲を描画できる
+編集状態へ入れる
+HitTestTextRange()のE_NOTIMPLで停止しない
+HitTestPoint()のE_NOTIMPLで停止しない
+```
+
+### 18.4 Fcitx5 / Mozc
+
+確認項目:
+
+```text
+日本語入力を開始できる
+変換候補を表示できる
+候補を選択できる
+文字列を確定できる
+```
+
+### 18.5 L-SMASH Works / NVDEC
+
+確認項目:
+
+```text
+AV1ファイルを読み込める
+AV1を再生できる
+シークできる
+av1_cuvidが選択される
+パッチ済みlwinput.aui2が配置されている
+```
+
+### 18.6 AviUtl2 Catalog
+
+確認項目:
+
+```text
+同じWine prefixで起動できる
+AviUtl2 rootがC:\AviUtl2になっている
+Portable modeが無効になっている
+ProgramData\aviutl2へプラグインが保存される
+```
+
+---
+
+## 19. 再現完了条件
+
+次をすべて満たした場合のみ、再現完了とする。
+
+```text
+公式ZIPからAviUtl2本体を配置できた
+
+DXVK 2.7.1へ
+patches/dxvk/0001-aviutl2-format-support.patch
+を適用できた
+
+パッチ済みDXVKをビルドできた
+
+d3d11.dll
+dxgi.dll
+d3d10core.dll
+をprefixへ配置できた
+
+既存Wineソースへ
+patches/wine/0001-implement-dwrite-hit-testing.patch
+を適用できた
+
+既存Wineビルドツリーで
+dwrite.dll
+を再ビルドできた
+
+scripts/install-dwrite.fish
+でパッチ済みdwrite.dllをGE-Protonへ導入できた
+
+L-SMASH Worksへ
+patches/l-smash-works/0001-transfer-hardware-frames-before-output.patch
+を適用できた
+
+パッチ済みlwinput.aui2をビルド・配置できた
+
+config/lsmash.ini
+を配置できた
+
+scripts/launch-aviutl2.example.fish
+からAviUtl2を起動できた
+
+AV1の読み込み・再生・シークを確認できた
+
+NVDECを利用できた
+
+テキスト選択・編集を確認できた
+
+Fcitx5 / Mozcで入力・変換・確定できた
+
+AviUtl2 Catalogを同じprefixで利用できた
+```
+
+公式ソースだけをビルドし、リポジトリ内のパッチを適用していない状態は再現完了ではない。
+
+---
+
+## 20. 現時点の制限
+
+このリポジトリだけでは、次は完全自動化されていない。
+
+```text
+GE-Proton 11-1相当Wineソースの取得
+Wine staging / GE-Proton固有パッチの再構成
+Wineビルドツリーの新規configure
+MinGW向けFFmpeg依存関係の構築
+L-SMASH Works依存関係の完全自動ビルド
+```
+
+これらを別環境でもゼロから再現可能にするには、今後、ソース取得コミット、Wine configure引数、依存ライブラリーの固定バージョンとビルドスクリプトを追加する必要がある。
+
+それまでは、この文書が保証する範囲は次である。
+
+```text
+準備済みの対象ソース・ビルド環境へ
+リポジトリ内のローカル修正を適用し、
+生成物を既存GE-Proton・Wine prefixへ導入して
+動作確認するところまで
+```
