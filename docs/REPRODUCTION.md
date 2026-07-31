@@ -1,43 +1,12 @@
 # AviUtl2 Linux 再現手順
 
-## 1. この文書の位置付け
+本書はこのプロジェクトの正本である `docs/REPRODUCTION.md` である。原環境で確認済みの再現基準と、Nanashi で未確認の再現・検証手順を明確に分けて記載する。Nanashi で成功した実測結果は、この同じ文書の該当箇所を更新して確認済み手順として固定する。
 
-本書はこのプロジェクトの正本である `docs/REPRODUCTION.md` である。原環境で確認済みの再現基準と、Nanashi で未確認の再現・検証手順を明確に分けて記載する。「確認済み」は repository evidence がある事実だけを指し、「Nanashiで未確認」は実測待ちの候補手順を指す。
-Nanashi で成功した実測結果は、この `REPRODUCTION.md` の未確認部分を更新し、確認済み手順として固定する。各コードブロックは一つずつ実行し、出力・絶対パス・hash・結果を記録する。エラーまたは想定外の出力があれば停止し、本文全体を一括実行しない。
-## 2. 今回変更しないもの
+各コードブロックは一つずつ実行し、出力、絶対 path、hash、結果を記録する。エラーまたは想定外の出力があれば停止し、本文全体を一括実行しない。
 
-現在の format 69 実験で対象になるのは、同じ DXVK build 出力にある `d3d11.dll`、`dxgi.dll`、`d3d10core.dll` の三つだけである。GE-Proton の版、Wine prefix 構造、Wine DWrite、L-SMASH Works、`lsmash.ini`、`nvidia-dxvk.conf`、AviUtl2 の実行ファイルとデータ、Fcitx5、Mozc、AviUtl2 Catalog、Lutris 設定、NVIDIA driver、Vulkan ICD、既存 Nanashi 起動ラッパー、その他の DLL は変更しない。
-これは新規環境の導入、全環境の import、または generic installer の手順ではない。
-## 3. 確認済みの再現基準
+## 1. 現在の再現性
 
-### 原環境で確認済みの構成
-
-[`STATUS.md`](STATUS.md) と [`FINAL-SUMMARY.md`](FINAL-SUMMARY.md) は、CachyOS の Alex 原環境で GE-Proton 11-1 / wine-staging 11.0、DXVK 2.7.1、NVIDIA GeForce RTX 4060 Ti、NVIDIA driver 610.43.3、Fcitx5/Mozc を使った動作を記録している。AviUtl2 起動、DXVK format 69 回避、AV1 の読み込み・再生・シーク、`av1_cuvid`、NVDEC、テキスト編集、Mozc、Catalog はこの原環境で確認済みである。
-DXVK の基準は `2.7.1`、base commit は `c3dd74be6baec53786d4e064a572185b70347a17`、patch は [`0001-aviutl2-format-support.patch`](../patches/dxvk/0001-aviutl2-format-support.patch) である。
-### patch の確認済み動作
-
-patch は通常の `CheckFormatSupport` 処理を先に実行し、通常の成功結果を変更しない。通常の失敗後だけ、実行ファイルが `aviutl2.exe`、format が `DXGI_FORMAT_G8R8_G8B8_UNORM`（数値 69）、flags pointer が非 null の場合に flags を 0 にし、`S_OK` を返す。`VK_FORMAT_UNDEFINED` のときだけに限定しない。
-### 原環境で記録された build コマンド
-
-LutrisのWine Runner、UMU、Lutris側のDXVK管理に実行環境を任せてはならない。
-
-```text
-Lutris
-└── Linux Runner
-    └── 固定起動ラッパー
-        ├── GE-Proton11-1-aviutl2-test
-        ├── prefix-ge-nvdec-test
-        ├── patched DXVK 2.7.1
-        ├── patched Wine DWrite
-        ├── patched L-SMASH Works
-        └── AviUtl2
-```
-
----
-
-# 1. 現在の再現性
-
-## 1.1 元環境で確認済み
+### 1.1 元環境で確認済み
 
 | 項目 | 結果 |
 | --- | --- |
@@ -54,7 +23,7 @@ Lutris
 | AviUtl2 Catalog | 確認済み |
 | Catalog更新後のL-SMASH Works復旧 | 確認済み |
 
-## 1.2 元環境の固定値
+### 1.2 元環境の固定値
 
 | 項目 | 値 |
 | --- | --- |
@@ -74,7 +43,15 @@ Lutris
 | L-SMASH Works base | `a47764915f06fcd472e26ba2fbf25aff4b9d252e` |
 | L-SMASH Works patched commit | `393df5ef669707f776261e4ac1bcc7e9a9a227ab` |
 
-## 1.3 未確認範囲
+### 1.3 DXVK format 69 patch の確認済み動作
+
+[`STATUS.md`](STATUS.md) と [`FINAL-SUMMARY.md`](FINAL-SUMMARY.md) は、この原環境での AviUtl2 起動、format 69 回避、AV1、NVDEC、テキスト、Mozc、Catalog を記録している。DXVK の基準は `2.7.1`、base commit は `c3dd74be6baec53786d4e064a572185b70347a17`、patch は [`0001-aviutl2-format-support.patch`](../patches/dxvk/0001-aviutl2-format-support.patch) である。
+
+Git 履歴 `509123c` は原環境で記録された DXVK build command の根拠であり、Nanashi で同じ command が成功したことを意味しない。
+
+patch は通常の `CheckFormatSupport` を先に実行し、通常の成功結果を変更しない。通常の失敗後だけ、実行ファイルが `aviutl2.exe`、format が `DXGI_FORMAT_G8R8_G8B8_UNORM`（数値 69）、flags pointer が非 null の場合に flags を 0 にし、`S_OK` を返す。`VK_FORMAT_UNDEFINED` のときだけに限定しない。この動作は原環境の確認であり、Nanashi での runtime 確認ではない。
+
+### 1.4 未確認範囲
 
 2026-07-31時点では、別ユーザーのクリーン環境において、すべてのコンポーネントをソースから再ビルドして最後まで動作させることには成功していない。
 
@@ -89,7 +66,7 @@ Lutris
 
 ---
 
-# 2. 絶対に守る条件
+## 2. 絶対に守る条件
 
 以下を同時に変更してはならない。
 
@@ -116,7 +93,7 @@ Lutris
 
 ---
 
-# 3. ディレクトリ構成
+## 3. ディレクトリ構成
 
 この文書では次のパスを使用する。
 
@@ -149,7 +126,7 @@ set REPO \
 set PREFIX \
     "$ROOT/prefix-ge-nvdec-test"
 
-set GE_TEST \
+set GE_INSTALL_DESTINATION \
     "$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1-aviutl2-test"
 
 mkdir -p \
@@ -167,7 +144,7 @@ mkdir -p \
 
 ---
 
-# 4. 必要パッケージ
+## 4. 必要パッケージ
 
 CachyOS / Arch Linux系では次を導入する。
 
@@ -221,7 +198,7 @@ end
 
 ---
 
-# 5. パッチリポジトリを取得
+## 5. パッチリポジトリを取得
 
 ```fish
 if test -d "$REPO/.git"
@@ -243,11 +220,11 @@ git -C "$REPO" rev-parse HEAD
 
 ---
 
-# 6. 推奨経路: 動作済み環境からバイナリを移植する
+## 6. 推奨経路: 動作済み環境からバイナリを移植する
 
 この経路が、2026-07-31時点の正規再現手順である。
 
-## 6.1 元環境側で変数を設定
+### 6.1 元環境側で変数を設定
 
 動作済み環境で実行する。
 
@@ -258,11 +235,11 @@ set ROOT \
 set PREFIX \
     "$ROOT/prefix-ge-nvdec-test"
 
-set GE_TEST \
+set GE_EXPORT_SOURCE \
     "$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1"
 
 set GE_WINESERVER \
-    "$GE_TEST/files/bin/wineserver"
+    "$GE_EXPORT_SOURCE/files/bin/wineserver"
 
 set SYSTEM32 \
     "$PREFIX/drive_c/windows/system32"
@@ -277,11 +254,16 @@ set EXPORT \
     "$EXPORT_PARENT/aviutl2-known-good"
 ```
 
-## 6.2 必須ファイルを検査
+Git 履歴 `b75f119` は、archive へコピーする元 directory 名として未接尾辞の `GE-Proton11-1` を記録している。一方、対象環境の導入先は `GE-Proton11-1-aviutl2-test` であり、source と destination は意図的に別の役割である。repository には source の `dwrite.dll` が patched 版だったことを hash で裏付ける記録はないため、下の runtime file 確認で不足があれば export を止め、別 directory を推測して選ばない。実行中の patched runtime と同一の source であることを確認できない場合も export を止める。
+
+### 6.2 必須ファイルを検査
 
 ```fish
 for path in \
-    "$GE_TEST" \
+    "$GE_EXPORT_SOURCE" \
+    "$GE_EXPORT_SOURCE/files/lib/wine/x86_64-unix/wine" \
+    "$GE_EXPORT_SOURCE/files/bin/wineserver" \
+    "$GE_EXPORT_SOURCE/files/lib/wine/x86_64-windows/dwrite.dll" \
     "$SYSTEM32/d3d11.dll" \
     "$SYSTEM32/dxgi.dll" \
     "$SYSTEM32/d3d10core.dll" \
@@ -297,9 +279,16 @@ for path in \
 end
 ```
 
+```fish
+test -d "$GE_EXPORT_SOURCE"
+test -x "$GE_EXPORT_SOURCE/files/lib/wine/x86_64-unix/wine"
+test -x "$GE_EXPORT_SOURCE/files/bin/wineserver"
+test -f "$GE_EXPORT_SOURCE/files/lib/wine/x86_64-windows/dwrite.dll"
+```
+
 1つでも`MISSING`が出た状態ではエクスポートしない。
 
-## 6.3 Wineプロセスを停止
+### 6.3 Wineプロセスを停止
 
 ```fish
 env \
@@ -310,7 +299,7 @@ env \
 sleep 1
 ```
 
-## 6.4 動作済みバイナリをステージング
+### 6.4 動作済みバイナリをステージング
 
 ```fish
 rm -rf "$EXPORT"
@@ -327,7 +316,7 @@ mkdir -p \
 
 ```fish
 cp -a \
-    "$GE_TEST" \
+    "$GE_EXPORT_SOURCE" \
     "$EXPORT/ge/"
 ```
 
@@ -365,7 +354,7 @@ cp -a \
     "$EXPORT/config/nvidia-dxvk.conf"
 ```
 
-## 6.5 ビルド情報を保存
+### 6.5 ビルド情報を保存
 
 ```fish
 begin
@@ -374,12 +363,12 @@ begin
     echo "Kernel: "(uname -r)
     echo
     echo "GE-Proton:"
-    echo "$GE_TEST"
+    echo "$GE_EXPORT_SOURCE"
     echo
     echo "Wine:"
     env \
-        LD_LIBRARY_PATH="$GE_TEST/files/lib64:$GE_TEST/files/lib:$GE_TEST/files/lib/wine/x86_64-unix:$GE_TEST/files/lib/wine/i386-unix" \
-        "$GE_TEST/files/lib/wine/x86_64-unix/wine" --version
+        LD_LIBRARY_PATH="$GE_EXPORT_SOURCE/files/lib64:$GE_EXPORT_SOURCE/files/lib:$GE_EXPORT_SOURCE/files/lib/wine/x86_64-unix:$GE_EXPORT_SOURCE/files/lib/wine/i386-unix" \
+        "$GE_EXPORT_SOURCE/files/lib/wine/x86_64-unix/wine" --version
     echo
     echo "NVIDIA:"
     nvidia-smi \
@@ -389,7 +378,7 @@ begin
 end > "$EXPORT/metadata/BUILD-INFO.txt"
 ```
 
-## 6.6 全ファイルのSHA-256を作成
+### 6.6 全ファイルのSHA-256を作成
 
 ```fish
 cd "$EXPORT"
@@ -411,7 +400,7 @@ sha256sum -c SHA256SUMS
 
 すべて`OK`になる必要がある。
 
-## 6.7 アーカイブを作成
+### 6.7 アーカイブを作成
 
 ```fish
 set ARCHIVE \
@@ -444,11 +433,17 @@ AviUtl2本体はこのアーカイブへ含めない。対象環境で公式ZIP�
 
 ---
 
-# 7. 対象環境へ動作済みバイナリを導入
+## 7. 対象環境でアーカイブを確認して展開する
 
-## 7.1 変数を設定
+この節は一つ実行 → 出力確認 → 実測値を記録 → 成功した場合だけ次へ進む、という手作業の手順である。展開・確認に失敗した場合は、後続の導入・コピー・Wine 操作を行わない。
 
-対象環境で実行する。
+以前のこの経路では、旧 7.3 節の `cd "$IMPORT"` と、その後の `$IMPORT/ge/GE-Proton11-1-aviutl2-test` が、展開済みの root と GE-Proton ディレクトリを確認する前に参照していた。ここでの `No such file or directory` は後続コマンド自体が根本原因と確定したことを意味しない。アーカイブ未展開、展開失敗、展開先相違、アーカイブ内 top-level root 相違、存在しない名前の固定、または必須 asset 欠落のいずれでも起こり得る。
+
+アーカイブ path、listing、展開出力、展開後 path を記録するまで原因は未確定として扱う。最初に失敗した archive または path の確認で停止し、後続手順を実行しない。
+
+### 7.1 対象環境の基準 path を設定
+
+対象環境で実行する。ここでは導入先の基準だけを設定し、archive 内部の名前は設定しない。
 
 ```fish
 set ROOT \
@@ -457,71 +452,241 @@ set ROOT \
 set PREFIX \
     "$ROOT/prefix-ge-nvdec-test"
 
-set GE_TEST \
+set GE_INSTALL_DESTINATION \
     "$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1-aviutl2-test"
 
 set COMPAT_DIR \
     "$HOME/.local/share/Steam/compatibilitytools.d"
-
-set ARCHIVE \
-    "$HOME/Downloads/aviutl2-known-good.tar.zst"
-
-set ARCHIVE_HASH \
-    "$HOME/Downloads/aviutl2-known-good.tar.zst.sha256"
-
-set IMPORT_PARENT \
-    "$ROOT/import"
-
-set IMPORT \
-    "$IMPORT_PARENT/aviutl2-known-good"
-
-mkdir -p \
-    "$ROOT/downloads" \
-    "$ROOT/logs" \
-    "$ROOT/scripts" \
-    "$IMPORT_PARENT" \
-    "$COMPAT_DIR"
 ```
 
-## 7.2 転送したアーカイブを検証
+`GE_INSTALL_DESTINATION` は archive 内の名前ではなく、導入先として既存の構成資料に記録された path である。
 
-SHA-256ファイル内のパスが元環境の絶対パスになっている場合は、次のようにアーカイブ本体を直接比較する。
+### 7.2 アーカイブを発見して記録
+
+第 6.7 節の作成記録では、archive は `aviutl2-known-good.tar.zst` である。転送済みの候補を表示する。ただし、候補が 0 件または複数件なら選択せず停止する。
 
 ```fish
-cat "$ARCHIVE_HASH"
-sha256sum "$ARCHIVE"
+set ARCHIVE_CANDIDATES \
+    (find "$HOME/Downloads" -maxdepth 1 -type f -name 'aviutl2-known-good.tar.zst' -print)
+
+count $ARCHIVE_CANDIDATES
+printf '%s\n' $ARCHIVE_CANDIDATES
+test (count $ARCHIVE_CANDIDATES) -eq 1
 ```
 
-両方のSHA-256が一致しなければ展開しない。
-
-## 7.3 アーカイブを展開
+候補がちょうど 1 件であることを確認してから、その絶対 path を入力する。
 
 ```fish
-rm -rf "$IMPORT"
+read -P '確認済み archive の絶対パス: ' ARCHIVE_PATH
+test -f "$ARCHIVE_PATH"
+test -s "$ARCHIVE_PATH"
+test "$ARCHIVE_PATH" = "$ARCHIVE_CANDIDATES[1]"
+realpath "$ARCHIVE_PATH"
+ls -lh "$ARCHIVE_PATH"
+sha256sum "$ARCHIVE_PATH"
+```
 
+`test -f` または `test -s` が失敗した場合、あるいは入力 path が表示した唯一の候補と一致しない場合は停止する。
+
+```text
+ARCHIVE_PATH:
+ARCHIVE_SIZE:
+ARCHIVE_SHA256:
+```
+
+ここで計算した SHA-256 は使用した archive を記録する値である。独立して既知の期待値と照合しない限り、意図した既知正常 archive であることの証明にはならない。
+
+### 7.3 外部 SHA-256 がある場合の照合
+
+第 6.7 節は `.sha256` sidecar を作成し、archive とともに転送することを記録している。実際に転送された sidecar がある場合だけ、その絶対 path を入力して比較する。
+
+```fish
+read -P '確認済み archive SHA-256 sidecar の絶対パス: ' ARCHIVE_HASH
+test -f "$ARCHIVE_HASH"
+set EXPECTED_ARCHIVE_SHA256 \
+    (string split -m 1 ' ' (string trim (head -n 1 "$ARCHIVE_HASH")))[1]
+set ACTUAL_ARCHIVE_SHA256 \
+    (string split -m 1 ' ' (sha256sum "$ARCHIVE_PATH"))[1]
+printf '%s\n' "$EXPECTED_ARCHIVE_SHA256" "$ACTUAL_ARCHIVE_SHA256"
+test "$ACTUAL_ARCHIVE_SHA256" = "$EXPECTED_ARCHIVE_SHA256"
+```
+
+この `test` が成功したときだけ sidecar の期待 SHA-256 と archive の SHA-256 は一致している。sidecar がない、読めない、形式が不明、または値が一致しない場合は展開しない。新たに計算した SHA-256 だけでは真正性を確認できない。
+
+```text
+ARCHIVE_HASH_PATH:
+期待 SHA-256:
+照合結果:
+```
+
+### 7.4 展開前に archive 内容を確認
+
+第 6.7 節の作成 command は `tar --zstd` を使用しているため、repository 内の記録に対応する listing command は次である。listing が失敗した場合は展開しない。
+
+```fish
+tar --zstd -tf "$ARCHIVE_PATH"
+```
+
+出力を確認し、次を実測値として記録する。第 6.7 節から期待できる top-level root は `aviutl2-known-good`、必須 asset は `SHA256SUMS`、`ge`、`dxvk`、`plugin`、`config` 以下である。しかし実際の listing にそれらがない、top-level root が一意に決められない、または実測 layout が後続 path と異なる場合は停止する。
+
+```text
+archive 形式:
+top-level entries:
+EXPECTED_EXTRACT_ROOT:
+GE-Proton directory:
+prefix/environment directory:
+required step-8 source path:
+```
+
+GE-Proton directory と prefix/environment directory は archive に含まれている場合にだけ記録する。第 6.4 節は元環境の GE-Proton 全体を `ge/` へコピーするが、Wine prefix は archive にコピーしない。listing が空、必須 asset がない、または後続で使う source path が確認できない場合は、ここで停止する。
+
+### 7.5 新規展開先を準備して記録
+
+既存 data を上書きしない。live Wine prefix と installed GE-Proton の外にあり、すでに存在する親 directory を一つ選ぶ。新しい最終展開先は `EXTRACT_PARENT/EXPECTED_EXTRACT_ROOT` とし、まだ存在してはならない。削除や自動 cleanup は行わない。
+
+```fish
+read -P '既存の新規展開用 parent 絶対パス: ' EXTRACT_PARENT
+test -d "$EXTRACT_PARENT"
+set EXTRACT_PARENT \
+    (realpath "$EXTRACT_PARENT")
+printf '%s\n' "$EXTRACT_PARENT"
+
+set PREFIX_ABS \
+    (realpath -m "$PREFIX")
+set GE_INSTALL_DESTINATION_ABS \
+    (realpath -m "$GE_INSTALL_DESTINATION")
+
+not string match -q -- "$PREFIX_ABS" "$EXTRACT_PARENT"
+and not string match -q -- "$PREFIX_ABS/*" "$EXTRACT_PARENT"
+and not string match -q -- "$GE_INSTALL_DESTINATION_ABS" "$EXTRACT_PARENT"
+and not string match -q -- "$GE_INSTALL_DESTINATION_ABS/*" "$EXTRACT_PARENT"
+
+read -P 'archive listing で確認した top-level root 名: ' EXPECTED_EXTRACT_ROOT
+set EXTRACT_DESTINATION \
+    "$EXTRACT_PARENT/$EXPECTED_EXTRACT_ROOT"
+
+test ! -e "$EXTRACT_DESTINATION"
+realpath -m "$EXTRACT_DESTINATION"
+```
+
+`EXTRACT_PARENT` または `EXTRACT_DESTINATION` が `$PREFIX`、`$GE_INSTALL_DESTINATION`、それらの配下、または installed GE-Proton directory である場合は選び直す。確認した parent と最終展開先を記録する。
+
+```text
+EXTRACT_PARENT:
+EXPECTED_EXTRACT_ROOT:
+EXTRACT_DESTINATION:
+```
+
+### 7.6 archive を展開
+
+前節の全確認が成功した場合だけ、独立したこの command を一度実行する。
+
+```fish
 tar \
     --zstd \
-    -xf "$ARCHIVE" \
-    -C "$IMPORT_PARENT"
+    -xf "$ARCHIVE_PATH" \
+    -C "$EXTRACT_PARENT"
+
+echo "展開 command の終了 status: $status"
 ```
 
-内部ファイルを検証する。
+展開 command が失敗した場合、または展開後の必須 path が存在しない場合は、ここで停止する。後続手順を実行しない。
+
+### 7.7 展開後の実測 layout と必須 asset を確認
+
+destination directory が存在するだけでは展開成功とは扱わない。listing で記録した root を実際に確認してから、その絶対 path を入力する。
 
 ```fish
-cd "$IMPORT"
-sha256sum -c SHA256SUMS
+read -P '確認済みの展開後 root 絶対パス: ' EXTRACTED_ROOT
+realpath "$EXTRACTED_ROOT"
+set EXTRACTED_ROOT \
+    (realpath "$EXTRACTED_ROOT")
+test -d "$EXTRACTED_ROOT"
+test -d "$EXTRACT_DESTINATION"
+test -f "$EXTRACTED_ROOT/SHA256SUMS"
+test "$EXTRACTED_ROOT" = (realpath "$EXTRACT_DESTINATION")
+test (basename "$EXTRACTED_ROOT") = "$EXPECTED_EXTRACT_ROOT"
 ```
 
-すべて`OK`になる必要がある。
+`EXTRACTED_ROOT` が記録済みの `EXTRACT_DESTINATION` と一致し、root 名が `EXPECTED_EXTRACT_ROOT` と一致することを確認する。異なる場合は、その差を記録して停止する。次に、listing で確認した実際の GE-Proton source directory を絶対 path で入力する。名前を推測してはならない。
+
+```fish
+read -P '確認済みの展開後 GE-Proton source 絶対パス: ' IMPORT_GE
+realpath "$IMPORT_GE"
+set IMPORT_GE \
+    (realpath "$IMPORT_GE")
+test -d "$IMPORT_GE"
+string match -q -- "$EXTRACTED_ROOT/*" "$IMPORT_GE"
+
+for path in \
+    "$EXTRACTED_ROOT/dxvk/d3d11.dll" \
+    "$EXTRACTED_ROOT/dxvk/dxgi.dll" \
+    "$EXTRACTED_ROOT/dxvk/d3d10core.dll" \
+    "$EXTRACTED_ROOT/plugin/lwinput.aui2" \
+    "$EXTRACTED_ROOT/plugin/lsmash.ini" \
+    "$EXTRACTED_ROOT/config/nvidia-dxvk.conf"
+
+    test -f "$path"
+    ls -lh "$path"
+end
+```
+
+内部 checksum manifest が listing にあり、すべての asset が存在する場合だけ検証する。
+
+```fish
+pushd "$EXTRACTED_ROOT"
+sha256sum -c SHA256SUMS
+popd
+```
+
+```text
+actual extracted root:
+actual GE-Proton source path:
+required asset result:
+internal SHA-256 result:
+```
+
+`IMPORT_GE` が `EXTRACTED_ROOT` 配下でない、必須 asset がない、manifest 検証が失敗する、または実測 layout が固定した後続 path と異なる場合は停止する。`No such file or directory` の原因調査に戻り、後続操作は行わない。
+
+### 7.8 観測済み失敗の記録
+
+以前の手順では `No such file or directory` が発生した。疑われるのは archive 展開または仮定した展開 layout であり、archive path、listing、展開結果、展開後 path を記録するまでは確認済み根本原因と扱わない。
+
+```text
+失敗した command:
+欠落していた path:
+archive path:
+archive listing result:
+extraction command result:
+actual extracted root:
+required asset result:
+confirmed root cause:
+```
 
 ---
 
-# 8. パッチ済みGE-Protonを導入
+## 8. パッチ済み GE-Proton を導入
+
+次のすべてを確認するまで、この手順を実行しない。
+
+- archive path を確認済み
+- archive listing 成功
+- archive top-level root を確認済み
+- extraction 成功
+- EXTRACTED_ROOT を確認済み
+- この手順が参照する source path が実在
+- required files が実在
+
+この手順が消費する source path をもう一度確認する。
 
 ```fish
-set IMPORT_GE \
-    "$IMPORT/ge/GE-Proton11-1-aviutl2-test"
+test -d "$IMPORT_GE"
+ls -ld "$IMPORT_GE"
+```
 
+失敗した場合は、`No such file or directory` の原因調査に戻り、後続操作は行わない。`IMPORT_GE` は第 7.7 節で実測した archive 内 source path であり、`GE-Proton11-1-aviutl2-test` のような推測した archive 内 basename を使わない。
+
+```fish
 set TS \
     (date +%Y%m%d-%H%M%S)
 ```
@@ -529,10 +694,10 @@ set TS \
 既存の同名環境がある場合は退避する。
 
 ```fish
-if test -e "$GE_TEST"
+if test -e "$GE_INSTALL_DESTINATION"
     mv \
-        "$GE_TEST" \
-        "$GE_TEST.backup-$TS"
+        "$GE_INSTALL_DESTINATION" \
+        "$GE_INSTALL_DESTINATION.backup-$TS"
 end
 ```
 
@@ -541,16 +706,16 @@ end
 ```fish
 cp -a \
     "$IMPORT_GE" \
-    "$GE_TEST"
+    "$GE_INSTALL_DESTINATION"
 ```
 
 必須ファイルを確認する。
 
 ```fish
 for path in \
-    "$GE_TEST/files/lib/wine/x86_64-unix/wine" \
-    "$GE_TEST/files/bin/wineserver" \
-    "$GE_TEST/files/lib/wine/x86_64-windows/dwrite.dll"
+    "$GE_INSTALL_DESTINATION/files/lib/wine/x86_64-unix/wine" \
+    "$GE_INSTALL_DESTINATION/files/bin/wineserver" \
+    "$GE_INSTALL_DESTINATION/files/lib/wine/x86_64-windows/dwrite.dll"
 
     if test -e "$path"
         echo "OK: $path"
@@ -564,13 +729,13 @@ Wineを確認する。
 
 ```fish
 set GE_WINE \
-    "$GE_TEST/files/lib/wine/x86_64-unix/wine"
+    "$GE_INSTALL_DESTINATION/files/lib/wine/x86_64-unix/wine"
 
 set GE_WINESERVER \
-    "$GE_TEST/files/bin/wineserver"
+    "$GE_INSTALL_DESTINATION/files/bin/wineserver"
 
 set GE_LIBS \
-    "$GE_TEST/files/lib64:$GE_TEST/files/lib:$GE_TEST/files/lib/wine/x86_64-unix:$GE_TEST/files/lib/wine/i386-unix"
+    "$GE_INSTALL_DESTINATION/files/lib64:$GE_INSTALL_DESTINATION/files/lib:$GE_INSTALL_DESTINATION/files/lib/wine/x86_64-unix:$GE_INSTALL_DESTINATION/files/lib/wine/i386-unix"
 
 env \
     LD_LIBRARY_PATH="$GE_LIBS" \
@@ -583,11 +748,11 @@ env \
 wine-staging 11.0
 ```
 
-`$GE_TEST/files/bin/wine`は使用しない。
+`$GE_INSTALL_DESTINATION/files/bin/wine`は使用しない。
 
 ---
 
-# 9. 新しいWine prefixを作成
+## 9. 新しいWine prefixを作成
 
 既存prefixがある場合は削除せず退避する。
 
@@ -639,9 +804,9 @@ end
 
 ---
 
-# 10. AviUtl2 2.1.2を公式ZIPから配置
+## 10. AviUtl2 2.1.2を公式ZIPから配置
 
-## 10.1 ZIPを取得
+### 10.1 ZIPを取得
 
 ```fish
 set AVIUTL2_URL \
@@ -664,7 +829,7 @@ file "$AVIUTL2_ZIP"
 bsdtar -tf "$AVIUTL2_ZIP" | head -n 30
 ```
 
-## 10.2 ZIPを展開
+### 10.2 ZIPを展開
 
 ```fish
 set AVIUTL2_TEMP \
@@ -693,7 +858,7 @@ echo "$AVIUTL2_SOURCE_EXE"
 
 何も表示されなければ先へ進まない。
 
-## 10.3 `C:\AviUtl2`へ配置
+### 10.3 `C:\AviUtl2`へ配置
 
 ```fish
 set AVIUTL2_SOURCE_DIR \
@@ -726,13 +891,13 @@ file "$AVIUTL2_DIR/aviutl2.exe"
 
 ---
 
-# 11. 動作済みDXVKをprefixへ導入
+## 11. 動作済みDXVKをprefixへ導入
 
-## 11.1 DXVK設定
+### 11.1 DXVK設定
 
 ```fish
 cp -a \
-    "$IMPORT/config/nvidia-dxvk.conf" \
+    "$EXTRACTED_ROOT/config/nvidia-dxvk.conf" \
     "$ROOT/nvidia-dxvk.conf"
 ```
 
@@ -748,7 +913,7 @@ cat "$ROOT/nvidia-dxvk.conf"
 dxgi.hideNvidiaGpu = False
 ```
 
-## 11.2 DLLをコピー
+### 11.2 DLLをコピー
 
 ```fish
 set SYSTEM32 \
@@ -769,7 +934,7 @@ for dll in \
     end
 
     cp -a \
-        "$IMPORT/dxvk/$dll" \
+        "$EXTRACTED_ROOT/dxvk/$dll" \
         "$SYSTEM32/$dll"
 end
 ```
@@ -786,7 +951,7 @@ for dll in \
     echo "=== $dll ==="
 
     sha256sum \
-        "$IMPORT/dxvk/$dll" \
+        "$EXTRACTED_ROOT/dxvk/$dll" \
         "$SYSTEM32/$dll"
 end
 ```
@@ -810,7 +975,7 @@ AviUtl2 trace: CheckFormatSupport
 
 ---
 
-# 12. 動作済みL-SMASH Worksを導入
+## 12. 動作済みL-SMASH Worksを導入
 
 ```fish
 set PLUGIN_DIR \
@@ -823,11 +988,11 @@ mkdir -p "$PLUGIN_DIR"
 
 ```fish
 cp -a \
-    "$IMPORT/plugin/lwinput.aui2" \
+    "$EXTRACTED_ROOT/plugin/lwinput.aui2" \
     "$PLUGIN_DIR/lwinput.aui2"
 
 cp -a \
-    "$IMPORT/plugin/lsmash.ini" \
+    "$EXTRACTED_ROOT/plugin/lsmash.ini" \
     "$PLUGIN_DIR/lsmash.ini"
 ```
 
@@ -835,11 +1000,11 @@ cp -a \
 
 ```fish
 sha256sum \
-    "$IMPORT/plugin/lwinput.aui2" \
+    "$EXTRACTED_ROOT/plugin/lwinput.aui2" \
     "$PLUGIN_DIR/lwinput.aui2"
 
 sha256sum \
-    "$IMPORT/plugin/lsmash.ini" \
+    "$EXTRACTED_ROOT/plugin/lsmash.ini" \
     "$PLUGIN_DIR/lsmash.ini"
 ```
 
@@ -873,9 +1038,9 @@ strings -a "$PLUGIN_DIR/lwinput.aui2" \
 
 ---
 
-# 13. 固定起動ラッパーを作成
+## 13. 固定起動ラッパーを作成
 
-## 13.1 ラッパー内容
+### 13.1 ラッパー内容
 
 次の内容を`~/Games/aviutl2/scripts/launch-aviutl2.fish`へ保存する。
 
@@ -888,14 +1053,14 @@ set ROOT \
 set PREFIX \
     "$ROOT/prefix-ge-nvdec-test"
 
-set GE_TEST \
+set GE_INSTALL_DESTINATION \
     "$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1-aviutl2-test"
 
 set GE_WINE \
-    "$GE_TEST/files/lib/wine/x86_64-unix/wine"
+    "$GE_INSTALL_DESTINATION/files/lib/wine/x86_64-unix/wine"
 
 set GE_LIBS \
-    "$GE_TEST/files/lib64:$GE_TEST/files/lib:$GE_TEST/files/lib/wine/x86_64-unix:$GE_TEST/files/lib/wine/i386-unix"
+    "$GE_INSTALL_DESTINATION/files/lib64:$GE_INSTALL_DESTINATION/files/lib:$GE_INSTALL_DESTINATION/files/lib/wine/x86_64-unix:$GE_INSTALL_DESTINATION/files/lib/wine/i386-unix"
 
 set AVIUTL2_EXE \
     "$PREFIX/drive_c/AviUtl2/aviutl2.exe"
@@ -906,6 +1071,8 @@ set DXVK_CONFIG \
 set DLL_OVERRIDES \
     'nvcuda,nvcuvid,nvencodeapi64=n;d3d11,dxgi,d3d10core=n,b;d3dcompiler_47=n,b;dwrite=b'
 
+set missing_required 0
+
 for required in \
     "$GE_WINE" \
     "$AVIUTL2_EXE" \
@@ -913,10 +1080,16 @@ for required in \
 
     if not test -e "$required"
         echo "ERROR: required path does not exist: $required" >&2
+        set missing_required 1
     end
 end
 
+if test "$missing_required" -ne 0
+    exit 1
+end
+
 cd "$PREFIX/drive_c/AviUtl2"
+or exit 1
 
 env \
     WINEPREFIX="$PREFIX" \
@@ -953,7 +1126,7 @@ fish -n \
 
 ---
 
-# 14. 最初の直接起動
+## 14. 最初の直接起動
 
 Lutrisを使う前に、必ずターミナルから直接起動する。
 
@@ -984,7 +1157,7 @@ grep -nEi \
 
 ---
 
-# 15. DLLロード経路を検証
+## 15. DLLロード経路を検証
 
 通常起動で問題がある場合だけ、DLLロードログを取得する。
 
@@ -1017,11 +1190,11 @@ grep -nEi \
 
 ---
 
-# 16. 段階別の機能確認
+## 16. 段階別の機能確認
 
 一度にすべてを試さず、次の順番で検証する。
 
-## Phase 1: 起動
+### Phase 1: 起動
 
 確認項目:
 
@@ -1031,7 +1204,7 @@ grep -nEi \
 - format 69エラーがない
 - ページフォルトがない
 
-## Phase 2: テキスト
+### Phase 2: テキスト
 
 確認項目:
 
@@ -1052,7 +1225,7 @@ E_NOTIMPL
 0x80004005
 ```
 
-## Phase 3: 動画
+### Phase 3: 動画
 
 確認項目:
 
@@ -1071,7 +1244,7 @@ libav_disabled=0
 preferred_decoders=av1_cuvid
 ```
 
-## Phase 4: Mozc
+### Phase 4: Mozc
 
 確認項目:
 
@@ -1086,11 +1259,11 @@ IMEを無効化した状態だけで成功しても、最終成功とは扱わ�
 
 ---
 
-# 17. Lutrisへ登録
+## 17. Lutrisへ登録
 
 AviUtl2の直接起動が成功した後だけ実施する。
 
-## 17.1 Runner
+### 17.1 Runner
 
 Lutrisでは次を設定する。
 
@@ -1108,7 +1281,7 @@ Lutrisでは次を設定する。
 
 Lutrisは固定ラッパーを起動するだけにする。
 
-## 17.2 設計上の禁止事項
+### 17.2 設計上の禁止事項
 
 次の構成へ変更してはならない。
 
@@ -1122,303 +1295,155 @@ Lutris Wine Runner
 
 ---
 
-# 18. AviUtl2 Catalog
+## 18. AviUtl2 Catalog
 
-CatalogはAviUtl2本体の起動確認後に導入する。
-
-リポジトリの管理スクリプトを使う場合:
+Catalog は AviUtl2 本体の起動確認後にだけ導入する。管理スクリプトを使う場合は、実行前に [`LUTRIS-CATALOG.md`](LUTRIS-CATALOG.md) の手順と設定値を確認する。
 
 ```fish
 cd "$REPO"
-
-chmod +x \
-    scripts/manage-aviutl2-catalog-lutris.sh
-```
-
-状態確認:
-
-```fish
 scripts/manage-aviutl2-catalog-lutris.sh status
 ```
 
-導入:
+Catalog 更新後は独自の `lwinput.aui2` が上書きされる可能性がある。第 12 節の source asset とコピー先の SHA-256 を比較し、異なる場合は第 12 節の確認済み source から手動復旧する。
 
-Git 履歴 `509123c` に、原環境の実行記録として次の Meson コマンドがある。これは原環境の evidence であり、Nanashi での成功を意味しない。
-```fish
-meson setup \
-    "$DXVK_SRC/build.w64" \
-    "$DXVK_SRC" \
-    --cross-file "$DXVK_SRC/build-win64.txt" \
-    --buildtype release \
-    --prefix "$DXVK_OUT"
-```
-```fish
-meson compile \
-    -C "$DXVK_SRC/build.w64" \
-    -j (nproc)
-```
-```fish
-meson install \
-    -C "$DXVK_SRC/build.w64"
-```
-## 4. Nanashiで未確認の事項
+---
 
-Nanashi の絶対 path、cross-file の由来、clean source 準備、patch 適用、build、DLL の同一出力由来、DLL load、format 69 実行、main window、text、Mozc、AV1、NVDEC、復元は未確認である。
-[`STATUS.md`](STATUS.md) には別環境で patch 適用失敗と `Missing Vulkan-Headers` が記録されている。これらは Nanashi で解消済みと扱わず、失敗時は推測による変更をせず停止する。
-## 5. Nanashiの実パス確認
+## 19. Nanashiでの format 69 差分検証
 
-次は読み取り専用の発見である。候補が複数なら選ばず、出力を記録して停止する。
+これは第 6–16 節の全環境移植とは別の診断である。既存の Nanashi 環境を固定し、同一 build の `d3d11.dll`、`dxgi.dll`、`d3d10core.dll` だけを差分として扱う。Nanashi での build、DLL load、format 69 実行、画面表示、テキスト、Mozc、AV1、NVDEC、復元は未確認である。[`STATUS.md`](STATUS.md) の patch 適用失敗と `Missing Vulkan-Headers` を解消済みと扱わない。
+
+### 19.1 実測 path と build 出力
+
+作業親は prefix 外の既存 directory を選び、既存の Nanashi prefix、GE-Proton、起動ラッパーを変更しない。
+
 ```fish
-git rev-parse --show-toplevel
-```
-```fish
-find "$HOME/Games" -maxdepth 2 -type d -name aviutl2 -print
-```
-```fish
-find "$HOME/Games/aviutl2" -maxdepth 2 -type d -name 'prefix-*' -print
-```
-```fish
-find "$HOME/.local/share/Steam/compatibilitytools.d" -maxdepth 2 -type d -name 'GE-Proton*' -print
-```
-```fish
-find "$HOME/.local/share/Steam/compatibilitytools.d" -type f -path '*/files/lib/wine/x86_64-unix/wine' -print
-find "$HOME/.local/share/Steam/compatibilitytools.d" -type f -path '*/files/bin/wineserver' -print
-```
-```fish
-find (git rev-parse --show-toplevel)/scripts -maxdepth 1 -type f -name '*launch*.fish' -print
-```
-確認した値を手で記入する。`DXVK_WORK_PARENT` は prefix 外の既存作業親である。
-```text
-NANASHI_ROOT:
-NANASHI_PREFIX:
-NANASHI_SYSTEM32:
-NANASHI_GE:
-NANASHI_WINE:
-NANASHI_WINESERVER:
-NANASHI_LAUNCH_WRAPPER:
-DXVK_WORK_PARENT:
-```
-同じ対話 Fish session で記録値を入力する。異なる session では入力し直す。
-```fish
-set NANASHI_REPO (git rev-parse --show-toplevel)
-read -P 'NANASHI_ROOT: ' NANASHI_ROOT
-read -P 'NANASHI_PREFIX: ' NANASHI_PREFIX
-read -P 'NANASHI_SYSTEM32: ' NANASHI_SYSTEM32
-read -P 'NANASHI_GE: ' NANASHI_GE
-read -P 'NANASHI_WINE: ' NANASHI_WINE
-read -P 'NANASHI_WINESERVER: ' NANASHI_WINESERVER
-read -P 'NANASHI_LAUNCH_WRAPPER: ' NANASHI_LAUNCH_WRAPPER
-read -P 'DXVK_WORK_PARENT: ' DXVK_WORK_PARENT
-realpath "$NANASHI_ROOT" "$NANASHI_PREFIX" "$NANASHI_SYSTEM32" "$NANASHI_GE" "$NANASHI_WINE" "$NANASHI_WINESERVER" "$NANASHI_LAUNCH_WRAPPER" "$DXVK_WORK_PARENT"
+read -P 'Nanashi prefix の絶対パス: ' NANASHI_PREFIX
+read -P 'Nanashi System32 の絶対パス: ' NANASHI_SYSTEM32
+read -P 'Nanashi wineserver の絶対パス: ' NANASHI_WINESERVER
+read -P '既存の Nanashi 起動ラッパー絶対パス: ' NANASHI_LAUNCH_WRAPPER
+read -P 'prefix 外の既存 DXVK 作業親絶対パス: ' DXVK_WORK_PARENT
+realpath "$NANASHI_PREFIX" "$NANASHI_SYSTEM32" "$NANASHI_WINESERVER" "$NANASHI_LAUNCH_WRAPPER" "$DXVK_WORK_PARENT"
 ```
 
-## 6. DXVK sourceの準備
-
-この節は Nanashi で未実行であり、変更操作の個別承認後にだけ使う。既存 checkout を再利用・初期化・削除せず、新しい checkout を作る。成功条件は指定 commit、clean source tree、patch 検査成功である。一つでも満たさなければ build へ進まない。
+`scripts/build-dxvk-aviutl2.sh` は DXVK 2.7.1 の base commit `c3dd74be6baec53786d4e064a572185b70347a17` と本 repository の patch を固定している。新しい source と output directory を指定し、script が成功しなければ置換へ進まない。
 
 ```fish
 set DXVK_SRC "$DXVK_WORK_PARENT/dxvk-2.7.1-c3dd74be"
-git clone --recurse-submodules https://github.com/doitsujin/dxvk.git "$DXVK_SRC"
-```
-
-```fish
-git -C "$DXVK_SRC" checkout --detach c3dd74be6baec53786d4e064a572185b70347a17
-git -C "$DXVK_SRC" submodule update --init --recursive
-git -C "$DXVK_SRC" rev-parse HEAD
-git -C "$DXVK_SRC" status --short
-```
-
-```fish
-set DXVK_PATCH "$NANASHI_REPO/patches/dxvk/0001-aviutl2-format-support.patch"
-sha256sum "$DXVK_PATCH"
-git -C "$DXVK_SRC" apply --check "$DXVK_PATCH"
-git -C "$DXVK_SRC" apply "$DXVK_PATCH"
-git -C "$DXVK_SRC" diff --check
-git -C "$DXVK_SRC" diff -- src/d3d11/d3d11_device.cpp
-```
-
-patch 適用前の `status --short` は空、`rev-parse HEAD` は base commit と一致し、適用後の diff は本 patch だけでなければならない。
-
-## 7. DXVKのビルド
-
-第 3 節の Meson 三コマンドが Git 履歴 `509123c` で確認できる原環境 command である。Nanashi での実行と結果は未確認である。`$DXVK_SRC/build-win64.txt` の由来・作成方法は repository evidence で確定していない。ファイルがない、または `meson setup` が失敗する場合は、cross-file を推測で作成・変更せず停止する。
-
-Nanashi で実行を承認された場合は、第 3 節の三 command を一つずつ実行し、各成功後にだけ次へ進む。
-
-```fish
-set DXVK_BUILD "$DXVK_SRC/build.w64"
 set DXVK_OUT "$DXVK_WORK_PARENT/dxvk-2.7.1-output"
-test -f "$DXVK_SRC/build-win64.txt"
-meson --version
-x86_64-w64-mingw32-gcc --version
+test ! -e "$DXVK_SRC"
+test ! -e "$DXVK_OUT"
+"$REPO/scripts/build-dxvk-aviutl2.sh" --work-dir "$DXVK_SRC" --output-dir "$DXVK_OUT"
 ```
 
-```text
-実行日時:
-DXVK commit:
-patch SHA-256:
-Meson version:
-MinGW compiler version:
-build directory:
-output directory:
-build 結果:
-```
+### 19.2 三 DLL の確認、backup、差分適用
 
-## 8. 生成された3 DLLの確認
-
-次は読み取り専用である。各 `count` が 1 であり、絶対 path が同じ `DXVK_OUT` の build output tree に属することを手で確認する。複数またはゼロなら選択せず停止する。
+`scripts/build-dxvk-aviutl2.sh` は install 後に各 DLL を探索し、`$DXVK_OUT/d3d11.dll`、`$DXVK_OUT/dxgi.dll`、`$DXVK_OUT/d3d10core.dll` へ明示的に copy する。したがって、この flat output path は script が保証する。確認済み path を変数へ記録し、marker は DLL load や format 69 実行の証拠ではない。
 
 ```fish
-set D3D11_FOUND (find "$DXVK_OUT" -type f -name d3d11.dll -print)
-set DXGI_FOUND (find "$DXVK_OUT" -type f -name dxgi.dll -print)
-set D3D10CORE_FOUND (find "$DXVK_OUT" -type f -name d3d10core.dll -print)
-count $D3D11_FOUND
-count $DXGI_FOUND
-count $D3D10CORE_FOUND
-printf '%s\n' $D3D11_FOUND $DXGI_FOUND $D3D10CORE_FOUND
-```
-
-```fish
-read -P 'd3d11.dll の確認済み出力: ' DXVK_D3D11
-read -P 'dxgi.dll の確認済み出力: ' DXVK_DXGI
-read -P 'd3d10core.dll の確認済み出力: ' DXVK_D3D10CORE
+set DXVK_D3D11 "$DXVK_OUT/d3d11.dll"
+set DXVK_DXGI "$DXVK_OUT/dxgi.dll"
+set DXVK_D3D10CORE "$DXVK_OUT/d3d10core.dll"
+test -f "$DXVK_D3D11"
+test -s "$DXVK_D3D11"
+test -f "$DXVK_DXGI"
+test -s "$DXVK_DXGI"
+test -f "$DXVK_D3D10CORE"
+test -s "$DXVK_D3D10CORE"
 realpath "$DXVK_D3D11" "$DXVK_DXGI" "$DXVK_D3D10CORE"
 sha256sum "$DXVK_D3D11" "$DXVK_DXGI" "$DXVK_D3D10CORE"
 grep -aF 'AviUtl2 compatibility' "$DXVK_D3D11"
 ```
 
-marker は patch を含む候補 DLL の証拠であり、DLL load や format 69 実行の証拠ではない。
-
-| DLL | 確認済み絶対 path | SHA-256 |
-| --- | --- | --- |
-| d3d11.dll |  |  |
-| dxgi.dll |  |  |
-| d3d10core.dll |  |  |
-
-## 9. WineとAviUtl2の停止
-
-AviUtl2 を通常終了してから行う。確認済み GE-Proton の Wine と wineserver、および確認済み prefix だけを使う。system Wine、`pkill`、`killall`、広範囲のプロセス終了は使わない。対応する `wineserver -w` の成功が主な停止条件であり、失敗時は backup や置換へ進まない。
+現在の System32 DLL の hash を記録してから、prefix 外の新規 backup directory へ保存する。backup 後に originals と backup を両方表示し、三つすべての `cmp` が成功するまで置換しない。自動 rollback はしない。
 
 ```fish
-set GE_LIBS "$NANASHI_GE/files/lib64:$NANASHI_GE/files/lib:$NANASHI_GE/files/lib/wine/x86_64-unix:$NANASHI_GE/files/lib/wine/i386-unix"
-env WINEPREFIX="$NANASHI_PREFIX" LD_LIBRARY_PATH="$GE_LIBS" "$NANASHI_WINESERVER" -k
-```
+set ORIGINAL_D3D11_SHA256 (sha256sum "$NANASHI_SYSTEM32/d3d11.dll" | string split ' ')[1]
+set ORIGINAL_DXGI_SHA256 (sha256sum "$NANASHI_SYSTEM32/dxgi.dll" | string split ' ')[1]
+set ORIGINAL_D3D10CORE_SHA256 (sha256sum "$NANASHI_SYSTEM32/d3d10core.dll" | string split ' ')[1]
+printf '%s\n' "$ORIGINAL_D3D11_SHA256" "$ORIGINAL_DXGI_SHA256" "$ORIGINAL_D3D10CORE_SHA256"
 
-```fish
-env WINEPREFIX="$NANASHI_PREFIX" LD_LIBRARY_PATH="$GE_LIBS" "$NANASHI_WINESERVER" -w
-```
-
-## 10. 既存3 DLLのバックアップ
-
-置換前に元の三 hash を表示する。一つの新しい時刻付き backup directory を prefix 外に作り、明示した三ファイルだけを copy する。各組の hash を手で照合し、三組すべて一致するまで置換は禁止である。
-
-```fish
-sha256sum "$NANASHI_SYSTEM32/d3d11.dll" "$NANASHI_SYSTEM32/dxgi.dll" "$NANASHI_SYSTEM32/d3d10core.dll"
 set BACKUP_TIMESTAMP (date -u +%Y%m%dT%H%M%SZ)
 set DLL_BACKUP "$DXVK_WORK_PARENT/dxvk-backup-$BACKUP_TIMESTAMP"
 mkdir "$DLL_BACKUP"
-```
-
-```fish
 cp "$NANASHI_SYSTEM32/d3d11.dll" "$DLL_BACKUP/d3d11.dll"
 cp "$NANASHI_SYSTEM32/dxgi.dll" "$DLL_BACKUP/dxgi.dll"
 cp "$NANASHI_SYSTEM32/d3d10core.dll" "$DLL_BACKUP/d3d10core.dll"
+sha256sum "$NANASHI_SYSTEM32/d3d11.dll" "$NANASHI_SYSTEM32/dxgi.dll" "$NANASHI_SYSTEM32/d3d10core.dll"
 sha256sum "$DLL_BACKUP/d3d11.dll" "$DLL_BACKUP/dxgi.dll" "$DLL_BACKUP/d3d10core.dll"
+cmp -s "$NANASHI_SYSTEM32/d3d11.dll" "$DLL_BACKUP/d3d11.dll"
+cmp -s "$NANASHI_SYSTEM32/dxgi.dll" "$DLL_BACKUP/dxgi.dll"
+cmp -s "$NANASHI_SYSTEM32/d3d10core.dll" "$DLL_BACKUP/d3d10core.dll"
 ```
 
-```text
-backup directory:
-original d3d11 SHA-256:
-backup d3d11 SHA-256:
-original dxgi SHA-256:
-backup dxgi SHA-256:
-original d3d10core SHA-256:
-backup d3d10core SHA-256:
-一致確認:
+三比較が成功した場合だけ、直前に対応する wineserver を停止して三 DLL を置換する。system wineserver、`pkill`、`killall`、広範囲の停止は使わない。
+
+```fish
+env \
+    WINEPREFIX="$NANASHI_PREFIX" \
+    "$NANASHI_WINESERVER" -k
+
+env \
+    WINEPREFIX="$NANASHI_PREFIX" \
+    "$NANASHI_WINESERVER" -w
 ```
-
-## 11. 3 DLLの交換
-
-三ファイルの交換は atomic ではない。端末と SSH 接続を安定させ、途中で中断しない。copy が一つでも失敗したら続行せず、起動もしない。自動 retry と自動 rollback はしない。手動交換には中断リスクが残る。
 
 ```fish
 cp "$DXVK_D3D11" "$NANASHI_SYSTEM32/d3d11.dll"
 cp "$DXVK_DXGI" "$NANASHI_SYSTEM32/dxgi.dll"
 cp "$DXVK_D3D10CORE" "$NANASHI_SYSTEM32/d3d10core.dll"
-```
-
-```fish
+sha256sum "$DXVK_D3D11" "$DXVK_DXGI" "$DXVK_D3D10CORE"
 sha256sum "$NANASHI_SYSTEM32/d3d11.dll" "$NANASHI_SYSTEM32/dxgi.dll" "$NANASHI_SYSTEM32/d3d10core.dll"
+cmp -s "$DXVK_D3D11" "$NANASHI_SYSTEM32/d3d11.dll"
+cmp -s "$DXVK_DXGI" "$NANASHI_SYSTEM32/dxgi.dll"
+cmp -s "$DXVK_D3D10CORE" "$NANASHI_SYSTEM32/d3d10core.dll"
 ```
 
-表示した三 hash を第 8 節の build hash と手で比較する。三つすべて一致するまで AviUtl2 を起動しない。
+三比較が成功するまで AviUtl2 を起動しない。
 
-## 12. AviUtl2の起動と確認
+### 19.3 起動、判定、手動復元
 
-prefix 外に run ごとの log directory を作る。既存の確認済み Nanashi wrapper をそのまま使い、新しい wrapper や Wine 設定を作らない。wrapper がこの directory へ DXVK log を出す既存設定を持つかは未確認であり、空なら log 出力先を推測して変更しない。
-
-```fish
-set RUN_TIMESTAMP (date -u +%Y%m%dT%H%M%SZ)
-set RUN_LOG_DIR "$DXVK_WORK_PARENT/dxvk-format69-log-$RUN_TIMESTAMP"
-mkdir "$RUN_LOG_DIR"
-sha256sum "$NANASHI_SYSTEM32/d3d11.dll" "$NANASHI_SYSTEM32/dxgi.dll" "$NANASHI_SYSTEM32/d3d10core.dll"
-printf '%s\n' "$RUN_TIMESTAMP" "$NANASHI_LAUNCH_WRAPPER" "$NANASHI_PREFIX" "$NANASHI_GE" "$RUN_LOG_DIR"
-```
+既存の起動ラッパーで起動し、DLL 設置、DLL load、format 69 workaround 実行、main window、text、Mozc、AV1 の load/playback/seeking、NVDEC を独立に記録する。前の結果から後の結果を推論しない。format 69 の runtime trace が得られない場合は、その証拠方法を未解決と記録する。
 
 ```fish
 "$NANASHI_LAUNCH_WRAPPER"
 ```
 
-終了後、実際に得られた log を指定して読む。marker だけから format 69 成功を判断しない。patch が `CheckFormatSupport format=69 hr=0 flags=0` を出力することは repository evidence では確認できないため、その trace がなければ format 69 runtime 証拠の方法は未解決として記録する。
+問題発生時は AviUtl2 を通常終了し、同じ wineserver の停止確認後に、確認済み backup の三 DLL だけを手動で戻す。これは failed launch 後にも単独で使える手順である。
 
 ```fish
-read -P '確認対象の DXVK log: ' DXVK_LOG
-grep -aF 'AviUtl2 compatibility' "$DXVK_LOG"
-grep -aF 'CheckFormatSupport format=69 hr=0 flags=0' "$DXVK_LOG"
-```
+env \
+    WINEPREFIX="$NANASHI_PREFIX" \
+    "$NANASHI_WINESERVER" -k
 
-成功水準は独立に記録する。(1) 意図した DLL の設置、(2) 意図した DXVK の load、(3) format 69 workaround 実行、(4) main window 表示、(5) text 編集、(6) Mozc、(7) AV1 load/playback/seeking、(8) NVDEC。前の水準から後の水準を推論しない。
+env \
+    WINEPREFIX="$NANASHI_PREFIX" \
+    "$NANASHI_WINESERVER" -w
 
-## 13. 問題発生時の手動復元
-
-復元も中断してはならない。AviUtl2 を通常終了し、第 9 節と同じ wineserver を停止してから、現在の三 hash を記録する。確認済み backup の三ファイルだけを exact System32 名へ戻す。copy 後の三 hash が第 10 節の元 hash とすべて一致するまで起動しない。
-
-```fish
-sha256sum "$NANASHI_SYSTEM32/d3d11.dll" "$NANASHI_SYSTEM32/dxgi.dll" "$NANASHI_SYSTEM32/d3d10core.dll"
 cp "$DLL_BACKUP/d3d11.dll" "$NANASHI_SYSTEM32/d3d11.dll"
 cp "$DLL_BACKUP/dxgi.dll" "$NANASHI_SYSTEM32/dxgi.dll"
 cp "$DLL_BACKUP/d3d10core.dll" "$NANASHI_SYSTEM32/d3d10core.dll"
 sha256sum "$NANASHI_SYSTEM32/d3d11.dll" "$NANASHI_SYSTEM32/dxgi.dll" "$NANASHI_SYSTEM32/d3d10core.dll"
+sha256sum "$DLL_BACKUP/d3d11.dll" "$DLL_BACKUP/dxgi.dll" "$DLL_BACKUP/d3d10core.dll"
+cmp -s "$NANASHI_SYSTEM32/d3d11.dll" "$DLL_BACKUP/d3d11.dll"
+cmp -s "$NANASHI_SYSTEM32/dxgi.dll" "$DLL_BACKUP/dxgi.dll"
+cmp -s "$NANASHI_SYSTEM32/d3d10core.dll" "$DLL_BACKUP/d3d10core.dll"
+test "$ORIGINAL_D3D11_SHA256" = (sha256sum "$NANASHI_SYSTEM32/d3d11.dll" | string split ' ')[1]
+test "$ORIGINAL_DXGI_SHA256" = (sha256sum "$NANASHI_SYSTEM32/dxgi.dll" | string split ' ')[1]
+test "$ORIGINAL_D3D10CORE_SHA256" = (sha256sum "$NANASHI_SYSTEM32/d3d10core.dll" | string split ' ')[1]
 ```
 
-## 14. Nanashi実行結果
-
-```markdown
-実行日:
-機械:
-リポジトリ commit:
-DXVK commit:
-patch SHA-256:
-実際に使った build コマンド:
-build 結果:
-生成 DLL の path と hash:
-元 DLL の hash:
-backup path と hash:
-最終設置 hash:
-wrapper path:
-log path:
-format-69 結果:
-main-window 結果:
-text 結果:
-Mozc 結果:
-AV1 結果:
-NVDEC 結果:
-rollback 実施と結果:
+```text
+DXVK commit と patch SHA-256:
+三 DLL の build hash / backup hash / 最終 hash:
+DLL load:
+format 69:
+main window:
+text:
+Mozc:
+AV1:
+NVDEC:
+手動復元:
 次の blocker:
 ```
 
-## 15. この文書を確認済み状態へ更新する条件
-
-Nanashi 固有の記載を「未確認」から「確認済み」へ変えられるのは、実行済み command、実測した path、実際に観測した output、記録済み hash、確認済み runtime behavior、実施済みまたは独立に検証済みの restoration による裏付けがある場合だけである。
-
-失敗した推測、未使用の分岐、未実行の候補 command は確認済み手順へ入れない。Nanashi の実測値が得られたら、この同じ文書の該当節と第 14 節を更新する。
+Nanashi 固有の記載を確認済みに更新できるのは、実行 command、実測 path、観測 output、hash、runtime behavior、復元結果がこの文書に記録された場合だけである。
