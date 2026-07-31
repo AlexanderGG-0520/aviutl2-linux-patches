@@ -256,7 +256,7 @@ set PREFIX \
     "$ROOT/prefix-ge-nvdec-test"
 
 set GE_TEST \
-    "$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1-aviutl2-test"
+    "$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1"
 
 set GE_WINESERVER \
     "$GE_TEST/files/bin/wineserver"
