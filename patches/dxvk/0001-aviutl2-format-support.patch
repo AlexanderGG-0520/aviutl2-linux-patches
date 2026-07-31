@@ -1,7 +1,7 @@
-diff --git a/src/d3d11/d3d11_device.cpp b/src/d3d11/d3d11_device.cpp
+   diff --git a/src/d3d11/d3d11_device.cpp b/src/d3d11/d3d11_device.cpp
 --- a/src/d3d11/d3d11_device.cpp
 +++ b/src/d3d11/d3d11_device.cpp
-@@ -30,6 +30,7 @@
+@@ -26,6 +26,7 @@
  
  #include "../wsi/wsi_window.h"
  
@@ -9,28 +9,29 @@ diff --git a/src/d3d11/d3d11_device.cpp b/src/d3d11/d3d11_device.cpp
  #include "../util/util_shared_res.h"
  
  namespace dxvk {
-@@ -1976,12 +1977,24 @@
- 
- 
-   HRESULT D3D11Device::GetFormatSupportFlags(DXGI_FORMAT Format, UINT* pFlags1, UINT* pFlags2) const {
-+    static const bool isAviUtl2 = env::getExeName() == "aviutl2.exe";
-     const DXGI_VK_FORMAT_INFO fmtMapping = LookupFormat(Format, DXGI_VK_FORMAT_MODE_ANY);
- 
-     // Reset output flags preemptively
-     if (pFlags1 != nullptr) *pFlags1 = 0;
-     if (pFlags2 != nullptr) *pFlags2 = 0;
- 
-+    // AviUtl2 probes this valid packed 4:2:2 format during startup.
-+    // Limit the workaround to AviUtl2 and only when DXVK has no
-+    // Vulkan mapping, preserving normal format reporting elsewhere.
-+    if (isAviUtl2
-+     && Format == DXGI_FORMAT_G8R8_G8B8_UNORM
-+     && fmtMapping.Format == VK_FORMAT_UNDEFINED) {
-+      Logger::warn("AviUtl2 compatibility: treating unsupported "
-+        "DXGI_FORMAT_G8R8_G8B8_UNORM query as successful");
+@@ -1547,7 +1548,21 @@ namespace dxvk {
+   HRESULT STDMETHODCALLTYPE D3D11Device::CheckFormatSupport(
+           DXGI_FORMAT Format,
+           UINT*       pFormatSupport) {
+-    return GetFormatSupportFlags(Format, pFormatSupport, nullptr);
++    const HRESULT result = GetFormatSupportFlags(
++      Format, pFormatSupport, nullptr);
++
++    static const bool isAviUtl2
++      = env::getExeName() == "aviutl2.exe";
++
++    if (FAILED(result)
++     && pFormatSupport != nullptr
++     && isAviUtl2
++     && Format == DXGI_FORMAT_G8R8_G8B8_UNORM) {
++      *pFormatSupport = 0;
++      Logger::warn("AviUtl2 compatibility: unsupported "
++        "DXGI_FORMAT_G8R8_G8B8_UNORM query; "
++        "returning S_OK with zero flags");
 +      return S_OK;
 +    }
 +
-     // Unsupported or invalid format
-     if (Format && fmtMapping.Format == VK_FORMAT_UNDEFINED)
-       return E_FAIL;
++    return result;
+   }
+   
+   
