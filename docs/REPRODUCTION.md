@@ -635,10 +635,29 @@ patch \
 ### 9.3 Configure と DWrite ビルド
 
 ```fish
-cd "$WINE_BUILD"
+if not git -C "$WINE_SRC" rev-parse \
+    --is-inside-work-tree \
+    >/dev/null 2>&1
 
-"$WINE_SRC/configure" \
-    --enable-win64
+    echo "ERROR: Wine submodule is not initialized:"
+    echo "$WINE_SRC"
+    return 1
+end
+
+if not test -f "$WINE_SRC/configure.ac"
+    echo "ERROR: Wine configure.ac is missing:"
+    echo "$WINE_SRC/configure.ac"
+    return 1
+end
+
+if not test -f "$WINE_SRC/dlls/dwrite/layout.c"
+    echo "ERROR: DirectWrite source is missing:"
+    echo "$WINE_SRC/dlls/dwrite/layout.c"
+    return 1
+end
+
+echo "OK: Wine source and DirectWrite source exist"
+git -C "$WINE_SRC" rev-parse HEAD
 ```
 
 `make dlls/dwrite` と `make -B` は使用しない。
