@@ -53,7 +53,7 @@ patch は通常の `CheckFormatSupport` を先に実行し、通常の成功結�
 
 ### 1.4 未確認範囲
 
-2026-07-31時点では、別ユーザーのクリーン環境において、すべてのコンポーネントをソースから再ビルドして最後まで動作させることには成功していない。
+2026-08-01時点では、別ユーザーのクリーン環境において、すべてのコンポーネントをソースから再ビルドして最後まで動作させることには成功していない。
 
 特に次の点は未確定である。
 
@@ -63,6 +63,33 @@ patch は通常の `CheckFormatSupport` を先に実行し、通常の成功結�
 - 別環境での完全なソース再ビルドは未完了
 
 したがって、現段階で「確認済みの再現」と呼べるのは、動作済みバイナリを移植する経路である。
+
+### 1.5 Nanashiで観測した起動ブロッカー
+
+Nanashi では `aviutl2.exe` の loader initialization までは到達したが、メインウィンドウの前で `c0000135` により停止した。次の PE DLL は、installed GE-Proton tree と Nanashi prefix の System32 の両方に存在し、対応する SHA-256 も一致していた。
+
+- `d2d1.dll`
+- `d3dcompiler_47.dll`
+- `dwrite.dll`
+
+DXVK の `dxgi.dll`、`d3d11.dll`、`d3d10core.dll` は native DLL として読み込まれ、`DWrite.dll` も builtin として読み込まれた。したがって、DXVK format 69 DLL のロードと DWrite のロードは今回の直接原因ではない。
+
+確認済みの loader dependency chain は次である。
+
+```text
+libvkd3d-1.dll
+libvkd3d-shader-1.dll
+libvkd3d-utils-1.dll
+    -> wined3d.dll
+    -> d3dcompiler_47.dll
+    -> d2d1.dll
+    -> aviutl2.exe
+    -> c0000135
+```
+
+Nanashi prefix には `wined3d.dll` がある一方、上記三つの `libvkd3d-*.dll` が System32 と SysWOW64 のいずれにもないことを確認した。loader chain と prefix runtime DLL の欠落は確認済みである。ただし、`default_pfx` を使う prefix 作成手順、メインウィンドウ起動、format 69 の runtime 動作、text、Mozc、AV1、NVDEC は未確認である。
+
+修正前の section 9 は空の prefix directory を作成し、internal GE Wine の `wineboot` だけを実行していた。そのため、GE-Proton の `files/share/default_pfx` にある runtime files が作成後の prefix へ配置されなかったことが、今回の欠落に対する有力な手順上の診断である。この診断は、修正後の手順が実際に成功することを示す runtime 実証ではない。
 
 ---
 
@@ -241,6 +268,9 @@ set GE_EXPORT_SOURCE \
 set GE_WINESERVER \
     "$GE_EXPORT_SOURCE/files/bin/wineserver"
 
+set GE_DEFAULT_PFX \
+    "$GE_EXPORT_SOURCE/files/share/default_pfx"
+
 set SYSTEM32 \
     "$PREFIX/drive_c/windows/system32"
 
@@ -264,6 +294,13 @@ for path in \
     "$GE_EXPORT_SOURCE/files/lib/wine/x86_64-unix/wine" \
     "$GE_EXPORT_SOURCE/files/bin/wineserver" \
     "$GE_EXPORT_SOURCE/files/lib/wine/x86_64-windows/dwrite.dll" \
+    "$GE_DEFAULT_PFX" \
+    "$GE_DEFAULT_PFX/drive_c/windows/system32/libvkd3d-1.dll" \
+    "$GE_DEFAULT_PFX/drive_c/windows/system32/libvkd3d-shader-1.dll" \
+    "$GE_DEFAULT_PFX/drive_c/windows/system32/libvkd3d-utils-1.dll" \
+    "$GE_DEFAULT_PFX/drive_c/windows/syswow64/libvkd3d-1.dll" \
+    "$GE_DEFAULT_PFX/drive_c/windows/syswow64/libvkd3d-shader-1.dll" \
+    "$GE_DEFAULT_PFX/drive_c/windows/syswow64/libvkd3d-utils-1.dll" \
     "$SYSTEM32/d3d11.dll" \
     "$SYSTEM32/dxgi.dll" \
     "$SYSTEM32/d3d10core.dll" \
@@ -284,9 +321,22 @@ test -d "$GE_EXPORT_SOURCE"
 test -x "$GE_EXPORT_SOURCE/files/lib/wine/x86_64-unix/wine"
 test -x "$GE_EXPORT_SOURCE/files/bin/wineserver"
 test -f "$GE_EXPORT_SOURCE/files/lib/wine/x86_64-windows/dwrite.dll"
+test -d "$GE_DEFAULT_PFX"
+
+for path in \
+    "$GE_DEFAULT_PFX/drive_c/windows/system32/libvkd3d-1.dll" \
+    "$GE_DEFAULT_PFX/drive_c/windows/system32/libvkd3d-shader-1.dll" \
+    "$GE_DEFAULT_PFX/drive_c/windows/system32/libvkd3d-utils-1.dll" \
+    "$GE_DEFAULT_PFX/drive_c/windows/syswow64/libvkd3d-1.dll" \
+    "$GE_DEFAULT_PFX/drive_c/windows/syswow64/libvkd3d-shader-1.dll" \
+    "$GE_DEFAULT_PFX/drive_c/windows/syswow64/libvkd3d-utils-1.dll"
+
+    test -f "$path"
+    test -s "$path"
+end
 ```
 
-1つでも`MISSING`が出た状態ではエクスポートしない。
+1つでも`MISSING`が出た、または `test` が失敗した状態ではエクスポートしない。`default_pfx` とその runtime files の存在は DWrite patch の provenance を証明しないため、第 6.1 節の historical DWrite uncertainty は維持する。
 
 ### 6.3 Wineプロセスを停止
 
@@ -474,19 +524,21 @@ printf '%s\n' $ARCHIVE_CANDIDATES
 test (count $ARCHIVE_CANDIDATES) -eq 1
 ```
 
-候補がちょうど 1 件であることを確認してから、その絶対 path を入力する。
+候補が 0 件または複数件なら停止する。ちょうど 1 件だけなら、その候補を自動的に `ARCHIVE_PATH` として使う。複数件ある場合に先頭の候補を選ぶことはしない。
 
 ```fish
-read -P '確認済み archive の絶対パス: ' ARCHIVE_PATH
+set ARCHIVE_PATH \
+    "$ARCHIVE_CANDIDATES[1]"
 test -f "$ARCHIVE_PATH"
 test -s "$ARCHIVE_PATH"
-test "$ARCHIVE_PATH" = "$ARCHIVE_CANDIDATES[1]"
-realpath "$ARCHIVE_PATH"
+set ARCHIVE_PATH \
+    (realpath "$ARCHIVE_PATH")
+printf 'ARCHIVE_PATH: %s\n' "$ARCHIVE_PATH"
 ls -lh "$ARCHIVE_PATH"
 sha256sum "$ARCHIVE_PATH"
 ```
 
-`test -f` または `test -s` が失敗した場合、あるいは入力 path が表示した唯一の候補と一致しない場合は停止する。
+`test -f` または `test -s` が失敗した場合は停止する。成功時に表示した `ARCHIVE_PATH` が後続 command の入力である。
 
 ```text
 ARCHIVE_PATH:
@@ -496,25 +548,30 @@ ARCHIVE_SHA256:
 
 ここで計算した SHA-256 は使用した archive を記録する値である。独立して既知の期待値と照合しない限り、意図した既知正常 archive であることの証明にはならない。
 
-### 7.3 外部 SHA-256 がある場合の照合
+### 7.3 外部 SHA-256 sidecar を照合
 
-第 6.7 節は `.sha256` sidecar を作成し、archive とともに転送することを記録している。実際に転送された sidecar がある場合だけ、その絶対 path を入力して比較する。
+第 6.7 節は `.sha256` sidecar を archive とともに転送することを記録している。sidecar は archive に隣接する `$ARCHIVE_PATH.sha256` として導出し、展開前に必ず照合する。
 
 ```fish
-read -P '確認済み archive SHA-256 sidecar の絶対パス: ' ARCHIVE_HASH
+set ARCHIVE_HASH \
+    "$ARCHIVE_PATH.sha256"
 test -f "$ARCHIVE_HASH"
+test -s "$ARCHIVE_HASH"
 set EXPECTED_ARCHIVE_SHA256 \
     (string split -m 1 ' ' (string trim (head -n 1 "$ARCHIVE_HASH")))[1]
 set ACTUAL_ARCHIVE_SHA256 \
     (string split -m 1 ' ' (sha256sum "$ARCHIVE_PATH"))[1]
-printf '%s\n' "$EXPECTED_ARCHIVE_SHA256" "$ACTUAL_ARCHIVE_SHA256"
+string match -rq -- '^[0-9A-Fa-f]{64}$' "$EXPECTED_ARCHIVE_SHA256"
+printf 'ARCHIVE_HASH: %s\n' "$ARCHIVE_HASH"
+printf 'ARCHIVE_SHA256: %s\n' "$ACTUAL_ARCHIVE_SHA256"
+printf 'EXPECTED_ARCHIVE_SHA256: %s\n' "$EXPECTED_ARCHIVE_SHA256"
 test "$ACTUAL_ARCHIVE_SHA256" = "$EXPECTED_ARCHIVE_SHA256"
 ```
 
-この `test` が成功したときだけ sidecar の期待 SHA-256 と archive の SHA-256 は一致している。sidecar がない、読めない、形式が不明、または値が一致しない場合は展開しない。新たに計算した SHA-256 だけでは真正性を確認できない。
+この `test` が成功したときだけ sidecar の期待 SHA-256 と archive の SHA-256 は一致している。sidecar がない、空、読めない、形式が不正、または値が一致しない場合は展開しない。新たに計算した SHA-256 だけでは真正性を確認できない。
 
 ```text
-ARCHIVE_HASH_PATH:
+ARCHIVE_HASH:
 期待 SHA-256:
 照合結果:
 ```
@@ -542,34 +599,37 @@ GE-Proton directory と prefix/environment directory は archive に含まれて
 
 ### 7.5 新規展開先を準備して記録
 
-既存 data を上書きしない。live Wine prefix と installed GE-Proton の外にあり、すでに存在する親 directory を一つ選ぶ。新しい最終展開先は `EXTRACT_PARENT/EXPECTED_EXTRACT_ROOT` とし、まだ存在してはならない。削除や自動 cleanup は行わない。
+archive は `$ROOT/import` の下へ展開する。最終 root は `$ROOT/import/aviutl2-known-good` であり、まだ存在してはならない。既存 data を上書きせず、live Wine prefix と installed GE-Proton の外であることを確認する。削除や自動 cleanup は行わない。
 
 ```fish
-read -P '既存の新規展開用 parent 絶対パス: ' EXTRACT_PARENT
-test -d "$EXTRACT_PARENT"
 set EXTRACT_PARENT \
-    (realpath "$EXTRACT_PARENT")
-printf '%s\n' "$EXTRACT_PARENT"
+    "$ROOT/import"
+
+set EXPECTED_EXTRACT_ROOT \
+    "aviutl2-known-good"
+
+set EXTRACT_DESTINATION \
+    "$EXTRACT_PARENT/$EXPECTED_EXTRACT_ROOT"
+
+test -d "$EXTRACT_PARENT"
+test ! -e "$EXTRACT_DESTINATION"
+
+printf 'EXTRACT_PARENT: %s\n' "$EXTRACT_PARENT"
+printf 'EXPECTED_EXTRACT_ROOT: %s\n' "$EXPECTED_EXTRACT_ROOT"
+printf 'EXTRACT_DESTINATION: %s\n' "$EXTRACT_DESTINATION"
 
 set PREFIX_ABS \
     (realpath -m "$PREFIX")
 set GE_INSTALL_DESTINATION_ABS \
     (realpath -m "$GE_INSTALL_DESTINATION")
 
-not string match -q -- "$PREFIX_ABS" "$EXTRACT_PARENT"
-and not string match -q -- "$PREFIX_ABS/*" "$EXTRACT_PARENT"
-and not string match -q -- "$GE_INSTALL_DESTINATION_ABS" "$EXTRACT_PARENT"
-and not string match -q -- "$GE_INSTALL_DESTINATION_ABS/*" "$EXTRACT_PARENT"
-
-read -P 'archive listing で確認した top-level root 名: ' EXPECTED_EXTRACT_ROOT
-set EXTRACT_DESTINATION \
-    "$EXTRACT_PARENT/$EXPECTED_EXTRACT_ROOT"
-
-test ! -e "$EXTRACT_DESTINATION"
-realpath -m "$EXTRACT_DESTINATION"
+not string match -q -- "$PREFIX_ABS" "$EXTRACT_DESTINATION"
+and not string match -q -- "$PREFIX_ABS/*" "$EXTRACT_DESTINATION"
+and not string match -q -- "$GE_INSTALL_DESTINATION_ABS" "$EXTRACT_DESTINATION"
+and not string match -q -- "$GE_INSTALL_DESTINATION_ABS/*" "$EXTRACT_DESTINATION"
 ```
 
-`EXTRACT_PARENT` または `EXTRACT_DESTINATION` が `$PREFIX`、`$GE_INSTALL_DESTINATION`、それらの配下、または installed GE-Proton directory である場合は選び直す。確認した parent と最終展開先を記録する。
+`EXTRACT_DESTINATION` が `$PREFIX`、`$GE_INSTALL_DESTINATION`、それらの配下、または installed GE-Proton directory である場合は停止する。成功時に表示した parent と最終展開先を後続 command が使う。
 
 ```text
 EXTRACT_PARENT:
@@ -594,31 +654,54 @@ echo "展開 command の終了 status: $status"
 
 ### 7.7 展開後の実測 layout と必須 asset を確認
 
-destination directory が存在するだけでは展開成功とは扱わない。listing で記録した root を実際に確認してから、その絶対 path を入力する。
+destination directory が存在するだけでは展開成功とは扱わない。展開先から `EXTRACTED_ROOT` を計算し、実際の root、root 名、および必須 asset を確認する。
 
 ```fish
-read -P '確認済みの展開後 root 絶対パス: ' EXTRACTED_ROOT
-realpath "$EXTRACTED_ROOT"
 set EXTRACTED_ROOT \
-    (realpath "$EXTRACTED_ROOT")
+    (realpath "$EXTRACT_DESTINATION")
 test -d "$EXTRACTED_ROOT"
-test -d "$EXTRACT_DESTINATION"
-test -f "$EXTRACTED_ROOT/SHA256SUMS"
 test "$EXTRACTED_ROOT" = (realpath "$EXTRACT_DESTINATION")
 test (basename "$EXTRACTED_ROOT") = "$EXPECTED_EXTRACT_ROOT"
+test -f "$EXTRACTED_ROOT/SHA256SUMS"
+printf 'EXTRACTED_ROOT: %s\n' "$EXTRACTED_ROOT"
 ```
 
-`EXTRACTED_ROOT` が記録済みの `EXTRACT_DESTINATION` と一致し、root 名が `EXPECTED_EXTRACT_ROOT` と一致することを確認する。異なる場合は、その差を記録して停止する。次に、listing で確認した実際の GE-Proton source directory を絶対 path で入力する。名前を推測してはならない。
+`EXTRACTED_ROOT` が記録済みの `EXTRACT_DESTINATION` と一致し、root 名が `EXPECTED_EXTRACT_ROOT` と一致することを確認する。異なる場合は、その差を記録して停止する。`ge/` の直下にある GE-Proton directory を発見し、候補がちょうど 1 件の場合だけ `IMPORT_GE` として使う。0 件または複数件なら、名前を推測せず停止する。
 
 ```fish
-read -P '確認済みの展開後 GE-Proton source 絶対パス: ' IMPORT_GE
-realpath "$IMPORT_GE"
+test -d "$EXTRACTED_ROOT/ge"
+
+set IMPORT_GE_CANDIDATES \
+    (find "$EXTRACTED_ROOT/ge" \
+        -mindepth 1 \
+        -maxdepth 1 \
+        -type d \
+        -print)
+
+count $IMPORT_GE_CANDIDATES
+printf '%s\n' $IMPORT_GE_CANDIDATES
+test (count $IMPORT_GE_CANDIDATES) -eq 1
+
+set IMPORT_GE \
+    "$IMPORT_GE_CANDIDATES[1]"
 set IMPORT_GE \
     (realpath "$IMPORT_GE")
 test -d "$IMPORT_GE"
-string match -q -- "$EXTRACTED_ROOT/*" "$IMPORT_GE"
+string match -q -- "$EXTRACTED_ROOT/ge/*" "$IMPORT_GE"
+printf 'IMPORT_GE: %s\n' "$IMPORT_GE"
+
+test -d "$IMPORT_GE/files/share/default_pfx"
 
 for path in \
+    "$IMPORT_GE/files/lib/wine/x86_64-unix/wine" \
+    "$IMPORT_GE/files/bin/wineserver" \
+    "$IMPORT_GE/files/lib/wine/x86_64-windows/dwrite.dll" \
+    "$IMPORT_GE/files/share/default_pfx/drive_c/windows/system32/libvkd3d-1.dll" \
+    "$IMPORT_GE/files/share/default_pfx/drive_c/windows/system32/libvkd3d-shader-1.dll" \
+    "$IMPORT_GE/files/share/default_pfx/drive_c/windows/system32/libvkd3d-utils-1.dll" \
+    "$IMPORT_GE/files/share/default_pfx/drive_c/windows/syswow64/libvkd3d-1.dll" \
+    "$IMPORT_GE/files/share/default_pfx/drive_c/windows/syswow64/libvkd3d-shader-1.dll" \
+    "$IMPORT_GE/files/share/default_pfx/drive_c/windows/syswow64/libvkd3d-utils-1.dll" \
     "$EXTRACTED_ROOT/dxvk/d3d11.dll" \
     "$EXTRACTED_ROOT/dxvk/dxgi.dll" \
     "$EXTRACTED_ROOT/dxvk/d3d10core.dll" \
@@ -627,9 +710,12 @@ for path in \
     "$EXTRACTED_ROOT/config/nvidia-dxvk.conf"
 
     test -f "$path"
+    test -s "$path"
     ls -lh "$path"
 end
 ```
+
+required runtime files の存在だけでは、GE-Proton directory が historical patched DWrite runtime であることを示さない。その provenance は未解決のまま記録する。
 
 内部 checksum manifest が listing にあり、すべての asset が存在する場合だけ検証する。
 
@@ -715,7 +801,13 @@ cp -a \
 for path in \
     "$GE_INSTALL_DESTINATION/files/lib/wine/x86_64-unix/wine" \
     "$GE_INSTALL_DESTINATION/files/bin/wineserver" \
-    "$GE_INSTALL_DESTINATION/files/lib/wine/x86_64-windows/dwrite.dll"
+    "$GE_INSTALL_DESTINATION/files/lib/wine/x86_64-windows/dwrite.dll" \
+    "$GE_INSTALL_DESTINATION/files/share/default_pfx/drive_c/windows/system32/libvkd3d-1.dll" \
+    "$GE_INSTALL_DESTINATION/files/share/default_pfx/drive_c/windows/system32/libvkd3d-shader-1.dll" \
+    "$GE_INSTALL_DESTINATION/files/share/default_pfx/drive_c/windows/system32/libvkd3d-utils-1.dll" \
+    "$GE_INSTALL_DESTINATION/files/share/default_pfx/drive_c/windows/syswow64/libvkd3d-1.dll" \
+    "$GE_INSTALL_DESTINATION/files/share/default_pfx/drive_c/windows/syswow64/libvkd3d-shader-1.dll" \
+    "$GE_INSTALL_DESTINATION/files/share/default_pfx/drive_c/windows/syswow64/libvkd3d-utils-1.dll"
 
     if test -e "$path"
         echo "OK: $path"
@@ -724,6 +816,25 @@ for path in \
     end
 end
 ```
+
+```fish
+test -d "$GE_INSTALL_DESTINATION/files/share/default_pfx"
+
+for path in \
+    "$GE_INSTALL_DESTINATION/files/share/default_pfx/drive_c/windows/system32/libvkd3d-1.dll" \
+    "$GE_INSTALL_DESTINATION/files/share/default_pfx/drive_c/windows/system32/libvkd3d-shader-1.dll" \
+    "$GE_INSTALL_DESTINATION/files/share/default_pfx/drive_c/windows/system32/libvkd3d-utils-1.dll" \
+    "$GE_INSTALL_DESTINATION/files/share/default_pfx/drive_c/windows/syswow64/libvkd3d-1.dll" \
+    "$GE_INSTALL_DESTINATION/files/share/default_pfx/drive_c/windows/syswow64/libvkd3d-shader-1.dll" \
+    "$GE_INSTALL_DESTINATION/files/share/default_pfx/drive_c/windows/syswow64/libvkd3d-utils-1.dll"
+
+    test -f "$path"
+    test -s "$path"
+    ls -lh "$path"
+end
+```
+
+`default_pfx` またはその六つの `libvkd3d-*.dll` が欠ける場合は section 9 へ進まない。
 
 Wineを確認する。
 
@@ -754,53 +865,134 @@ wine-staging 11.0
 
 ## 9. 新しいWine prefixを作成
 
-既存prefixがある場合は削除せず退避する。
+これは Nanashi の確認済み loader failure から導いた、手作業で監査可能な候補手順である。GE-Proton の `default_pfx` template 全体をコピーしてから matching GE Wine の `wineboot -u` で更新する。Proton の完全な prefix-management code とバイト単位で同等であるとは主張しない。この corrected prefix sequence は Nanashi でまだ runtime 検証されていない。
+
+section 8 で検証した direct GE Wine binary と `LD_LIBRARY_PATH` をそのまま使用する。空 directory に対する raw `wineboot` は prefix 作成の確認済み手段として扱わない。
+
+まず template と、欠落が確認された runtime files を検査する。
+
+```fish
+set GE_DEFAULT_PFX \
+    "$GE_INSTALL_DESTINATION/files/share/default_pfx"
+
+set PREFIX \
+    "$ROOT/prefix-ge-nvdec-test"
+
+test -d "$GE_DEFAULT_PFX"
+test -d "$GE_DEFAULT_PFX/drive_c/windows/system32"
+test -d "$GE_DEFAULT_PFX/drive_c/windows/syswow64"
+
+realpath \
+    "$GE_DEFAULT_PFX" \
+    "$GE_DEFAULT_PFX/drive_c/windows/system32" \
+    "$GE_DEFAULT_PFX/drive_c/windows/syswow64"
+
+for path in \
+    "$GE_DEFAULT_PFX/drive_c/windows/system32/libvkd3d-1.dll" \
+    "$GE_DEFAULT_PFX/drive_c/windows/system32/libvkd3d-shader-1.dll" \
+    "$GE_DEFAULT_PFX/drive_c/windows/system32/libvkd3d-utils-1.dll" \
+    "$GE_DEFAULT_PFX/drive_c/windows/syswow64/libvkd3d-1.dll" \
+    "$GE_DEFAULT_PFX/drive_c/windows/syswow64/libvkd3d-shader-1.dll" \
+    "$GE_DEFAULT_PFX/drive_c/windows/syswow64/libvkd3d-utils-1.dll"
+
+    test -f "$path"
+    test -s "$path"
+    realpath "$path"
+    sha256sum "$path"
+end
+```
+
+いずれかの check が失敗した場合は停止する。三つの DLL だけを個別に補うのではなく、`default_pfx` を atomic template として扱う。
+
+既存 prefix がある場合は、matching wineserver を停止してから削除せず退避する。退避先を表示して記録する。
 
 ```fish
 set TS \
     (date +%Y%m%d-%H%M%S)
 
-if test -d "$PREFIX"
-    env \
-        WINEPREFIX="$PREFIX" \
-        "$GE_WINESERVER" -k \
-        2>/dev/null
+if test -e "$PREFIX"
+    if test -d "$PREFIX"
+        env \
+            WINEPREFIX="$PREFIX" \
+            "$GE_WINESERVER" -k \
+            2>/dev/null
 
-    sleep 1
+        sleep 1
+    end
 
     mv \
         "$PREFIX" \
         "$PREFIX.backup-$TS"
+
+    printf 'PREFIX_BACKUP: %s\n' "$PREFIX.backup-$TS"
 end
 ```
 
-新規prefixを作成する。
+新しい prefix path が存在しないことを確認してから、template 全体をコピーする。`cp -a` は symlink、mode、directory structure を維持する。
 
 ```fish
-mkdir -p "$PREFIX"
+test ! -e "$PREFIX"
+mkdir "$PREFIX"
 
+cp -a \
+    "$GE_DEFAULT_PFX/." \
+    "$PREFIX/"
+```
+
+template をコピーした後だけ、matching GE Wine で template を更新する。ここでの `wineboot -u` の成功は Nanashi ではまだ観測されていない。
+
+```fish
 env \
     WINEPREFIX="$PREFIX" \
     LD_LIBRARY_PATH="$GE_LIBS" \
     "$GE_WINE" wineboot -u
 ```
 
-prefixを確認する。
+prefix を検査する。各 `libvkd3d-*.dll` は template source と prefix copy の SHA-256 と `cmp -s` の両方で一致しなければならない。
+
+```fish
+for relative_path in \
+    drive_c/windows/system32/libvkd3d-1.dll \
+    drive_c/windows/system32/libvkd3d-shader-1.dll \
+    drive_c/windows/system32/libvkd3d-utils-1.dll \
+    drive_c/windows/syswow64/libvkd3d-1.dll \
+    drive_c/windows/syswow64/libvkd3d-shader-1.dll \
+    drive_c/windows/syswow64/libvkd3d-utils-1.dll
+
+    set TEMPLATE_DLL \
+        "$GE_DEFAULT_PFX/$relative_path"
+    set PREFIX_DLL \
+        "$PREFIX/$relative_path"
+
+    test -f "$PREFIX_DLL"
+    test -s "$PREFIX_DLL"
+    sha256sum "$TEMPLATE_DLL" "$PREFIX_DLL"
+    cmp -s "$TEMPLATE_DLL" "$PREFIX_DLL"
+end
+```
 
 ```fish
 for path in \
-    "$PREFIX/drive_c" \
-    "$PREFIX/drive_c/windows/system32" \
+    "$PREFIX/drive_c/windows/system32/libvkd3d-1.dll" \
+    "$PREFIX/drive_c/windows/system32/libvkd3d-shader-1.dll" \
+    "$PREFIX/drive_c/windows/system32/libvkd3d-utils-1.dll" \
+    "$PREFIX/drive_c/windows/syswow64/libvkd3d-1.dll" \
+    "$PREFIX/drive_c/windows/syswow64/libvkd3d-shader-1.dll" \
+    "$PREFIX/drive_c/windows/syswow64/libvkd3d-utils-1.dll" \
+    "$PREFIX/drive_c/windows/system32/wined3d.dll" \
+    "$PREFIX/drive_c/windows/system32/d3dcompiler_47.dll" \
+    "$PREFIX/drive_c/windows/system32/d2d1.dll" \
+    "$PREFIX/drive_c/windows/system32/dwrite.dll" \
     "$PREFIX/user.reg" \
     "$PREFIX/system.reg"
 
-    if test -e "$path"
-        echo "OK: $path"
-    else
-        echo "MISSING: $path"
-    end
+    test -f "$path"
+    test -s "$path"
+    ls -lh "$path"
 end
 ```
+
+すべての check と比較が成功するまで、AviUtl2 の配置、DXVK の置換、または起動へ進まない。これは `default_pfx` を使う候補修正であり、Nanashi での main-window startup や format 69 の runtime success を示すものではない。
 
 ---
 
@@ -1076,7 +1268,10 @@ set missing_required 0
 for required in \
     "$GE_WINE" \
     "$AVIUTL2_EXE" \
-    "$DXVK_CONFIG"
+    "$DXVK_CONFIG" \
+    "$PREFIX/drive_c/windows/system32/libvkd3d-1.dll" \
+    "$PREFIX/drive_c/windows/system32/libvkd3d-shader-1.dll" \
+    "$PREFIX/drive_c/windows/system32/libvkd3d-utils-1.dll"
 
     if not test -e "$required"
         echo "ERROR: required path does not exist: $required" >&2
@@ -1181,10 +1376,14 @@ env \
 
 ```fish
 grep -nEi \
-    'd3d11\.dll|dxgi\.dll|d3d10core\.dll|dwrite\.dll|aviutl2\.exe' \
+    'libvkd3d-1\.dll|libvkd3d-shader-1\.dll|libvkd3d-utils-1\.dll|wined3d\.dll|d3dcompiler_47\.dll|d2d1\.dll|d3d11\.dll|dxgi\.dll|d3d10core\.dll|dwrite\.dll|aviutl2\.exe|c0000135' \
     "$LOAD_LOG" \
     | tail -n 200
 ```
+
+Nanashi で観測した chain は、未解決の `libvkd3d-1.dll`、`libvkd3d-shader-1.dll`、`libvkd3d-utils-1.dll` により `wined3d.dll` が読み込めず、続いて `d3dcompiler_47.dll`、`d2d1.dll`、`aviutl2.exe` が `c0000135` で失敗するものである。最上位に `d2d1.dll not found` が出ても、物理的な `d2d1.dll` が存在しないとは限らない。Wine はより深い dependency の load failure により、依存元 DLL を利用不能として報告できる。
+
+診断として `WINEDLLPATH=<GE>/files/lib/vkd3d` を追加して起動したが、Nanashi の loader failure は変化しなかった。したがって `WINEDLLPATH` は correction として採用せず、normal execution block と launch wrapper に追加しない。
 
 想定外のシステムWine、別prefix、別DXVKが読み込まれていないことを確認する。
 
