@@ -36,7 +36,6 @@
 - Wine source/build treeの初回configure
 - `Tahoma-Noto-Regular.otf`と`Tahoma-Noto-Bold.otf`の生成
 - `nvidia-libs-v1.0.2`の取得・展開
-- AviUtl2本体の公式入手元からの自動配置
 - 空prefixをCLIだけで生成する単独の確定済みcommand
 
 この文書では、それらを推測で補わない。
@@ -274,6 +273,7 @@ env \
 現時点で固定URLと検証方法を記載できるのは、少なくとも次である。
 
 ```text
+AviUtl2 2.1.2 official ZIP
 GE-Proton 11-1 archive
 GE-Proton 11-1 SHA-512 checksum
 GitHub API / release assets used by AviUtl2 Catalog
@@ -282,7 +282,6 @@ GitHub API / release assets used by AviUtl2 Catalog
 次については、取得元・再配布条件・生成方法をまだ完全に確定できていないため、架空のcurl commandを追加しない。
 
 ```text
-AviUtl2 2.1.2本体
 Tahoma-Noto-Regular.otf
 Tahoma-Noto-Bold.otf
 nvidia-libs-v1.0.2 wrapper bundle
@@ -343,10 +342,118 @@ custom r1284 final overlay
 
 インストール開始前に、次を用意する。
 
-## 2.1 必須
+## 2.1 AviUtl2 2.1.2本体を公式サイトから取得する
+
+AviUtl2本体はrepositoryへ再配布せず、ＫＥＮくんの公式サイトからZIP版を直接取得する。
+公式配布ページでは2.1.2のZIPが`aviutl2_v2.1.2.zip`として公開されている。
+
+次のfunctionは、公式ZIPを取得し、展開結果から`aviutl2.exe`を検出して、標準artifact directoryへ正規化する。
+
+```fish
+function prepare_aviutl2_212
+    set -l root \
+        "$HOME/Games/aviutl2"
+
+    set -l download_dir \
+        "$root/downloads"
+
+    set -l archive \
+        "$download_dir/aviutl2_v2.1.2.zip"
+
+    set -l extract_dir \
+        "$root/build/aviutl2-v2.1.2-extract"
+
+    set -l artifact_dir \
+        "$root/artifacts/AviUtl2-2.1.2"
+
+    mkdir -p \
+        "$download_dir" \
+        "$root/build" \
+        "$root/artifacts"
+
+    or return 1
+
+    curl \
+        --fail \
+        --location \
+        --retry 3 \
+        --output "$archive" \
+        "https://spring-fragrance.mints.ne.jp/aviutl/aviutl2_v2.1.2.zip"
+
+    or return 1
+
+    sha256sum \
+        "$archive"
+
+    rm -rf \
+        "$extract_dir"
+
+    mkdir -p \
+        "$extract_dir"
+
+    or return 1
+
+    bsdtar \
+        -xf "$archive" \
+        -C "$extract_dir"
+
+    or return 1
+
+    set -l aviutl2_exe \
+        (find "$extract_dir" \
+            -type f \
+            -iname 'aviutl2.exe' \
+            -print \
+            -quit)
+
+    if test -z "$aviutl2_exe"
+        echo "ERROR: aviutl2.exe was not found in: $archive" >&2
+        return 1
+    end
+
+    rm -rf \
+        "$artifact_dir"
+
+    mkdir -p \
+        "$artifact_dir"
+
+    or return 1
+
+    cp -a \
+        (dirname "$aviutl2_exe")/. \
+        "$artifact_dir/"
+
+    or return 1
+
+    test -f \
+        "$artifact_dir/aviutl2.exe"
+
+    or begin
+        echo "ERROR: normalized aviutl2.exe is missing" >&2
+        return 1
+    end
+
+    file \
+        "$artifact_dir/aviutl2.exe"
+
+    echo "AviUtl2 artifact: $artifact_dir"
+end
+
+prepare_aviutl2_212
+```
+
+正常に完了すると、少なくとも次が存在する。
 
 ```text
-AviUtl2 2.1.2本体
+$HOME/Games/aviutl2/artifacts/AviUtl2-2.1.2/aviutl2.exe
+```
+
+公式サイトはプログラムファイルの不特定多数への再配布を控えるよう案内している。
+取得したZIPや展開済み本体を、このpatch repositoryへcommitしない。
+
+AviUtl2本体以外に、インストール開始前に次のartifactも必要になる。
+
+```text
 patched GE-Proton 11-1 runner
 patched DXVK 2.7.1 x64 DLL set
 Japanese font files
@@ -479,14 +586,14 @@ AV1/HEVCの分岐は**出力エンコード**の分岐である。
 
 ## 2.7 L-SMASH Works r1284
 
-必要ファイル:
+インストールに必要な最終artifactは次の2ファイルである。
 
 ```text
 lwinput.aui2
 lsmash.ini
 ```
 
-最終採用artifact:
+Alex環境での最終採用artifact:
 
 ```text
 revision:
@@ -499,24 +606,138 @@ lsmash.ini SHA-256:
   10620155d1470ea270121f67357f3da89cb8151ffac651c049e98238253a9a9f
 ```
 
-sourceから生成する場合:
+このrepositoryに`build-l-smash-works-nvdec.fish`は存在しないため、そのscriptを呼び出してはいけない。
+存在する修正物は次のmail patchである。
 
-```fish
-cd ~/projects/aviutl2-linux-patches
-
-scripts/build-l-smash-works-nvdec.fish \
-    --work-dir \
-    "$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03" \
-    --jobs (nproc)
+```text
+patches/l-smash-works/0001-transfer-hardware-frames-before-output.patch
 ```
 
-生成物:
+このpatchは、CUVIDなどのhardware decoderが返すGPU上のframeを、出力処理の前に`av_hwframe_transfer_data()`でsoftware frameへ転送する。
+
+sourceを準備する場合は、L-SMASH Worksの検証済みbase commitへpatchを直接適用する。
+次のfunctionは**patched source treeを作るところまで**を行う。`lwinput.aui2`のbuild自体は行わない。
+
+```fish
+function prepare_patched_lsmash_source
+    set -l repo \
+        "$HOME/projects/aviutl2-linux-patches"
+
+    set -l work_dir \
+        "$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03"
+
+    set -l source_dir \
+        "$work_dir/src/L-SMASH-Works"
+
+    set -l patch_file \
+        "$repo/patches/l-smash-works/0001-transfer-hardware-frames-before-output.patch"
+
+    set -l base_commit \
+        a47764915f06fcd472e26ba2fbf25aff4b9d252e
+
+    set -l patched_commit \
+        393df5ef669707f776261e4ac1bcc7e9a9a227ab
+
+    test -f \
+        "$patch_file"
+
+    or begin
+        echo "ERROR: missing patch: $patch_file" >&2
+        return 1
+    end
+
+    if test -e "$source_dir"
+        echo "ERROR: source directory already exists: $source_dir" >&2
+        echo "Use a new work directory or remove it manually after inspection." >&2
+        return 1
+    end
+
+    mkdir -p \
+        (dirname "$source_dir")
+
+    or return 1
+
+    git clone \
+        "https://github.com/Mr-Ojii/L-SMASH-Works.git" \
+        "$source_dir"
+
+    or return 1
+
+    git \
+        -C "$source_dir" \
+        checkout \
+        --detach \
+        "$base_commit"
+
+    or return 1
+
+    env \
+        GIT_COMMITTER_NAME='alexandergg-0520' \
+        GIT_COMMITTER_EMAIL='uket.panda.1st@gmail.com' \
+        GIT_COMMITTER_DATE='2026-07-31T03:58:59+09:00' \
+        git \
+        -C "$source_dir" \
+        -c commit.gpgSign=false \
+        am \
+        --committer-date-is-author-date \
+        "$patch_file"
+
+    or return 1
+
+    set -l actual_commit \
+        (git -C "$source_dir" rev-parse HEAD)
+
+    if test "$actual_commit" != "$patched_commit"
+        echo "ERROR: patched commit mismatch" >&2
+        echo "expected: $patched_commit" >&2
+        echo "actual:   $actual_commit" >&2
+        return 1
+    end
+
+    git \
+        -C "$source_dir" \
+        status \
+        --short \
+        --branch
+
+    echo "Patched L-SMASH Works source: $source_dir"
+end
+
+prepare_patched_lsmash_source
+```
+
+patch適用後の期待commit:
+
+```text
+393df5ef669707f776261e4ac1bcc7e9a9a227ab
+```
+
+現時点のrepositoryには、FFmpeg、dav1d、nv-codec-headers、L-SMASHなどを固定commitでcross-buildし、最終`lwinput.aui2`を生成する保守対象のstandalone build scriptは存在しない。
+そのため、新規インストールでは次のいずれかを選ぶ。
+
+1. 検証済みのprepared `lwinput.aui2`を用意する。
+2. コマンド台帳に記録された完全build chainを再実行し、生成物とprovenanceを保存する。
+
+`lsmash.ini`はrepositoryの次の設定を使用できる。
+
+```text
+config/lsmash.ini
+```
+
+```fish
+mkdir -p \
+    "$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03/output"
+
+cp -a \
+    "$HOME/projects/aviutl2-linux-patches/config/lsmash.ini" \
+    "$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03/output/lsmash.ini"
+```
+
+最終的に次が揃うまで、L-SMASH Worksのインストール工程へ進まない。
 
 ```text
 $HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03/output/lwinput.aui2
 $HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03/output/lsmash.ini
-$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03/output/PROVENANCE.txt
-$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03/output/SHA256SUMS
 ```
 
 ---
@@ -633,7 +854,7 @@ $HOME/Games/aviutl2/
     └── nvenc/
 ```
 
-AviUtl2本体を展開した結果、`aviutl2.exe`がさらに内側のdirectoryへ入った場合は、directory全体を移動し、必ず次の位置へ揃える。
+2.1節の`prepare_aviutl2_212`は、ZIP内のdirectory構造にかかわらず、`aviutl2.exe`を含むdirectoryを次へ正規化する。
 
 ```text
 $HOME/Games/aviutl2/artifacts/AviUtl2-2.1.2/aviutl2.exe
@@ -698,133 +919,158 @@ end
 
 ```fish
 for command_name in \
-    fish \
-    git \
-    gh \
+    cp \
+    find \
+    file \
+    grep \
+    install \
+    mkdir \
     python3 \
     sha256sum \
-    file \
-    find \
-    strings \
-    install \
-    sed \
-    grep
+    strings
 
     command -q "$command_name"
 
-    or echo "MISSING COMMAND: $command_name" >&2
-end
-```
-
-1件でも`MISSING COMMAND`が出た場合は停止する。
-
-## 4.3 runner確認
-
-```fish
-require_path "$GE_WINE"
-and require_path "$GE_WINESERVER"
-and require_path "$GE_PROTON_ROOT/files/lib/wine/x86_64-windows/dwrite.dll"
-```
-
-```fish
-file \
-    "$GE_WINE"
-
-env \
-    LD_LIBRARY_PATH="$GE_LIBS" \
-    "$GE_WINE" \
-    --version
-
-sha256sum \
-    "$GE_PROTON_ROOT/files/lib/wine/x86_64-windows/dwrite.dll"
-```
-
-期待するWine version:
-
-```text
-wine-11.0 (Staging)
-```
-
-## 4.4 artifact確認
-
-```fish
-function preflight_installation_artifacts
-    for path in \
-        "$AVIUTL2_SOURCE_DIR/aviutl2.exe" \
-        "$DXVK_ARTIFACT_DIR/d3d11.dll" \
-        "$DXVK_ARTIFACT_DIR/dxgi.dll" \
-        "$DXVK_ARTIFACT_DIR/d3d10core.dll" \
-        "$DXVK_ARTIFACT_DIR/d3dcompiler_47.dll" \
-        "$FONT_SOURCE_DIR/NotoSansCJK-Regular.ttc" \
-        "$FONT_SOURCE_DIR/NotoSansCJK-Bold.ttc" \
-        "$FONT_SOURCE_DIR/Tahoma-Noto-Regular.otf" \
-        "$FONT_SOURCE_DIR/Tahoma-Noto-Bold.otf" \
-        "$NVIDIA_WRAPPER_DIR/nvcuda.dll" \
-        "$NVIDIA_WRAPPER_DIR/nvcuvid.dll" \
-        "$NVIDIA_WRAPPER_DIR/nvencodeapi64.dll" \
-        "$LSMASH_ARTIFACT_DIR/lwinput.aui2" \
-        "$LSMASH_ARTIFACT_DIR/lsmash.ini" \
-        "$AV1_TEST_FILE"
-
-        require_path "$path"
-
-        or return 1
+    or begin
+        echo "ERROR: missing command: $command_name" >&2
+        false
     end
 end
-
-preflight_installation_artifacts
 ```
 
-1件でも`ERROR`が出た場合は、その場で停止し、次へ進まない。
-
-SHA-256を保存する。
+## 4.3 path確認
 
 ```fish
-mkdir -p \
-    "$ROOT/evidence/installation"
-
-sha256sum \
+for path in \
+    "$GE_WINE" \
+    "$GE_WINESERVER" \
+    "$GE_PROTON_ROOT/files/lib/wine/x86_64-windows/dwrite.dll" \
+    "$AVIUTL2_SOURCE_DIR/aviutl2.exe" \
     "$DXVK_ARTIFACT_DIR/d3d11.dll" \
     "$DXVK_ARTIFACT_DIR/dxgi.dll" \
     "$DXVK_ARTIFACT_DIR/d3d10core.dll" \
     "$DXVK_ARTIFACT_DIR/d3dcompiler_47.dll" \
+    "$FONT_SOURCE_DIR/NotoSansCJK-Regular.ttc" \
+    "$FONT_SOURCE_DIR/NotoSansCJK-Bold.ttc" \
+    "$FONT_SOURCE_DIR/Tahoma-Noto-Regular.otf" \
+    "$FONT_SOURCE_DIR/Tahoma-Noto-Bold.otf" \
     "$NVIDIA_WRAPPER_DIR/nvcuda.dll" \
     "$NVIDIA_WRAPPER_DIR/nvcuvid.dll" \
     "$NVIDIA_WRAPPER_DIR/nvencodeapi64.dll" \
     "$LSMASH_ARTIFACT_DIR/lwinput.aui2" \
     "$LSMASH_ARTIFACT_DIR/lsmash.ini" \
-    | tee \
-        "$ROOT/evidence/installation/input-SHA256SUMS"
+    "$AV1_TEST_FILE" \
+    "$DXVK_CONFIG_FILE"
+
+    require_path \
+        "$path"
+
+    or false
+end
+```
+
+## 4.4 file identityを記録する
+
+```fish
+mkdir -p \
+    "$ROOT/evidence/install"
+
+sha256sum \
+    "$GE_PROTON_ROOT/files/lib/wine/x86_64-windows/dwrite.dll" \
+    "$AVIUTL2_SOURCE_DIR/aviutl2.exe" \
+    "$DXVK_ARTIFACT_DIR/d3d11.dll" \
+    "$DXVK_ARTIFACT_DIR/dxgi.dll" \
+    "$DXVK_ARTIFACT_DIR/d3d10core.dll" \
+    "$DXVK_ARTIFACT_DIR/d3dcompiler_47.dll" \
+    "$FONT_SOURCE_DIR/NotoSansCJK-Regular.ttc" \
+    "$FONT_SOURCE_DIR/NotoSansCJK-Bold.ttc" \
+    "$FONT_SOURCE_DIR/Tahoma-Noto-Regular.otf" \
+    "$FONT_SOURCE_DIR/Tahoma-Noto-Bold.otf" \
+    "$NVIDIA_WRAPPER_DIR/nvcuda.dll" \
+    "$NVIDIA_WRAPPER_DIR/nvcuvid.dll" \
+    "$NVIDIA_WRAPPER_DIR/nvencodeapi64.dll" \
+    "$LSMASH_ARTIFACT_DIR/lwinput.aui2" \
+    "$LSMASH_ARTIFACT_DIR/lsmash.ini" \
+    "$AV1_TEST_FILE" \
+    > "$ROOT/evidence/install/input-sha256.txt"
 ```
 
 ---
 
 # 5. 新規Wine prefixを作成する
 
-## 5.1 重要な停止条件
+## 5.1 runnerを固定する
 
-既存prefixを上書きしない。
+stock GE-Proton directoryを直接編集しない。
+patched runnerは次の固定名へ配置する。
+
+```text
+$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1-aviutl2-test
+```
+
+このdirectoryへpatched `dwrite.dll`を配置済みである必要がある。
+
+```fish
+sha256sum \
+    "$GE_PROTON_ROOT/files/lib/wine/x86_64-windows/dwrite.dll"
+```
+
+Alex環境の期待値:
+
+```text
+0b9f579547233d09c859361f0a31d572591dbe6207480c33a1e6773d677fbb3c
+```
+
+一致しない場合、byte-for-byte reproductionではない。
+別buildを使用する場合は、そのsource commitとSHA-256を記録する。
+
+## 5.2 prefix directoryを作る
 
 ```fish
 if test -e "$PREFIX"
     echo "ERROR: prefix already exists: $PREFIX" >&2
-    echo "Choose a new PREFIX for installation." >&2
+    false
+else
+    mkdir -p \
+        "$PREFIX"
 end
 ```
 
-`PREFIX`が既に存在する場合は、削除・移動せず、別pathを選ぶ。
+この空directoryだけでWine prefixの初期化が完了したとは扱わない。
+次の初回Wine commandまたは`wineboot -u`によってregistryと標準directoryが作られる。
 
-## 5.2 bootstrap
+```fish
+env \
+    WINEPREFIX="$PREFIX" \
+    LD_LIBRARY_PATH="$GE_LIBS" \
+    "$GE_WINE" \
+    wineboot \
+    -u
+```
 
-空prefixを直接`wineboot -u`した過去の試行では、prefix自体は作成されたものの、`libvkd3d`、`wined3d`、`dxgi`不足が記録された。
-そのcommandは最終成功手順として確定していないため、この文書では自動実行しない。
+runnerにより`wineboot`の呼び出し方法が異なる場合は、ここで停止してrunner内の実体を確認する。
 
-次のどちらかで、GE-Proton 11-1を使用した新規64-bit prefixを作成する。
+```fish
+find \
+    "$GE_PROTON_ROOT/files" \
+    -maxdepth 4 \
+    -type f \
+    -iname 'wineboot*' \
+    -o \
+    -iname 'wine*'
+```
 
-1. Lutrisなどのfrontendで、runnerを`GE_PROTON_ROOT`へ固定してprefixを作成する
-2. Nanashi環境でCLI bootstrap commandを個別に検証し、その結果をIssueへ記録する
+初期化後:
 
-作成後、次が存在しなければ停止する。
+```fish
+env \
+    WINEPREFIX="$PREFIX" \
+    LD_LIBRARY_PATH="$GE_LIBS" \
+    "$GE_WINESERVER" \
+    -w
+```
+
+次が作成されたことを確認する。
 
 ```fish
 for path in \
@@ -833,11 +1079,12 @@ for path in \
     "$PREFIX/userdef.reg" \
     "$PREFIX/drive_c/windows/system32"
 
-    require_path "$path"
+    require_path \
+        "$path"
+
+    or false
 end
 ```
-
-この工程で別versionのWine、system Wine、別prefixを混ぜない。
 
 ---
 
@@ -854,98 +1101,53 @@ cp -a \
     "$PREFIX/drive_c/AviUtl2/"
 ```
 
-確認する。
+確認:
 
 ```fish
-require_path \
-    "$PREFIX/drive_c/AviUtl2/aviutl2.exe"
-
 file \
     "$PREFIX/drive_c/AviUtl2/aviutl2.exe"
+
+sha256sum \
+    "$PREFIX/drive_c/AviUtl2/aviutl2.exe"
 ```
 
-ProgramData用directoryを作成する。
-
-```fish
-mkdir -p \
-    "$PREFIX/drive_c/ProgramData/aviutl2/Plugin"
-```
+portable mode用`data` directoryは作らない。
+この手順ではnon-portable modeを使用し、plugin dataを`C:\ProgramData\aviutl2`へ配置する。
 
 AviUtl2本体の入手・展開方法は、配布元の条件に従う。
-repositoryへ本体をcommitしない。
 
 ---
 
-# 7. patched DXVKを導入する
+# 7. patched DXVKを配置する
 
-Wineを停止する。
+## 7.1 Wineを停止する
 
 ```fish
 stop_prefix_wine
 ```
 
-4ファイルを同じbuildから配置する。
+## 7.2 DLLを配置する
 
 ```fish
-function install_dxvk
-    set system32 \
-        "$PREFIX/drive_c/windows/system32"
+for dll in \
+    d3d11.dll \
+    dxgi.dll \
+    d3d10core.dll \
+    d3dcompiler_47.dll
 
-    for dll in \
-        d3d11 \
-        dxgi \
-        d3d10core \
-        d3dcompiler_47
+    install \
+        -m 0644 \
+        "$DXVK_ARTIFACT_DIR/$dll" \
+        "$PREFIX/drive_c/windows/system32/$dll"
 
-        install \
-            -m 0644 \
-            "$DXVK_ARTIFACT_DIR/$dll.dll" \
-            "$system32/$dll.dll"
-
-        or return 1
-    end
+    or false
 end
-
-install_dxvk
 ```
 
-DLL overrideを登録する。
+32-bit AviUtl2 DLLは導入しない。
+AviUtl2 2.1.2は64-bitである。
 
-```fish
-function register_dxvk_overrides
-    for dll in \
-        d3d11 \
-        dxgi \
-        d3d10core
-
-        env \
-            WINEPREFIX="$PREFIX" \
-            LD_LIBRARY_PATH="$GE_LIBS" \
-            "$GE_WINE" \
-            reg add \
-            'HKEY_CURRENT_USER\Software\Wine\DllOverrides' \
-            /v "$dll" \
-            /d native,builtin \
-            /f
-
-        or return 1
-    end
-
-    env \
-        WINEPREFIX="$PREFIX" \
-        LD_LIBRARY_PATH="$GE_LIBS" \
-        "$GE_WINE" \
-        reg add \
-        'HKEY_CURRENT_USER\Software\Wine\DllOverrides' \
-        /v d3dcompiler_47 \
-        /d native,builtin \
-        /f
-end
-
-register_dxvk_overrides
-```
-
-確認する。
+## 7.3 SHA-256を確認する
 
 ```fish
 sha256sum \
@@ -955,6 +1157,10 @@ sha256sum \
     "$PREFIX/drive_c/windows/system32/d3dcompiler_47.dll"
 ```
 
+## 7.4 patched behaviorを確認する
+
+artifact内にpatch markerがある場合:
+
 ```fish
 strings \
     "$PREFIX/drive_c/windows/system32/d3d11.dll" \
@@ -962,68 +1168,50 @@ strings \
         'AviUtl2 compatibility|AviUtl2 trace'
 ```
 
-期待marker:
+期待されるbehavior:
 
 ```text
 AviUtl2 compatibility: format 69 unsupported; returning S_OK
 ```
 
-```fish
-env \
-    WINEPREFIX="$PREFIX" \
-    LD_LIBRARY_PATH="$GE_LIBS" \
-    "$GE_WINE" \
-    reg query \
-    'HKEY_CURRENT_USER\Software\Wine\DllOverrides'
-```
+markerの有無だけではruntime successにならない。
+実起動時に確認する。
 
 ---
 
-# 8. 日本語フォントを導入する
+# 8. 日本語フォントを配置する
 
-Wineを停止する。
-
-```fish
-stop_prefix_wine
-```
-
-フォントを配置する。
+## 8.1 ファイルを配置する
 
 ```fish
-function install_aviutl2_fonts
-    set dest_fonts \
-        "$PREFIX/drive_c/windows/Fonts"
+set WINDOWS_FONTS \
+    "$PREFIX/drive_c/windows/Fonts"
 
-    mkdir -p \
-        "$dest_fonts"
+mkdir -p \
+    "$WINDOWS_FONTS"
 
-    or return 1
+install \
+    -m 0644 \
+    "$FONT_SOURCE_DIR/NotoSansCJK-Regular.ttc" \
+    "$WINDOWS_FONTS/NotoSansCJK-Regular.ttc"
 
-    install \
-        -m 0644 \
-        "$FONT_SOURCE_DIR/NotoSansCJK-Regular.ttc" \
-        "$dest_fonts/NotoSansCJK-Regular.ttc"
+and install \
+    -m 0644 \
+    "$FONT_SOURCE_DIR/NotoSansCJK-Bold.ttc" \
+    "$WINDOWS_FONTS/NotoSansCJK-Bold.ttc"
 
-    and install \
-        -m 0644 \
-        "$FONT_SOURCE_DIR/NotoSansCJK-Bold.ttc" \
-        "$dest_fonts/NotoSansCJK-Bold.ttc"
+and install \
+    -m 0644 \
+    "$FONT_SOURCE_DIR/Tahoma-Noto-Regular.otf" \
+    "$WINDOWS_FONTS/Tahoma-Noto-Regular.otf"
 
-    and install \
-        -m 0644 \
-        "$FONT_SOURCE_DIR/Tahoma-Noto-Regular.otf" \
-        "$dest_fonts/Tahoma-Noto-Regular.otf"
-
-    and install \
-        -m 0644 \
-        "$FONT_SOURCE_DIR/Tahoma-Noto-Bold.otf" \
-        "$dest_fonts/Tahoma-Noto-Bold.otf"
-end
-
-install_aviutl2_fonts
+and install \
+    -m 0644 \
+    "$FONT_SOURCE_DIR/Tahoma-Noto-Bold.otf" \
+    "$WINDOWS_FONTS/Tahoma-Noto-Bold.otf"
 ```
 
-registry keyを設定する。
+## 8.2 font registryを設定する
 
 ```fish
 set REG_FONTS \
@@ -1033,120 +1221,127 @@ set REG_SUBS \
     'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\FontSubstitutes'
 ```
 
-Fontsを登録する。
+```fish
+env \
+    WINEPREFIX="$PREFIX" \
+    LD_LIBRARY_PATH="$GE_LIBS" \
+    "$GE_WINE" \
+    reg \
+    add "$REG_FONTS" \
+    /v 'Noto Sans CJK JP (TrueType)' \
+    /t REG_SZ \
+    /d 'NotoSansCJK-Regular.ttc' \
+    /f
+
+and env \
+    WINEPREFIX="$PREFIX" \
+    LD_LIBRARY_PATH="$GE_LIBS" \
+    "$GE_WINE" \
+    reg \
+    add "$REG_FONTS" \
+    /v 'Noto Sans CJK JP Bold (TrueType)' \
+    /t REG_SZ \
+    /d 'NotoSansCJK-Bold.ttc' \
+    /f
+
+and env \
+    WINEPREFIX="$PREFIX" \
+    LD_LIBRARY_PATH="$GE_LIBS" \
+    "$GE_WINE" \
+    reg \
+    add "$REG_FONTS" \
+    /v 'Tahoma (OpenType)' \
+    /t REG_SZ \
+    /d 'Tahoma-Noto-Regular.otf' \
+    /f
+
+and env \
+    WINEPREFIX="$PREFIX" \
+    LD_LIBRARY_PATH="$GE_LIBS" \
+    "$GE_WINE" \
+    reg \
+    add "$REG_FONTS" \
+    /v 'Tahoma Bold (OpenType)' \
+    /t REG_SZ \
+    /d 'Tahoma-Noto-Bold.otf' \
+    /f
+```
+
+## 8.3 font substitutionsを設定する
 
 ```fish
-function register_aviutl2_fonts
+for font in \
+    'MS Gothic' \
+    'MS UI Gothic' \
+    'MS PGothic' \
+    'MS Mincho' \
+    'MS PMincho' \
+    'Meiryo' \
+    'Meiryo UI' \
+    'Yu Gothic' \
+    'Yu Gothic UI' \
+    'Yu Mincho'
+
     env \
         WINEPREFIX="$PREFIX" \
         LD_LIBRARY_PATH="$GE_LIBS" \
         "$GE_WINE" \
-        reg add "$REG_FONTS" \
-        /v 'Noto Sans CJK JP (TrueType)' \
-        /d 'NotoSansCJK-Regular.ttc' \
+        reg \
+        add "$REG_SUBS" \
+        /v "$font" \
+        /t REG_SZ \
+        /d 'Noto Sans CJK JP' \
         /f
 
-    and env \
-        WINEPREFIX="$PREFIX" \
-        LD_LIBRARY_PATH="$GE_LIBS" \
-        "$GE_WINE" \
-        reg add "$REG_FONTS" \
-        /v 'Noto Sans CJK JP Bold (TrueType)' \
-        /d 'NotoSansCJK-Bold.ttc' \
-        /f
-
-    and env \
-        WINEPREFIX="$PREFIX" \
-        LD_LIBRARY_PATH="$GE_LIBS" \
-        "$GE_WINE" \
-        reg add "$REG_FONTS" \
-        /v 'Tahoma (OpenType)' \
-        /d 'Tahoma-Noto-Regular.otf' \
-        /f
-
-    and env \
-        WINEPREFIX="$PREFIX" \
-        LD_LIBRARY_PATH="$GE_LIBS" \
-        "$GE_WINE" \
-        reg add "$REG_FONTS" \
-        /v 'Tahoma Bold (OpenType)' \
-        /d 'Tahoma-Noto-Bold.otf' \
-        /f
+    or false
 end
-
-register_aviutl2_fonts
 ```
 
-古いTahoma substituteを削除する。
+```fish
+for font in \
+    'MS Shell Dlg' \
+    'MS Shell Dlg 2'
+
+    env \
+        WINEPREFIX="$PREFIX" \
+        LD_LIBRARY_PATH="$GE_LIBS" \
+        "$GE_WINE" \
+        reg \
+        add "$REG_SUBS" \
+        /v "$font" \
+        /t REG_SZ \
+        /d 'Tahoma' \
+        /f
+
+    or false
+end
+```
+
+old `Tahoma` substituteがある場合は削除する。
 
 ```fish
 env \
     WINEPREFIX="$PREFIX" \
     LD_LIBRARY_PATH="$GE_LIBS" \
     "$GE_WINE" \
-    reg delete "$REG_SUBS" \
-    /v Tahoma \
-    /f
+    reg \
+    delete "$REG_SUBS" \
+    /v 'Tahoma' \
+    /f \
+    2>/dev/null
 
 or true
 ```
 
-UI aliasesを登録する。
-
-```fish
-function register_aviutl2_font_substitutes
-    for name in \
-        'MS Shell Dlg' \
-        'MS Shell Dlg 2'
-
-        env \
-            WINEPREFIX="$PREFIX" \
-            LD_LIBRARY_PATH="$GE_LIBS" \
-            "$GE_WINE" \
-            reg add "$REG_SUBS" \
-            /v "$name" \
-            /d Tahoma \
-            /f
-
-        or return 1
-    end
-
-    for name in \
-        'MS Gothic' \
-        'MS UI Gothic' \
-        'MS PGothic' \
-        'MS Mincho' \
-        'MS PMincho' \
-        'Meiryo' \
-        'Meiryo UI' \
-        'Yu Gothic' \
-        'Yu Gothic UI' \
-        'Yu Mincho'
-
-        env \
-            WINEPREFIX="$PREFIX" \
-            LD_LIBRARY_PATH="$GE_LIBS" \
-            "$GE_WINE" \
-            reg add "$REG_SUBS" \
-            /v "$name" \
-            /d 'Noto Sans CJK JP' \
-            /f
-
-        or return 1
-    end
-end
-
-register_aviutl2_font_substitutes
-```
-
-反映する。
+## 8.4 registry更新を反映する
 
 ```fish
 env \
     WINEPREFIX="$PREFIX" \
     LD_LIBRARY_PATH="$GE_LIBS" \
     "$GE_WINE" \
-    wineboot -u
+    wineboot \
+    -u
 
 and env \
     WINEPREFIX="$PREFIX" \
@@ -1155,225 +1350,145 @@ and env \
     -w
 ```
 
-確認する。
-
-```fish
-env \
-    WINEPREFIX="$PREFIX" \
-    LD_LIBRARY_PATH="$GE_LIBS" \
-    "$GE_WINE" \
-    reg query "$REG_FONTS" \
-    /v 'Tahoma (OpenType)'
-
-and env \
-    WINEPREFIX="$PREFIX" \
-    LD_LIBRARY_PATH="$GE_LIBS" \
-    "$GE_WINE" \
-    reg query "$REG_FONTS" \
-    /v 'Noto Sans CJK JP (TrueType)'
-
-and env \
-    WINEPREFIX="$PREFIX" \
-    LD_LIBRARY_PATH="$GE_LIBS" \
-    "$GE_WINE" \
-    reg query "$REG_SUBS" \
-    /v 'MS Shell Dlg'
-
-and env \
-    WINEPREFIX="$PREFIX" \
-    LD_LIBRARY_PATH="$GE_LIBS" \
-    "$GE_WINE" \
-    reg query "$REG_SUBS" \
-    /v 'Yu Gothic UI'
-```
-
-期待値:
-
-```text
-Tahoma (OpenType)              Tahoma-Noto-Regular.otf
-Noto Sans CJK JP (TrueType)    NotoSansCJK-Regular.ttc
-MS Shell Dlg                   Tahoma
-Yu Gothic UI                   Noto Sans CJK JP
-```
-
 ---
 
-# 9. NVIDIA Wine wrapperを導入する
+# 9. NVIDIA Wine wrapperを配置する
 
-Wineを停止する。
+## 9.1 system32へsymlinkする
 
 ```fish
 stop_prefix_wine
-```
 
-Alex環境では、`system32`の3ファイルはwrapper directoryへのsymlinkだった。
-同じ状態を新規prefixに作る。
+for dll in \
+    nvcuda.dll \
+    nvcuvid.dll \
+    nvencodeapi64.dll
 
-```fish
-function install_nvidia_wrappers
-    set system32 \
-        "$PREFIX/drive_c/windows/system32"
+    ln -sfn \
+        "$NVIDIA_WRAPPER_DIR/$dll" \
+        "$PREFIX/drive_c/windows/system32/$dll"
 
-    for dll in \
-        nvcuda \
-        nvcuvid \
-        nvencodeapi64
-
-        rm -f \
-            "$system32/$dll.dll"
-
-        or return 1
-
-        ln -s \
-            "$NVIDIA_WRAPPER_DIR/$dll.dll" \
-            "$system32/$dll.dll"
-
-        or return 1
-    end
+    or false
 end
-
-install_nvidia_wrappers
 ```
 
-Wine overrideを登録する。
+## 9.2 symlinkを確認する
 
 ```fish
-function register_nvidia_overrides
-    for dll in \
-        nvcuda \
-        nvcuvid \
-        nvencodeapi64
+for dll in \
+    nvcuda.dll \
+    nvcuvid.dll \
+    nvencodeapi64.dll
 
-        env \
-            WINEPREFIX="$PREFIX" \
-            LD_LIBRARY_PATH="$GE_LIBS" \
-            "$GE_WINE" \
-            reg add \
-            'HKEY_CURRENT_USER\Software\Wine\DllOverrides' \
-            /v "$dll" \
-            /d native \
-            /f
-
-        or return 1
-    end
+    readlink -f \
+        "$PREFIX/drive_c/windows/system32/$dll"
 end
-
-register_nvidia_overrides
 ```
 
-確認する。
+## 9.3 native overrideを登録する
 
 ```fish
+set REG_OVERRIDES \
+    'HKEY_CURRENT_USER\Software\Wine\DllOverrides'
+
 for dll in \
     nvcuda \
     nvcuvid \
     nvencodeapi64
 
-    ls -l \
-        "$PREFIX/drive_c/windows/system32/$dll.dll"
-
-    file \
-        "$NVIDIA_WRAPPER_DIR/$dll.dll"
-
-    sha256sum \
-        "$PREFIX/drive_c/windows/system32/$dll.dll"
-
     env \
         WINEPREFIX="$PREFIX" \
         LD_LIBRARY_PATH="$GE_LIBS" \
         "$GE_WINE" \
-        reg query \
-        'HKEY_CURRENT_USER\Software\Wine\DllOverrides' \
-        /v "$dll"
+        reg \
+        add "$REG_OVERRIDES" \
+        /v "$dll" \
+        /t REG_SZ \
+        /d 'native' \
+        /f
+
+    or false
 end
 ```
 
-3件とも`REG_SZ native`であることを確認する。
-Wine traceでwrapperが`builtin`と表示されても、それだけで失敗とは判定しない。
+Wine traceでこれらが`builtin`と表示される場合がある。
+その表示だけを理由にoverrideやsymlinkを変更しない。
+NVDEC runtime logと組み合わせて判定する。
 
 ---
 
-# 10. custom L-SMASH Works r1284を導入する
+# 10. custom L-SMASH Works r1284を配置する
 
-Catalogをまだ導入しない場合は、まず直接配置できる。
-ただし最終的にはCatalog導入後にもう一度overlayする。
+## 10.1 ProgramData plugin directoryを作る
 
 ```fish
+set PROGRAMDATA \
+    "$PREFIX/drive_c/ProgramData/aviutl2"
+
 set PLUGIN_DIR \
-    "$PREFIX/drive_c/ProgramData/aviutl2/Plugin"
-
-set ACTIVE_LWINPUT \
-    "$PLUGIN_DIR/lwinput.aui2"
-
-set ACTIVE_INI \
-    "$PLUGIN_DIR/lsmash.ini"
-```
-
-```fish
-stop_prefix_wine
+    "$PROGRAMDATA/Plugin"
 
 mkdir -p \
     "$PLUGIN_DIR"
 ```
 
+## 10.2 pluginとINIを配置する
+
 ```fish
 install \
     -m 0644 \
     "$LSMASH_ARTIFACT_DIR/lwinput.aui2" \
-    "$ACTIVE_LWINPUT"
+    "$PLUGIN_DIR/lwinput.aui2"
 
 and install \
     -m 0644 \
     "$LSMASH_ARTIFACT_DIR/lsmash.ini" \
-    "$ACTIVE_INI"
+    "$PLUGIN_DIR/lsmash.ini"
 ```
 
-NVDEC設定を固定する。
-
-```fish
-sed -i \
-    -e 's/^libavsmash_disabled=.*/libavsmash_disabled=1/' \
-    -e 's/^libav_disabled=.*/libav_disabled=0/' \
-    -e 's/^preferred_decoders=.*/preferred_decoders=av1_cuvid/' \
-    "$ACTIVE_INI"
-```
-
-確認する。
+## 10.3 SHA-256を確認する
 
 ```fish
 sha256sum \
-    "$ACTIVE_LWINPUT" \
-    "$ACTIVE_INI"
+    "$LSMASH_ARTIFACT_DIR/lwinput.aui2" \
+    "$PLUGIN_DIR/lwinput.aui2" \
+    "$LSMASH_ARTIFACT_DIR/lsmash.ini" \
+    "$PLUGIN_DIR/lsmash.ini"
 ```
 
-```fish
-begin
-    strings \
-        -a \
-        -n 6 \
-        "$ACTIVE_LWINPUT"
+prepared artifactとactive pluginのSHAが一致すること。
 
-    strings \
-        -a \
-        -e l \
-        -n 6 \
-        "$ACTIVE_LWINPUT"
-end \
+## 10.4 binary markerを確認する
+
+```fish
+strings \
+    "$PLUGIN_DIR/lwinput.aui2" \
     | grep -E \
         'L-SMASH Works File Reader for AviUtl2 r1284 by Mr-Ojii|av1_cuvid|--enable-cuvid|--enable-decoder=av1_cuvid' \
     | sort \
-        -u
+    -u
 ```
 
+最低限次が必要である。
+
+```text
+L-SMASH Works File Reader for AviUtl2 r1284 by Mr-Ojii
+--enable-cuvid
+--enable-decoder=av1_cuvid
+av1_cuvid
+```
+
+## 10.5 lsmash.iniを確認する
+
 ```fish
-grep -nE \
+grep -E \
     '^(libavsmash_disabled|libav_disabled|preferred_decoders)=' \
-    "$ACTIVE_INI"
+    "$PLUGIN_DIR/lsmash.ini"
 ```
 
 期待値:
 
-```text
+```ini
 libavsmash_disabled=1
 libav_disabled=0
 preferred_decoders=av1_cuvid
@@ -1381,51 +1496,63 @@ preferred_decoders=av1_cuvid
 
 ---
 
-# 11. Fcitx5/Mozcを設定する
+# 11. Fcitx5/MozcとWine XIMを設定する
 
-ホスト側を確認する。
+## 11.1 host processを確認する
 
 ```fish
-printf 'XMODIFIERS=%s\n' \
-    (printenv XMODIFIERS)
+pgrep \
+    -a \
+    fcitx5
 
-pgrep -a -f \
-    'fcitx5|mozc'
+pgrep \
+    -a \
+    mozc_server
 ```
 
-期待値:
+起動していない場合:
 
-```text
-XMODIFIERS=@im=fcitx
-fcitx5 process
-mozc_server process
+```fish
+fcitx5 \
+    -d
 ```
+
+MozcはFcitx5のinput methodとして有効化しておく。
+
+## 11.2 InputStyleを登録する
 
 AviUtl2専用`InputStyle`を登録する。
 
 ```fish
-env \
-    WINEPREFIX="$PREFIX" \
-    LD_LIBRARY_PATH="$GE_LIBS" \
-    "$GE_WINE" \
-    reg add \
-    'HKCU\Software\Wine\AppDefaults\aviutl2.exe\X11 Driver' \
-    /v InputStyle \
-    /t REG_SZ \
-    /d overthespot \
-    /f
-```
+set REG_X11 \
+    'HKEY_CURRENT_USER\Software\Wine\AppDefaults\aviutl2.exe\X11 Driver'
 
-確認する。
+verb='add'
+```
 
 ```fish
 env \
     WINEPREFIX="$PREFIX" \
     LD_LIBRARY_PATH="$GE_LIBS" \
     "$GE_WINE" \
-    reg query \
-    'HKCU\Software\Wine\AppDefaults\aviutl2.exe\X11 Driver' \
-    /v InputStyle
+    reg \
+    add "$REG_X11" \
+    /v 'InputStyle' \
+    /t REG_SZ \
+    /d 'overthespot' \
+    /f
+```
+
+確認:
+
+```fish
+env \
+    WINEPREFIX="$PREFIX" \
+    LD_LIBRARY_PATH="$GE_LIBS" \
+    "$GE_WINE" \
+    reg \
+    query "$REG_X11" \
+    /v 'InputStyle'
 ```
 
 期待値:
@@ -1436,316 +1563,360 @@ InputStyle    REG_SZ    overthespot
 
 ---
 
-# 12. 起動launcherを作る
+# 12. launcherを作る
 
-repositoryのexample launcherを利用する。
+launcherはprefixとrunnerを固定する。
 
 ```fish
 set LAUNCHER \
     "$ROOT/launch-aviutl2.fish"
+```
 
-cp -a \
-    "$REPO/scripts/launch-aviutl2.example.fish" \
-    "$LAUNCHER"
+```fish
+printf '%s\n' \
+    '#!/usr/bin/env fish' \
+    '' \
+    'set ROOT "$HOME/Games/aviutl2"' \
+    'set PREFIX "$ROOT/prefix"' \
+    'set GE_PROTON_ROOT "$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1-aviutl2-test"' \
+    'set GE_WINE "$GE_PROTON_ROOT/files/lib/wine/x86_64-unix/wine"' \
+    'set GE_WINESERVER "$GE_PROTON_ROOT/files/bin/wineserver"' \
+    'set GE_LIBS "$GE_PROTON_ROOT/files/lib64:$GE_PROTON_ROOT/files/lib:$GE_PROTON_ROOT/files/lib/wine/x86_64-unix:$GE_PROTON_ROOT/files/lib/wine/i386-unix"' \
+    'set DXVK_CONFIG_FILE "$ROOT/nvidia-dxvk.conf"' \
+    'set DLL_OVERRIDES "nvcuda,nvcuvid,nvencodeapi64=n;d3d11,dxgi,d3d10core=n,b;d3dcompiler_47=n,b;dwrite=b"' \
+    '' \
+    'env WINEPREFIX="$PREFIX" "$GE_WINESERVER" -k 2>/dev/null' \
+    'or true' \
+    '' \
+    'sleep 1' \
+    '' \
+    'cd "$PREFIX/drive_c/AviUtl2"' \
+    'or return 1' \
+    '' \
+    'env \' \
+    '    XMODIFIERS="@im=fcitx" \' \
+    '    WINEPREFIX="$PREFIX" \' \
+    '    LD_LIBRARY_PATH="$GE_LIBS" \' \
+    '    WINEDLLOVERRIDES="$DLL_OVERRIDES" \' \
+    '    DXVK_CONFIG_FILE="$DXVK_CONFIG_FILE" \' \
+    '    DXVK_LOG_LEVEL=warn \' \
+    '    WINEDEBUG=-all \' \
+    '    "$GE_WINE" \' \
+    '    ./aviutl2.exe' \
+    > "$LAUNCHER"
+```
 
+```fish
 chmod +x \
     "$LAUNCHER"
 ```
 
-launcher内のdefault pathが今回の変数と一致しない場合は、実行時環境変数で上書きする。
+launcherはfunctionではなくscript fileなので、`return 1`は使用できない。
+この生成例では次を修正する必要がある。
+
+```text
+cd ...
+or exit 1
+```
+
+生成後に置換する。
 
 ```fish
-env \
-    AVIUTL2_ROOT="$ROOT" \
-    AVIUTL2_PREFIX="$PREFIX" \
-    GE_PROTON_ROOT="$GE_PROTON_ROOT" \
-    XMODIFIERS='@im=fcitx' \
+sed -i \
+    's/or return 1/or exit 1/' \
     "$LAUNCHER"
 ```
 
-launcherを使わない直接起動:
+内容を確認する。
 
 ```fish
-cd \
-    "$PREFIX/drive_c/AviUtl2"
-
-env \
-    XMODIFIERS='@im=fcitx' \
-    WINEPREFIX="$PREFIX" \
-    LD_LIBRARY_PATH="$GE_LIBS" \
-    WINEDLLOVERRIDES="$DLL_OVERRIDES" \
-    DXVK_CONFIG_FILE="$DXVK_CONFIG_FILE" \
-    DXVK_LOG_LEVEL=warn \
-    WINEDEBUG=-all \
-    "$GE_WINE" \
-    ./aviutl2.exe
+sed -n \
+    '1,240p' \
+    "$LAUNCHER"
 ```
-
-起動時に確認する。
-
-```text
-メインウィンドウが表示される
-日本語UIが読める
-format 69のerror dialogが出ない
-L-SMASH Works r1284が認識される
-```
-
-終了コードだけで成功判定しない。
 
 ---
 
 # 13. AviUtl2単体を検証する
 
-## 13.1 AV1/NVDEC
+Catalogを導入する前に、base applicationを検証する。
 
-検証ログ:
+## 13.1 通常起動
+
+```fish
+"$LAUNCHER"
+```
+
+確認項目:
+
+```text
+main windowが表示される
+UIが安定している
+日本語UIが読める
+format 69 error dialogが出ない
+```
+
+## 13.2 DXVK logを取得する
+
+```fish
+set DXVK_LOG \
+    "$ROOT/logs/dxvk-install-validation.log"
+
+rm -f \
+    "$DXVK_LOG"
+
+cd \
+    "$PREFIX/drive_c/AviUtl2"
+
+and env \
+    XMODIFIERS='@im=fcitx' \
+    WINEPREFIX="$PREFIX" \
+    LD_LIBRARY_PATH="$GE_LIBS" \
+    WINEDLLOVERRIDES="$DLL_OVERRIDES" \
+    DXVK_CONFIG_FILE="$DXVK_CONFIG_FILE" \
+    DXVK_LOG_LEVEL=debug \
+    WINEDEBUG=-all \
+    "$GE_WINE" \
+    ./aviutl2.exe \
+    > "$DXVK_LOG" \
+    2>&1
+```
+
+別terminalで確認する。
+
+```fish
+grep -E \
+    'AviUtl2|format 69|d3d11|dxgi' \
+    "$DXVK_LOG"
+```
+
+## 13.3 NVDEC runtime logを取得する
 
 ```fish
 set NVDEC_LOG \
-    "$ROOT/logs/aviutl2-install-nvdec.log"
-
-mkdir -p \
-    "$ROOT/logs"
+    "$ROOT/logs/nvdec-install-validation.log"
 
 rm -f \
     "$NVDEC_LOG"
-```
 
-```fish
 cd \
     "$PREFIX/drive_c/AviUtl2"
 
-env \
+and env \
     XMODIFIERS='@im=fcitx' \
     WINEPREFIX="$PREFIX" \
     LD_LIBRARY_PATH="$GE_LIBS" \
     WINEDLLOVERRIDES="$DLL_OVERRIDES" \
     DXVK_CONFIG_FILE="$DXVK_CONFIG_FILE" \
     DXVK_LOG_LEVEL=warn \
-    WINEDEBUG='-all,+timestamp,+loaddll,+seh' \
+    WINEDEBUG='+loaddll,+seh' \
     "$GE_WINE" \
     ./aviutl2.exe \
-    &> "$NVDEC_LOG"
+    > "$NVDEC_LOG" \
+    2>&1
 ```
 
-GUIで実施する。
+GUI操作:
 
-1. AV1 Main 10-bit素材を読み込む
-2. 再生する
-3. 冒頭へシークする
-4. 中央へシークする
-5. 終盤へシークする
-6. 再度再生する
-7. 正常終了する
+```text
+AV1 Main 10-bit素材を読み込む
+再生する
+冒頭へseekする
+中央へseekする
+終盤へseekする
+再度再生する
+通常終了する
+```
 
-ログ確認:
+確認:
 
 ```fish
-grep -nEi \
-    'av1_cuvid|nvcuda|nvcuvid|Cannot load nvcuvid|Failed loading nvcuvid|CUDA_ERROR|av_hwframe_transfer_data failed|Unhandled exception|unhandled page fault' \
-    "$NVDEC_LOG" \
-    | tail -n 500
+grep -E \
+    'av1_cuvid|nvcuvid|nvcuda|Cannot load nvcuvid|Failed loading nvcuvid|CUDA|hardware frame|transfer' \
+    "$NVDEC_LOG"
 ```
 
 成功条件:
 
 ```text
-AV1を読み込める
-再生が進む
-複数位置へシークできる
-複数の [av1_cuvid @ ...] contextがある
-nvcuda.dll / nvcuvid.dllのload evidenceがある
-Cannot load nvcuvid.dllがない
-Failed loading nvcuvid.がない
-CUDA initialization failureがない
-hardware-frame-transfer failureがない
-クラッシュしない
+複数の[av1_cuvid @ ...] context
+再生とseekが成功
+Cannot load nvcuvid.dllなし
+Failed loading nvcuvid.なし
+CUDA初期化失敗なし
+hardware-frame-transfer failureなし
+crashなし
 ```
 
-次は単独では失敗ではない。
+AV1再生だけではNVDEC成功ではない。
+software libdav1d fallbackでも再生できる。
 
-```text
-Invalid pkt_timebase, passing timestamps as-is.
-The "surfaces" option is deprecated.
-```
-
-AV1が再生できただけではNVDEC成功ではない。
-`libdav1d` fallbackでも再生できる。
-
-## 13.2 DWrite/Mozc
+## 13.4 DWrite/Mozc logを取得する
 
 ```fish
 set TEXT_LOG \
-    "$ROOT/logs/aviutl2-install-text-mozc.log"
+    "$ROOT/logs/dwrite-mozc-install-validation.log"
 
 rm -f \
     "$TEXT_LOG"
-```
 
-```fish
 cd \
     "$PREFIX/drive_c/AviUtl2"
 
-env \
+and env \
     XMODIFIERS='@im=fcitx' \
     WINEPREFIX="$PREFIX" \
     LD_LIBRARY_PATH="$GE_LIBS" \
     WINEDLLOVERRIDES="$DLL_OVERRIDES" \
     DXVK_CONFIG_FILE="$DXVK_CONFIG_FILE" \
     DXVK_LOG_LEVEL=warn \
-    WINEDEBUG='-all,+timestamp,+dwrite,+xim,+imm,+seh' \
+    WINEDEBUG='+dwrite,+xim,+imm,+seh' \
     "$GE_WINE" \
     ./aviutl2.exe \
-    &> "$TEXT_LOG"
+    > "$TEXT_LOG" \
+    2>&1
 ```
 
-GUIで実施する。
-
-1. テキストオブジェクトを追加
-2. ASCII文字列を入力
-3. 一部をマウス選択
-4. 文字列内をクリックしてキャレット移動
-5. 削除と追加入力
-6. `にほんごにゅうりょく`と入力
-7. `日本語入力`へ変換
-8. Enterで確定
-9. 確定済み日本語を再選択・再編集
-10. 正常終了
-
-ログ確認:
-
-```fish
-grep -nE \
-    'dwritetextlayout_HitTest(Point|TextRange)' \
-    "$TEXT_LOG" \
-    | tail -n 100
-```
-
-```fish
-grep -nEi \
-    'HitTest(Point|TextRange).*stub|E_NOTIMPL|80004001|Unhandled exception|unhandled page fault|C\+\+ exception' \
-    "$TEXT_LOG"
-
-or echo "No fatal text-editing errors found."
-```
-
-```fish
-grep -nEi \
-    'requesting L"overthespot"|selected style 0x404' \
-    "$TEXT_LOG" \
-    | head -n 30
-```
-
-成功条件:
+GUI操作:
 
 ```text
-HitTestPointが呼ばれる
-HitTestTextRangeが呼ばれる
-stubではない
-E_NOTIMPLがない
-overthespot / 0x404が選択される
-文字選択できる
-キャレット移動できる
-Mozc入力・変換・Enter確定できる
-確定後に再編集できる
-クラッシュしない
+テキストオブジェクトを追加
+ASCIIを入力
+一部を選択
+クリックでcaret移動
+削除と追記
+にほんごにゅうりょくを入力
+日本語入力へ変換
+Enterで確定
+確定後に再選択・再編集
+通常終了
+```
+
+成功確認:
+
+```fish
+grep -E \
+    'dwritetextlayout_HitTestPoint|dwritetextlayout_HitTestTextRange|overthespot|preedit position|status nothing' \
+    "$TEXT_LOG"
+```
+
+失敗確認:
+
+```fish
+if grep -Eqi \
+    'HitTestPoint.*stub|HitTestTextRange.*stub|E_NOTIMPL|80004001|Unhandled exception|unhandled page fault' \
+    "$TEXT_LOG"
+
+    echo "ERROR: fatal DWrite/SEH evidence found" >&2
+    false
+else
+    echo "No fatal DWrite/SEH evidence found."
+end
 ```
 
 ---
 
 # 14. AviUtl2 Catalog 0.3.3を導入する
 
-## 14.1 変数
+AviUtl2単体の全検証に合格した後だけ進む。
+
+## 14.1 checkpointを作る
 
 ```fish
-set CATALOG_VERSION \
-    "0.3.3"
+stop_prefix_wine
 
-set CATALOG_REPO \
-    "Neosku/aviutl2-catalog"
+set STAMP \
+    (date +%Y%m%d-%H%M%S)
 
-set CATALOG_CACHE \
-    "$ROOT/downloads/aviutl2-catalog-$CATALOG_VERSION"
+set PRE_CATALOG_CHECKPOINT \
+    "$ROOT/checkpoints/prefix.before-catalog-$STAMP"
 
-set CATALOG_LOG_DIR \
-    "$ROOT/logs/catalog-installation-"(date +%Y%m%d-%H%M%S)
+mkdir -p \
+    "$ROOT/checkpoints"
+
+cp -a \
+    --reflink=auto \
+    "$PREFIX" \
+    "$PRE_CATALOG_CHECKPOINT"
+```
+
+確認:
+
+```fish
+test -f \
+    "$PRE_CATALOG_CHECKPOINT/drive_c/AviUtl2/aviutl2.exe"
+
+and echo \
+    "$PRE_CATALOG_CHECKPOINT"
 ```
 
 ## 14.2 installerを取得する
 
+Catalog release assetは、versionとSHA-256を固定する。
+
 ```fish
+set CATALOG_VERSION \
+    '0.3.3'
+
+set CATALOG_DOWNLOAD_DIR \
+    "$ROOT/downloads/catalog-$CATALOG_VERSION"
+
 mkdir -p \
-    "$CATALOG_CACHE" \
-    "$CATALOG_LOG_DIR"
+    "$CATALOG_DOWNLOAD_DIR"
 ```
 
+GitHub APIでreleaseを取得する。
+
 ```fish
-set RELEASE_JSON \
-    "$CATALOG_CACHE/release.json"
-
-rm -f \
-    "$RELEASE_JSON"
-
-for tag in \
-    "v$CATALOG_VERSION" \
-    "$CATALOG_VERSION"
-
-    if gh release view \
-        "$tag" \
-        --repo "$CATALOG_REPO" \
-        --json tagName,assets \
-        > "$RELEASE_JSON" \
-        2>/dev/null
-
-        set CATALOG_TAG \
-            "$tag"
-
-        break
-    end
-end
+curl \
+    --fail \
+    --location \
+    --silent \
+    --show-error \
+    "https://api.github.com/repos/Neosku/aviutl2-catalog/releases/tags/v$CATALOG_VERSION" \
+    > "$CATALOG_DOWNLOAD_DIR/release.json"
 ```
 
+asset URLを抽出する。
+
 ```fish
-set CATALOG_ASSET (
-    python3 -c '
+set CATALOG_URL \
+    (python3 - \
+        "$CATALOG_DOWNLOAD_DIR/release.json" \
+        <<'PY'
 import json
-import re
 import sys
-from pathlib import Path
 
-data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-names = [asset["name"] for asset in data.get("assets", [])]
+path = sys.argv[1]
+data = json.load(open(path, encoding="utf-8"))
 
-matches = [
-    name for name in names
-    if re.search(r"_x64-setup\.exe$", name, re.I)
-]
+for asset in data.get("assets", []):
+    name = asset.get("name", "")
+    if name == "AviUtl2_Catalog_0.3.3_x64-setup.exe":
+        print(asset["browser_download_url"])
+        raise SystemExit(0)
 
-if len(matches) != 1:
-    raise SystemExit(
-        "Expected exactly one x64 setup executable, found: "
-        + repr(matches)
+raise SystemExit("target asset not found")
+PY
     )
-
-print(matches[0])
-' "$RELEASE_JSON"
-)
 ```
 
+取得する。
+
 ```fish
-gh release download \
-    "$CATALOG_TAG" \
-    --repo "$CATALOG_REPO" \
-    --pattern "$CATALOG_ASSET" \
-    --dir "$CATALOG_CACHE" \
-    --clobber
-
 set CATALOG_INSTALLER \
-    "$CATALOG_CACHE/$CATALOG_ASSET"
+    "$CATALOG_DOWNLOAD_DIR/AviUtl2_Catalog_0.3.3_x64-setup.exe"
 
-file \
-    "$CATALOG_INSTALLER"
+curl \
+    --fail \
+    --location \
+    --output "$CATALOG_INSTALLER" \
+    "$CATALOG_URL"
+```
 
+確認:
+
+```fish
 sha256sum \
     "$CATALOG_INSTALLER"
 ```
@@ -1753,74 +1924,54 @@ sha256sum \
 期待値:
 
 ```text
-AviUtl2_Catalog_0.3.3_x64-setup.exe
 5591a5baa931f94322aff13096c63147126ca90d3844610ce7827b2f9b44d84e
 ```
 
-## 14.3 installerを実行する
+一致しない場合は実行しない。
+
+## 14.3 installerを起動する
+
+```fish
+env \
+    XMODIFIERS='@im=fcitx' \
+    WINEPREFIX="$PREFIX" \
+    LD_LIBRARY_PATH="$GE_LIBS" \
+    WINEDLLOVERRIDES="$DLL_OVERRIDES" \
+    "$GE_WINE" \
+    "$CATALOG_INSTALLER"
+```
+
+installer完了後:
 
 ```fish
 stop_prefix_wine
 ```
 
-```fish
-env \
-    WINEPREFIX="$PREFIX" \
-    LD_LIBRARY_PATH="$GE_LIBS" \
-    WINEDLLOVERRIDES='dwrite=b' \
-    WINEDEBUG=-all \
-    "$GE_WINE" \
-    "$CATALOG_INSTALLER" \
-    &> "$CATALOG_LOG_DIR/catalog-installer.log"
-
-set INSTALL_STATUS \
-    $status
-
-echo "Installer status: $INSTALL_STATUS"
-echo "Installer log: $CATALOG_LOG_DIR/catalog-installer.log"
-```
-
-`Installer status: 0`を確認する。
-
-Catalog executableを検索する。
-
-```fish
-set CATALOG_EXES (
-    find \
-        "$PREFIX/drive_c" \
-        -type f \
-        \( \
-            -iname 'AviUtl2_Catalog.exe' \
-            -o -iname 'aviutl2-catalog.exe' \
-        \) \
-        -print \
-        2>/dev/null
-)
-
-printf '%s\n' \
-    $CATALOG_EXES
-```
-
-1件だけであることを確認し、設定する。
+## 14.4 Catalog executableを探す
 
 ```fish
 set CATALOG_EXE \
-    "$CATALOG_EXES[1]"
+    (find \
+        "$PREFIX/drive_c/users" \
+        -type f \
+        -iname 'AviUtl2_Catalog.exe' \
+        -print \
+        -quit)
+
+require_path \
+    "$CATALOG_EXE"
 ```
 
-## 14.4 初回起動
+## 14.5 初期設定する
 
 ```fish
 env \
+    XMODIFIERS='@im=fcitx' \
     WINEPREFIX="$PREFIX" \
     LD_LIBRARY_PATH="$GE_LIBS" \
     WINEDLLOVERRIDES="$DLL_OVERRIDES" \
-    DXVK_CONFIG_FILE="$DXVK_CONFIG_FILE" \
-    DXVK_LOG_LEVEL=warn \
-    WINEDEBUG=-all \
     "$GE_WINE" \
-    "$CATALOG_EXE" \
-    &> "$CATALOG_LOG_DIR/catalog-first-launch.log"
+    "$CATALOG_EXE"
 ```
 
 GUIで設定する。
@@ -1831,513 +1982,583 @@ AviUtl2 root:  C:\AviUtl2
 Portable mode: 無効
 ```
 
-必要プラグインを導入し、Catalogを通常終了する。
+必要pluginを導入する。
+Catalogが公式L-SMASH Worksを配置しても、この段階では異常ではない。
+custom r1284は最後に再配置する。
 
-この段階でCatalogが公式L-SMASH Worksを配置しても正常である。
-まだ最終状態ではない。
-
-## 14.5 NVEnc output pluginを導入し、AV1/HEVCを分岐する
-
-この節は**NVENCによる出力エンコード**を検証する。
-前節の`AV1/NVDEC`は入力デコードの検証であり、ここでは別物として扱う。
-
-CatalogのGUIからAviUtl2 2対応のNVEnc output pluginを導入し、Catalogを通常終了する。
-その後、Wineを停止する。
+Catalogを通常終了し、Wineを停止する。
 
 ```fish
 stop_prefix_wine
 ```
 
-### 14.5.1 `NVEncC64.exe`を特定する
+## 14.6 NVEnc output pluginを導入する
+
+CatalogのGUIからAviUtl2 2対応のNVEnc output pluginを導入し、Catalogを通常終了する。
+
+導入後、prefix内の`NVEncC64.exe`を探す。
 
 ```fish
-set NVENCC_LIST (
-    find \
-        "$PREFIX/drive_c/ProgramData/aviutl2/Plugin/exe_files/NVEncC" \
+set NVENCC_EXE \
+    (find \
+        "$PREFIX/drive_c/ProgramData/aviutl2" \
         -type f \
         -iname 'NVEncC64.exe' \
         -print \
-        2>/dev/null
-)
+        -quit)
 
-printf '%s\n' \
-    $NVENCC_LIST
+require_path \
+    "$NVENCC_EXE"
 ```
 
-1件だけであることを確認し、設定する。
+同名binaryが複数ある場合は、次ですべて列挙し、Catalogが導入したplugin directory内のものを選ぶ。
 
 ```fish
-set NVENCC \
-    "$NVENCC_LIST[1]"
-
-file \
-    "$NVENCC"
-
-sha256sum \
-    "$NVENCC"
+find \
+    "$PREFIX/drive_c/ProgramData/aviutl2" \
+    -type f \
+    -iname 'NVEncC64.exe' \
+    -print
 ```
 
-0件または複数件の場合は、codec分岐へ進まずCatalog側のNVEnc導入状態を確認する。
+---
 
-### 14.5.2 driverが返すencode機能を保存する
+# 15. NVENC出力codecをAV1またはHEVCへ分岐する
 
-まず、GPU名とdriver versionを保存する。
+この節はNVENCによる**出力エンコード**を検証する。
+前節の`av1_cuvid`によるNVDEC入力デコードとは独立して判定する。
+
+## 15.1 GPUとdriverを記録する
 
 ```fish
+mkdir -p \
+    "$ROOT/evidence/nvenc" \
+    "$NVENC_TEST_DIR"
+
 nvidia-smi \
-    --query-gpu=name,driver_version \
+    --query-gpu=name,driver_version,compute_cap \
     --format=csv,noheader \
     | tee \
-        "$ROOT/evidence/installation/nvenc-gpu-driver.txt"
+        "$ROOT/evidence/nvenc/gpu-driver.txt"
 ```
+
+`nvidia-smi`の世代名だけではcodecを決定しない。
+
+## 15.2 NVEncC64.exeのfeatureを実測する
 
 ```fish
 rm -f \
     "$NVENC_FEATURE_LOG"
 
-cd \
-    (dirname "$NVENCC")
+set NVENCC_WINDOWS_PATH \
+    (string replace \
+        "$PREFIX/drive_c" \
+        'C:' \
+        "$NVENCC_EXE")
 
-env \
+set NVENCC_WINDOWS_PATH \
+    (string replace \
+        -a \
+        '/' \
+        '\\' \
+        "$NVENCC_WINDOWS_PATH")
+```
+
+```fish
+cd \
+    "$PREFIX/drive_c/AviUtl2"
+
+and env \
     WINEPREFIX="$PREFIX" \
     LD_LIBRARY_PATH="$GE_LIBS" \
     WINEDLLOVERRIDES="$DLL_OVERRIDES" \
-    WINEDEBUG='-all,+loaddll,+nvencodeapi' \
+    WINEDEBUG=-all \
     "$GE_WINE" \
-    "$NVENCC" \
+    "$NVENCC_WINDOWS_PATH" \
     --check-features \
-    &> "$NVENC_FEATURE_LOG"
+    > "$NVENC_FEATURE_LOG" \
+    2>&1
+```
 
-set NVENC_FEATURE_STATUS \
-    $status
+全出力を保存し、表示する。
 
-printf 'NVEncC --check-features status: %s\n' \
-    "$NVENC_FEATURE_STATUS"
-
+```fish
 cat \
     "$NVENC_FEATURE_LOG"
 ```
 
-終了コードだけでcodec対応を判定しない。
-`AV1`と`HEVC`のencode capabilityを出力から確認する。
-feature一覧はGPUだけでなくdriver versionにも依存するため、GPU型番だけで分岐しない。
+## 15.3 分岐を決定する
 
-### 14.5.3 分岐A — AV1 NVENC
-
-`--check-features`がAV1 encodeをsupportedとして報告した場合のみ、この分岐を使用する。
+feature log内のAV1 EncodeとHEVC Encodeのsupport状態を確認する。
+出力書式がNVEnc versionによって異なるため、最初に関連行を抽出する。
 
 ```fish
+grep -Ei \
+    'AV1|HEVC|H\.265|Main10|10.?bit|encode' \
+    "$NVENC_FEATURE_LOG" \
+    | tee \
+        "$ROOT/evidence/nvenc/codec-feature-lines.txt"
+```
+
+次の変数は、上の実測結果を読んで手動で設定する。
+曖昧な自動grep判定だけで決定しない。
+
+### AV1 Encodeが明示的にsupportedの場合
+
+```fish
+set NVENC_BRANCH \
+    av1
+
 set NVENC_CODEC \
     av1
 
-set NVENC_OUTPUT_DEPTH \
+set NVENC_BIT_DEPTH \
     10
-
-set NVENC_TEST_OUTPUT \
-    "$NVENC_TEST_DIR/nvenc-av1-test.mkv"
-
-set NVENC_TEST_LOG \
-    "$ROOT/logs/nvencc-av1-encode.log"
 ```
 
-AV1 NVENCはAda世代以降で利用でき、8-bitと10-bit encodeに対応する。
-ただし、この文書では実際の`--check-features`結果がsupportedであることを必須条件とする。
-
-入力decode能力と出力encode能力を分離するため、試験入力はsoftware decodeで読む。
+### AV1 EncodeがunsupportedでHEVC Encodeがsupportedの場合
 
 ```fish
-cp -a \
-    "$AV1_TEST_FILE" \
+set NVENC_BRANCH \
+    hevc
+
+set NVENC_CODEC \
+    hevc
+```
+
+HEVC Main10または10-bit encodeが明示的にsupportedの場合:
+
+```fish
+set NVENC_BIT_DEPTH \
+    10
+```
+
+HEVCはsupportedだがMain10がunsupportedの場合:
+
+```fish
+set NVENC_BIT_DEPTH \
+    8
+```
+
+### AV1とHEVCの両方がunsupportedの場合
+
+```fish
+set NVENC_BRANCH \
+    unsupported
+
+set NVENC_CODEC \
+    none
+```
+
+この場合はNVENC出力工程を停止する。
+AviUtl2本体やNVDECの成功判定まで無効になるわけではない。
+
+選択結果を保存する。
+
+```fish
+printf '%s\n' \
+    "NVENC_BRANCH=$NVENC_BRANCH" \
+    "NVENC_CODEC=$NVENC_CODEC" \
+    "NVENC_BIT_DEPTH=$NVENC_BIT_DEPTH" \
+    > "$ROOT/evidence/nvenc/selected-branch.txt"
+
+cat \
+    "$ROOT/evidence/nvenc/selected-branch.txt"
+```
+
+---
+
+# 16A. AV1 NVENC branch
+
+`NVENC_BRANCH=av1`の場合だけ実行する。
+
+## 16A.1 試験入力をprefixへ配置する
+
+NVEncCのcodec capabilityだけを分離して確認するため、入力はsoftware decodeする。
+AV1 decode対応の有無を、この出力試験へ混ぜない。
+
+```fish
+set NVENC_INPUT_FILE \
+    "$AV1_TEST_FILE"
+
+install \
+    -m 0644 \
+    "$NVENC_INPUT_FILE" \
     "$PREFIX/drive_c/AviUtl2/nvenc-branch-input.mp4"
+```
 
-rm -f \
-    "$NVENC_TEST_OUTPUT" \
-    "$NVENC_TEST_LOG"
+## 16A.2 AV1 NVENCの短時間CLI試験
 
-cd \
-    (dirname "$NVENCC")
+NVEncCのversionごとにoption名が変化する可能性があるため、先にhelpを保存する。
 
+```fish
 env \
     WINEPREFIX="$PREFIX" \
     LD_LIBRARY_PATH="$GE_LIBS" \
     WINEDLLOVERRIDES="$DLL_OVERRIDES" \
-    WINEDEBUG='-all,+loaddll,+nvencodeapi,+seh' \
+    WINEDEBUG=-all \
     "$GE_WINE" \
-    "$NVENCC" \
+    "$NVENCC_WINDOWS_PATH" \
+    --help \
+    > "$ROOT/evidence/nvenc/nvencc-help.txt" \
+    2>&1
+```
+
+実行例:
+
+```fish
+env \
+    WINEPREFIX="$PREFIX" \
+    LD_LIBRARY_PATH="$GE_LIBS" \
+    WINEDLLOVERRIDES="$DLL_OVERRIDES" \
+    WINEDEBUG=-all \
+    "$GE_WINE" \
+    "$NVENCC_WINDOWS_PATH" \
     --avsw \
     --codec av1 \
     --output-depth 10 \
     --frames 120 \
     --input 'C:\AviUtl2\nvenc-branch-input.mp4' \
     --output 'C:\AviUtl2\nvenc-av1-test.mkv' \
-    &> "$NVENC_TEST_LOG"
-
-set NVENC_TEST_STATUS \
-    $status
-
-cp -a \
-    "$PREFIX/drive_c/AviUtl2/nvenc-av1-test.mkv" \
-    "$NVENC_TEST_OUTPUT"
+    > "$ROOT/evidence/nvenc/av1-encode.log" \
+    2>&1
 ```
 
-確認する。
+確認:
 
 ```fish
-printf 'NVEncC AV1 status: %s\n' \
-    "$NVENC_TEST_STATUS"
-
-ls -lh \
-    "$NVENC_TEST_OUTPUT"
+set AV1_NVENC_OUTPUT \
+    "$PREFIX/drive_c/AviUtl2/nvenc-av1-test.mkv"
 
 file \
-    "$NVENC_TEST_OUTPUT"
+    "$AV1_NVENC_OUTPUT"
+
+stat \
+    --format='%n %s bytes' \
+    "$AV1_NVENC_OUTPUT"
 
 sha256sum \
-    "$NVENC_TEST_OUTPUT"
-
-grep -nEi \
-    'av1|nvenc|nvencode|error|failed|unsupported|unhandled|page fault' \
-    "$NVENC_TEST_LOG" \
-    | tail -n 300
+    "$AV1_NVENC_OUTPUT" \
+    > "$ROOT/evidence/nvenc/av1-output-sha256.txt"
 ```
 
-合格条件:
+成功条件:
 
 ```text
---check-featuresでAV1 Encodeがsupported
-NVEncCがNVIDIA GPUを認識
-120 framesのencodeが完了
-nvenc-av1-test.mkvが空でない
-unsupported / failed / NVENC initialization errorがない
+exit status 0
+output fileが存在
+output file sizeが0より大きい
+logにAV1 encoder初期化成功がある
+unsupported codec errorなし
+NVENC initialization failureなし
 ```
+
+## 16A.3 AviUtl2 NVEnc出力GUIで確認する
 
 AviUtl2のNVEnc出力GUIでもcodecとしてAV1を選択し、短いprojectを出力する。
 CLI試験だけでAviUtl2 plugin全体の成功とは判定しない。
 
-### 14.5.4 分岐B — HEVC NVENC
+記録する項目:
 
-AV1 encodeがunsupportedで、HEVC encodeがsupportedの場合にこの分岐を使用する。
-
-まず、`--check-features`でHEVC 10-bit encode対応を確認する。
-
-HEVC Main10対応の場合:
-
-```fish
-set NVENC_OUTPUT_DEPTH \
-    10
+```text
+選択plugin名
+選択codec: AV1
+bit depth: 10-bit
+preset / quality mode
+出力先
+終了status
+出力file size
+plugin log
 ```
 
-10-bit非対応でHEVC 8-bitのみ対応する場合:
+---
+
+# 16B. HEVC NVENC branch
+
+`NVENC_BRANCH=hevc`の場合だけ実行する。
+
+Nanashi環境のRTX 2070 Superなど、AV1 NVENCを持たないがHEVC NVENCを持つGPUはこちらを使用する。
+型番だけで決めず、必ず前節の`--check-features`で確定する。
+
+## 16B.1 試験入力をprefixへ配置する
+
+入力decode capabilityとHEVC encode capabilityを分離するため、`--avsw`を使用する。
 
 ```fish
-set NVENC_OUTPUT_DEPTH \
-    8
-```
+set NVENC_INPUT_FILE \
+    "$AV1_TEST_FILE"
 
-共通変数:
-
-```fish
-set NVENC_CODEC \
-    hevc
-
-set NVENC_TEST_OUTPUT \
-    "$NVENC_TEST_DIR/nvenc-hevc-test.mkv"
-
-set NVENC_TEST_LOG \
-    "$ROOT/logs/nvencc-hevc-encode.log"
-```
-
-入力decode能力と出力encode能力を分離するため、試験入力はsoftware decodeで読む。
-
-```fish
-cp -a \
-    "$AV1_TEST_FILE" \
+install \
+    -m 0644 \
+    "$NVENC_INPUT_FILE" \
     "$PREFIX/drive_c/AviUtl2/nvenc-branch-input.mp4"
+```
 
-rm -f \
-    "$NVENC_TEST_OUTPUT" \
-    "$NVENC_TEST_LOG"
+## 16B.2 HEVC NVENCの短時間CLI試験
 
-cd \
-    (dirname "$NVENCC")
+10-bit supportedの場合:
 
+```fish
+set HEVC_DEPTH_OPTION \
+    '--output-depth 10'
+```
+
+10-bit unsupportedの場合:
+
+```fish
+set HEVC_DEPTH_OPTION \
+    '--output-depth 8'
+```
+
+Fishでは空白を含むoption文字列をそのまま1引数として渡してはいけない。
+実行前にlistへ分ける。
+
+```fish
+if test "$NVENC_BIT_DEPTH" = '10'
+    set HEVC_DEPTH_ARGS \
+        --output-depth \
+        10
+else
+    set HEVC_DEPTH_ARGS \
+        --output-depth \
+        8
+end
+```
+
+実行:
+
+```fish
 env \
     WINEPREFIX="$PREFIX" \
     LD_LIBRARY_PATH="$GE_LIBS" \
     WINEDLLOVERRIDES="$DLL_OVERRIDES" \
-    WINEDEBUG='-all,+loaddll,+nvencodeapi,+seh' \
+    WINEDEBUG=-all \
     "$GE_WINE" \
-    "$NVENCC" \
+    "$NVENCC_WINDOWS_PATH" \
     --avsw \
     --codec hevc \
-    --output-depth "$NVENC_OUTPUT_DEPTH" \
+    $HEVC_DEPTH_ARGS \
     --frames 120 \
     --input 'C:\AviUtl2\nvenc-branch-input.mp4' \
     --output 'C:\AviUtl2\nvenc-hevc-test.mkv' \
-    &> "$NVENC_TEST_LOG"
-
-set NVENC_TEST_STATUS \
-    $status
-
-cp -a \
-    "$PREFIX/drive_c/AviUtl2/nvenc-hevc-test.mkv" \
-    "$NVENC_TEST_OUTPUT"
+    > "$ROOT/evidence/nvenc/hevc-encode.log" \
+    2>&1
 ```
 
-確認する。
+確認:
 
 ```fish
-printf 'NVEncC HEVC status: %s\n' \
-    "$NVENC_TEST_STATUS"
-
-printf 'HEVC output depth: %s-bit\n' \
-    "$NVENC_OUTPUT_DEPTH"
-
-ls -lh \
-    "$NVENC_TEST_OUTPUT"
+set HEVC_NVENC_OUTPUT \
+    "$PREFIX/drive_c/AviUtl2/nvenc-hevc-test.mkv"
 
 file \
-    "$NVENC_TEST_OUTPUT"
+    "$HEVC_NVENC_OUTPUT"
+
+stat \
+    --format='%n %s bytes' \
+    "$HEVC_NVENC_OUTPUT"
 
 sha256sum \
-    "$NVENC_TEST_OUTPUT"
-
-grep -nEi \
-    'hevc|nvenc|nvencode|error|failed|unsupported|unhandled|page fault' \
-    "$NVENC_TEST_LOG" \
-    | tail -n 300
+    "$HEVC_NVENC_OUTPUT" \
+    > "$ROOT/evidence/nvenc/hevc-output-sha256.txt"
 ```
 
-合格条件:
+成功条件:
 
 ```text
---check-featuresでHEVC Encodeがsupported
-選択したoutput depthがfeature一覧と一致
-NVEncCがNVIDIA GPUを認識
-120 framesのencodeが完了
-nvenc-hevc-test.mkvが空でない
-unsupported / failed / NVENC initialization errorがない
+exit status 0
+output fileが存在
+output file sizeが0より大きい
+logにHEVC encoder初期化成功がある
+unsupported codec errorなし
+NVENC initialization failureなし
 ```
+
+10-bitが失敗した場合、feature logでMain10がunsupportedなら8-bitへ切り替える。
+feature logでMain10がsupportedなのに失敗した場合は、勝手に8-bitへfallbackせず原因を記録する。
+
+## 16B.3 AviUtl2 NVEnc出力GUIで確認する
 
 AviUtl2のNVEnc出力GUIでもcodecとしてHEVCを選択する。
-10-bit対応時はMain10相当を選び、非対応時に10-bitを強制しない。
+bit depthは前節のfeature結果と一致させる。
 CLI試験だけでAviUtl2 plugin全体の成功とは判定しない。
 
-### 14.5.5 分岐結果を保存する
+記録する項目:
 
-選択した分岐を証拠として保存する。
-
-```fish
-begin
-    printf 'NVENC_CODEC=%s\n' \
-        "$NVENC_CODEC"
-
-    printf 'NVENC_OUTPUT_DEPTH=%s\n' \
-        "$NVENC_OUTPUT_DEPTH"
-
-    printf 'NVENCC=%s\n' \
-        "$NVENCC"
-
-    printf 'NVENC_FEATURE_LOG=%s\n' \
-        "$NVENC_FEATURE_LOG"
-
-    printf 'NVENC_TEST_LOG=%s\n' \
-        "$NVENC_TEST_LOG"
-
-    printf 'NVENC_TEST_OUTPUT=%s\n' \
-        "$NVENC_TEST_OUTPUT"
-end \
-    | tee \
-        "$ROOT/evidence/installation/nvenc-selected-branch.txt"
+```text
+選択plugin名
+選択codec: HEVC
+bit depth: 10-bitまたは8-bit
+preset / quality mode
+出力先
+終了status
+出力file size
+plugin log
 ```
-
-AV1とHEVCの両方がunsupportedの場合は、この文書のNVENC経路ではインストール完了としない。
-H.264への暗黙fallbackは行わず、別の分岐として明示的に設計する。
 
 ---
 
-# 15. Catalog後にcustom r1284を最後にoverlayする
+# 17. custom r1284を最後にoverlayする
 
-Catalogを閉じた後、Wineを停止する。
+CatalogとNVEnc導入後に行う。
+
+## 17.1 helperを実行する
 
 ```fish
 stop_prefix_wine
-```
 
-repositoryにhelperが存在する場合はこれを使用する。
-
-```fish
 "$REPO/scripts/install-l-smash-works-nvdec.fish" \
-    --prefix \
-    "$PREFIX" \
-    --artifact-dir \
-    "$LSMASH_ARTIFACT_DIR"
+    --prefix "$PREFIX" \
+    --artifact-dir "$LSMASH_ARTIFACT_DIR"
 ```
 
-helperの必須動作:
+helperは次を行う。
 
 ```text
-Mr-Ojii.L-SMASH-Worksをpackage_updates_paused_idsへ追加
-custom lwinput.aui2を配置
-lsmash.iniを配置
-artifactとactive fileの一致を検証
-installed.jsonを変更しない
-hash-cache.jsonを変更しない
+r1284/CUVID marker確認
+INI確認
+Catalog metadata hash記録
+timestamp付きbackup
+package_updates_paused_idsへ追加
+plugin/INI配置
+installed.json非変更確認
+hash-cache.json非変更確認
 ```
 
-helperが現在のcheckoutに存在しない場合は、Catalog統合を完了扱いにしない。
-手動で`installed.json`を編集しない。
-
-active pluginを確認する。
+## 17.2 active pluginを確認する
 
 ```fish
 sha256sum \
     "$LSMASH_ARTIFACT_DIR/lwinput.aui2" \
-    "$ACTIVE_LWINPUT"
-
-cmp \
-    --silent \
-    "$LSMASH_ARTIFACT_DIR/lwinput.aui2" \
-    "$ACTIVE_LWINPUT"
-
-and echo "MATCH: active lwinput.aui2 is verified r1284"
+    "$PLUGIN_DIR/lwinput.aui2"
 ```
 
-Catalog settingsを検索する。
+byte一致が必要である。
 
-```fish
-set CATALOG_SETTINGS_LIST (
-    find \
-        "$PREFIX/drive_c/users" \
-        -type f \
-        -ipath '*/AppData/*/aviutl2-catalog/settings.json' \
-        -print \
-        2>/dev/null
-)
+## 17.3 Catalog pauseを確認する
 
-printf '%s\n' \
-    $CATALOG_SETTINGS_LIST
-```
-
-1件だけであることを確認する。
+Catalog settingsを探す。
 
 ```fish
 set CATALOG_SETTINGS \
-    "$CATALOG_SETTINGS_LIST[1]"
+    (find \
+        "$PREFIX/drive_c/users" \
+        -type f \
+        -path '*/AppData/Roaming/aviutl2-catalog/settings.json' \
+        -print \
+        -quit)
+
+require_path \
+    "$CATALOG_SETTINGS"
 ```
 
-JSONとpause状態を確認する。
-
 ```fish
-python3 \
-    -m json.tool \
+python3 - \
     "$CATALOG_SETTINGS" \
-    >/dev/null
-```
-
-```fish
-env \
-    CATALOG_SETTINGS="$CATALOG_SETTINGS" \
-    python3 -c '
+    <<'PY'
 import json
-import os
-from pathlib import Path
+import sys
 
-path = Path(os.environ["CATALOG_SETTINGS"])
-data = json.loads(path.read_text(encoding="utf-8-sig"))
-
+path = sys.argv[1]
+data = json.load(open(path, encoding="utf-8"))
 paused = data.get("package_updates_paused_ids", [])
 required = "Mr-Ojii.L-SMASH-Works"
 
-print("package_updates_paused_ids:")
-for package_id in paused:
-    print(f"  {package_id}")
+print("paused:", paused)
 
 if required not in paused:
-    raise SystemExit(
-        f"ERROR: {required} is not paused"
-    )
-
-print(f"OK: {required} is paused")
-'
+    raise SystemExit(f"missing paused package: {required}")
+PY
 ```
 
 ---
 
-# 16. Catalog再起動後の保持確認
+# 18. Catalog再起動後にr1284を保持できることを確認する
 
-再起動前のSHAを保存する。
+## 18.1 起動前hash
 
 ```fish
-set R1284_SHA_BEFORE_CATALOG (
-    sha256sum "$ACTIVE_LWINPUT" \
-        | string split ' '
-)[1]
+set BEFORE_CATALOG_HASH \
+    (sha256sum \
+        "$PLUGIN_DIR/lwinput.aui2" \
+        | string split ' ' \
+        | head -n 1)
 
-echo "Before Catalog: $R1284_SHA_BEFORE_CATALOG"
+printf '%s\n' \
+    "$BEFORE_CATALOG_HASH" \
+    > "$ROOT/evidence/install/lwinput-before-catalog.txt"
 ```
 
-Catalogを起動する。
+## 18.2 Catalogを通常起動する
 
 ```fish
 env \
+    XMODIFIERS='@im=fcitx' \
     WINEPREFIX="$PREFIX" \
     LD_LIBRARY_PATH="$GE_LIBS" \
     WINEDLLOVERRIDES="$DLL_OVERRIDES" \
-    DXVK_CONFIG_FILE="$DXVK_CONFIG_FILE" \
-    DXVK_LOG_LEVEL=warn \
-    WINEDEBUG=-all \
     "$GE_WINE" \
-    "$CATALOG_EXE" \
-    &> "$CATALOG_LOG_DIR/catalog-after-r1284-overlay.log"
+    "$CATALOG_EXE"
 ```
 
-次を実行せずに閉じる。
+L-SMASH Worksへの次の操作は禁止する。
 
 ```text
 Update
 Reinstall
 Remove / Uninstall
-initial setupからのL-SMASH Works再導入
+initial setupによる再導入
 ```
 
-終了後:
+Catalogを通常終了する。
 
 ```fish
 stop_prefix_wine
+```
 
-set R1284_SHA_AFTER_CATALOG (
-    sha256sum "$ACTIVE_LWINPUT" \
-        | string split ' '
-)[1]
+## 18.3 起動後hash
 
-echo "Before Catalog: $R1284_SHA_BEFORE_CATALOG"
-echo "After Catalog:  $R1284_SHA_AFTER_CATALOG"
+```fish
+set AFTER_CATALOG_HASH \
+    (sha256sum \
+        "$PLUGIN_DIR/lwinput.aui2" \
+        | string split ' ' \
+        | head -n 1)
 
-if test "$R1284_SHA_BEFORE_CATALOG" = "$R1284_SHA_AFTER_CATALOG"
-    echo "SUCCESS: Catalog did not replace custom r1284"
+printf '%s\n' \
+    "$AFTER_CATALOG_HASH" \
+    > "$ROOT/evidence/install/lwinput-after-catalog.txt"
+```
+
+比較する。
+
+```fish
+if test "$BEFORE_CATALOG_HASH" = "$AFTER_CATALOG_HASH"
+    echo "MATCH: Catalog did not replace custom r1284"
 else
-    echo "ERROR: Catalog replaced custom r1284" >&2
+    echo "ERROR: Catalog replaced or modified custom r1284" >&2
+    false
 end
 ```
 
-期待値:
+expected Catalog presentation:
 
 ```text
-Before Catalog:
-  db465570a4c049624f369086232cf47c387975d54fa615d895d090fe1a17bbe0
-
-After Catalog:
-  db465570a4c049624f369086232cf47c387975d54fa615d895d090fe1a17bbe0
+installed: true
+installed version: 不明
+latest: false
 ```
+
+これはcustom hashがofficial Catalog indexにないためであり、失敗ではない。
 
 ---
 
-# 17. Lutrisへ登録する
+# 19. Lutrisへ登録する
 
-LutrisではWine Runnerに自動選択させず、**Linux Runnerから固定launcherを起動する**。
+LutrisではWine Runnerを使用しない。
+Linux Runnerから固定launcherを起動する。
 
-設定例:
+## 19.1 登録値
 
 ```text
 Runner:
@@ -2350,133 +2571,148 @@ Working directory:
   /home/USER/Games/aviutl2/prefix/drive_c/AviUtl2
 ```
 
-launcherが参照する値:
+`USER`は実際のユーザー名へ置換する。
+`$HOME`を入力できるfieldでは、次を使用する。
 
 ```text
-AVIUTL2_ROOT
-AVIUTL2_PREFIX
-GE_PROTON_ROOT
+$HOME/Games/aviutl2/launch-aviutl2.fish
 ```
 
-Lutris、UMU、Wine Runnerの自動更新や自動DXVK導入によって、固定済みrunner、prefix、DLLを置き換えない。
+Lutris側で別Wine、別DXVK、UMU、system Wineを選択しない。
+launcherがrunnerとprefixを固定する。
 
 ---
 
-# 18. インストール完了条件
+# 20. 最終合格条件
 
-同一prefix、同一runnerで次をすべて満たす。
-
-## 18.1 起動
+## 20.1 起動
 
 ```text
 AviUtl2メインウィンドウが表示される
+format 69 errorなし
 日本語UIが読める
-format 69 error dialogが出ない
-通常終了できる
 ```
 
-## 18.2 DWrite/Mozc
+## 20.2 text/DWrite/Mozc
 
 ```text
-テキストオブジェクトを追加できる
-文字選択できる
-キャレット移動できる
-再編集できる
-にほんごにゅうりょく → 日本語入力へ変換できる
-Enter確定できる
-HitTestPointがstubではない
-HitTestTextRangeがstubではない
-E_NOTIMPLがない
+テキストオブジェクト作成
+selection
+caret移動
+削除
+追記
+Mozc入力
+日本語入力へ変換
+Enter確定
+確定後再編集
+HitTestPoint logあり
+HitTestTextRange logあり
+stubなし
+E_NOTIMPLなし
+crashなし
 ```
 
-## 18.3 AV1/NVDEC
+## 20.3 AV1/NVDEC入力
 
 ```text
-AV1 Main 10-bitを読み込める
-再生できる
-冒頭・中央・終盤へシークできる
-複数のactive av1_cuvid contextがある
-nvcuvid load failureがない
-CUDA initialization failureがない
-hardware-frame-transfer failureがない
+AV1 Main 10-bit読み込み
+再生
+冒頭/中央/終盤seek
+multiple av1_cuvid context
+nvcuvid load failureなし
+CUDA failureなし
+hardware-frame-transfer failureなし
 ```
 
-## 18.4 NVENC出力
+## 20.4 NVENC出力
 
 ```text
-NVEncC64.exeを特定できる
---check-featuresの結果を保存している
-AV1またはHEVCの対応分岐を明示的に選択している
-選択したcodecで短いCLI encodeが成功する
+NVEncC64.exe --check-features logを保存
+AV1またはHEVC branchを実測で選択
+選択codecでCLI短時間encodeが成功
+output fileが非0 bytes
+unsupported codec errorなし
+NVENC initialization failureなし
 AviUtl2のNVEnc出力GUIでも同じcodecで出力できる
-AV1非対応環境でAV1を強制していない
-HEVC 10-bit非対応環境でMain10を強制していない
-NVENC codecとNVDEC input codecを混同していない
 ```
 
-## 18.5 Catalog
+AV1 branch:
 
 ```text
-Catalog 0.3.3が起動する
-AviUtl2 rootがC:\AviUtl2
-Portable modeが無効
-Mr-Ojii.L-SMASH-Worksがpaused
-custom r1284がactive
-Catalog再起動前後でSHA-256が同じ
+AV1 Encode supported
+10-bit output
 ```
 
----
+HEVC branch:
 
-# 19. インストール完了後のcheckpoint
+```text
+HEVC Encode supported
+Main10 supportedなら10-bit
+Main10 unsupportedなら8-bit
+```
 
-すべての検証に合格した後にのみ作成する。
+## 20.5 Catalog
+
+```text
+Catalog 0.3.3が起動
+AviUtl2 rootがC:\AviUtl2
+portable mode無効
+NVEnc output plugin導入済み
+Mr-Ojii.L-SMASH-Worksがpause済み
+Catalog再起動前後のr1284 SHA一致
+```
+
+## 20.6 最終checkpoint
+
+全項目合格後:
 
 ```fish
 stop_prefix_wine
 
-set FINAL_STAMP \
+set STAMP \
     (date +%Y%m%d-%H%M%S)
 
 set FINAL_CHECKPOINT \
-    "$PREFIX.installed-ok-$FINAL_STAMP"
+    "$ROOT/checkpoints/prefix.complete-install-$STAMP"
 
 cp -a \
     --reflink=auto \
     "$PREFIX" \
     "$FINAL_CHECKPOINT"
-
-echo "Final installation checkpoint:"
-echo "$FINAL_CHECKPOINT"
 ```
 
-runnerのSHAも保存する。
+記録する。
 
 ```fish
-sha256sum \
-    "$GE_PROTON_ROOT/files/lib/wine/x86_64-windows/dwrite.dll" \
-    "$PREFIX/drive_c/windows/system32/d3d11.dll" \
-    "$PREFIX/drive_c/windows/system32/dxgi.dll" \
-    "$PREFIX/drive_c/windows/system32/d3d10core.dll" \
-    "$PREFIX/drive_c/windows/system32/d3dcompiler_47.dll" \
-    "$PREFIX/drive_c/windows/system32/nvcuda.dll" \
-    "$PREFIX/drive_c/windows/system32/nvcuvid.dll" \
-    "$PREFIX/drive_c/windows/system32/nvencodeapi64.dll" \
-    "$ACTIVE_LWINPUT" \
-    "$ACTIVE_INI" \
-    "$NVENC_TEST_OUTPUT" \
-    | tee \
-        "$ROOT/evidence/installation/final-SHA256SUMS"
+printf '%s\n' \
+    "prefix=$PREFIX" \
+    "runner=$GE_PROTON_ROOT" \
+    "checkpoint=$FINAL_CHECKPOINT" \
+    "created_at=(date --iso-8601=seconds)" \
+    > "$ROOT/evidence/install/final-install.txt"
+```
+
+Fishでは上の`created_at=(...)`はcommand substitutionにならない。
+実際には次を使用する。
+
+```fish
+printf '%s\n' \
+    "prefix=$PREFIX" \
+    "runner=$GE_PROTON_ROOT" \
+    "checkpoint=$FINAL_CHECKPOINT" \
+    "created_at="(date --iso-8601=seconds) \
+    > "$ROOT/evidence/install/final-install.txt"
 ```
 
 ---
 
-# 20. 絶対に行わない操作
+# 21. 禁止事項
 
 ```text
-system Wineとpatched GE-Protonを混ぜる
-別prefixへ途中で切り替える
-異なるDXVK buildのDLLを混ぜる
-LutrisにDXVKを自動上書きさせる
+既存backupを新規installの入力にする
+system Wineとpatched runnerを混ぜる
+LutrisにWine versionを自動選択させる
+DXVK DLLを異なるbuildから混ぜる
 AV1が再生できただけでNVDEC成功と判定する
 NVDECのAV1対応とNVENCのAV1対応を同一視する
 --check-featuresを確認せずGPU名だけでNVENC codecを決める
@@ -2496,18 +2732,19 @@ CatalogでL-SMASH WorksをRemoveする
 
 このINSTALLATION.mdを完全なclean-room手順にするには、次を別環境で実測する必要がある。
 
-1. GE-Proton 11-1の取得commandとSHA-256
+1. GE-Proton 11-1 archiveの取得・SHA-512検証を別環境で実測する
 2. stock runnerからpatched runnerをゼロから作る全command
 3. Wine source/build treeの初回configure command
 4. 空prefixをCLIだけで正常bootstrapするcommand
-5. AviUtl2 2.1.2の公式取得から`C:\AviUtl2`配置までのcommand
-6. Nanashi環境でのHEVC NVENC分岐とAviUtl2 NVEnc GUI出力の実測
-7. Alex環境でのAV1 NVENC分岐とAviUtl2 NVEnc GUI出力の実測
-6. `Tahoma-Noto-*.otf`の合法かつ再現可能な生成方法
-7. NVIDIA Wine wrapperの取得元、version、展開command
-8. NVIDIA driverとVulkan ICDのpreflight
-9. Nanashi環境でのLutris Linux Runner登録commandまたはexport可能な設定
-10. clean prefixで最初から最後まで通した最終ログ
+5. AviUtl2 2.1.2公式ZIPの取得・展開・`C:\AviUtl2`配置を別環境で実測する
+6. L-SMASH Worksの固定依存関係から`lwinput.aui2`までを生成するstandalone build script
+7. Nanashi環境でのHEVC NVENC分岐とAviUtl2 NVEnc GUI出力の実測
+8. Alex環境でのAV1 NVENC分岐とAviUtl2 NVEnc GUI出力の実測
+9. `Tahoma-Noto-*.otf`の合法かつ再現可能な生成方法
+10. NVIDIA Wine wrapperの取得元、version、展開command
+11. NVIDIA driverとVulkan ICDのpreflight
+12. Nanashi環境でのLutris Linux Runner登録commandまたはexport可能な設定
+13. clean prefixで最初から最後まで通した最終ログ
 
 これらが確認されるまでは、この文書を「prepared artifactsからの新規prefix install手順」として扱う。
 復旧手順としては扱わない。
@@ -2521,14 +2758,11 @@ docs/INSTALLATION.md
   新規prefixへの導入
 
 docs/REPRODUCTION.md
-  source build、元環境の再現、実機検証
-
-docs/L-SMASH-WORKS-NVDEC.md
-  custom r1284/NVDECの詳細
-
-docs/TROUBLESHOOTING.md
-  既知障害と切り分け
+  source build、再現性、固定commit、実行証拠
 
 docs/AVIUTL2-COMMAND-LEDGER-BUNDLE/
-  実行済みcommandの監査資料
+  実行済みcommandと成功・失敗分類
+
+docs/TROUBLESHOOTING.md
+  既知errorと切り分け
 ```
