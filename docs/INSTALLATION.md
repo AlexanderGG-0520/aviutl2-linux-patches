@@ -42,6 +42,256 @@
 この文書では、それらを推測で補わない。
 必要artifactを揃えた後の**新規prefixへの導入**を主対象とする。
 
+
+NVEncのAV1/HEVC出力分岐は、NVIDIA Video Codec SDKとNVEncCの`--check-features`に基づいて選択する。
+Alex環境のRTX 4060 TiではAV1 NVENCを選択できるが、HEVC分岐を含むAviUtl2からの最終出力検証はNanashi環境で追加確認する。
+NVDECの入力デコード分岐とNVENCの出力エンコード分岐を混同しない。
+
+## 0.1 CachyOS / Arch Linuxの依存関係
+
+この文書のコマンドはFishを前提にする。
+まず、実行・取得・検証に使用するpackageを導入する。
+
+```fish
+sudo pacman -S --needed \
+    fish \
+    git \
+    curl \
+    tar \
+    libarchive \
+    python \
+    github-cli \
+    file \
+    binutils \
+    coreutils \
+    findutils \
+    grep \
+    sed \
+    fcitx5 \
+    fcitx5-mozc \
+    nvidia-utils \
+    lib32-nvidia-utils \
+    vulkan-icd-loader \
+    lib32-vulkan-icd-loader \
+    vulkan-tools
+```
+
+Lutrisから固定launcherを登録する場合は、追加で導入する。
+
+```fish
+sudo pacman -S --needed \
+    lutris
+```
+
+DXVK、Wine DWrite、L-SMASH Worksをsourceからbuildする場合のみ、次も導入する。
+prepared artifactを配置するだけなら、このbuild dependency節は省略できる。
+
+```fish
+sudo pacman -S --needed \
+    base-devel \
+    autoconf \
+    automake \
+    libtool \
+    cmake \
+    meson \
+    ninja \
+    nasm \
+    pkgconf \
+    mingw-w64-binutils \
+    mingw-w64-crt \
+    mingw-w64-gcc \
+    mingw-w64-headers \
+    mingw-w64-winpthreads
+```
+
+導入後、主要commandが解決できることを確認する。
+
+```fish
+for command_name in \
+    fish \
+    git \
+    curl \
+    tar \
+    bsdtar \
+    python3 \
+    gh \
+    file \
+    strings \
+    sha256sum \
+    vulkaninfo \
+    nvidia-smi
+
+    command -q "$command_name"
+
+    or echo "MISSING COMMAND: $command_name" >&2
+end
+```
+
+source buildも行う場合は、追加で確認する。
+
+```fish
+for command_name in \
+    make \
+    cmake \
+    meson \
+    ninja \
+    nasm \
+    pkg-config \
+    x86_64-w64-mingw32-gcc \
+    x86_64-w64-mingw32-g++ \
+    x86_64-w64-mingw32-ar \
+    x86_64-w64-mingw32-ranlib \
+    x86_64-w64-mingw32-strip \
+    x86_64-w64-mingw32-windres \
+    x86_64-w64-mingw32-objdump
+
+    command -q "$command_name"
+
+    or echo "MISSING BUILD COMMAND: $command_name" >&2
+end
+```
+
+## 0.2 repositoryを取得する
+
+```fish
+set PROJECTS_DIR \
+    "$HOME/projects"
+
+set REPO \
+    "$PROJECTS_DIR/aviutl2-linux-patches"
+
+mkdir -p \
+    "$PROJECTS_DIR"
+
+if not test -d "$REPO/.git"
+    git clone \
+        https://github.com/AlexanderGG-0520/aviutl2-linux-patches.git \
+        "$REPO"
+end
+
+cd \
+    "$REPO"
+
+git status \
+    --short \
+    --branch
+```
+
+既にclone済みの場合は、作業中の変更を破棄せずに状態を確認してから更新する。
+
+## 0.3 GE-Proton 11-1を固定取得する
+
+`latest`を取得してはいけない。
+成功環境で使用した`GE-Proton11-1`のx86-64 archiveと、同じreleaseのchecksumを取得する。
+
+```fish
+set GE_DOWNLOAD_DIR \
+    "/tmp/ge-proton11-1"
+
+set GE_BASE \
+    "$HOME/.local/share/Steam/compatibilitytools.d"
+
+set GE_ARCHIVE \
+    "$GE_DOWNLOAD_DIR/GE-Proton11-1.tar.gz"
+
+set GE_CHECKSUM \
+    "$GE_DOWNLOAD_DIR/GE-Proton11-1.sha512sum"
+
+mkdir -p \
+    "$GE_DOWNLOAD_DIR" \
+    "$GE_BASE"
+```
+
+```fish
+curl \
+    --fail \
+    --location \
+    --retry 3 \
+    --output "$GE_ARCHIVE" \
+    "https://github.com/GloriousEggroll/proton-ge-custom/releases/download/GE-Proton11-1/GE-Proton11-1.tar.gz"
+
+and curl \
+    --fail \
+    --location \
+    --retry 3 \
+    --output "$GE_CHECKSUM" \
+    "https://github.com/GloriousEggroll/proton-ge-custom/releases/download/GE-Proton11-1/GE-Proton11-1.sha512sum"
+```
+
+checksum fileはarchiveのbasenameを参照するため、download directory内で検証する。
+
+```fish
+pushd \
+    "$GE_DOWNLOAD_DIR"
+
+sha512sum \
+    -c \
+    GE-Proton11-1.sha512sum
+
+set GE_VERIFY_STATUS \
+    $status
+
+popd
+
+test $GE_VERIFY_STATUS -eq 0
+```
+
+`GE-Proton11-1.tar.gz: OK`を確認してから展開する。
+
+```fish
+if not test -d "$GE_BASE/GE-Proton11-1"
+    tar \
+        -xzf "$GE_ARCHIVE" \
+        -C "$GE_BASE"
+end
+```
+
+展開結果を確認する。
+
+```fish
+set GE_STOCK_ROOT \
+    "$GE_BASE/GE-Proton11-1"
+
+set GE_STOCK_LIBS \
+    "$GE_STOCK_ROOT/files/lib64:$GE_STOCK_ROOT/files/lib:$GE_STOCK_ROOT/files/lib/wine/x86_64-unix:$GE_STOCK_ROOT/files/lib/wine/i386-unix"
+
+file \
+    "$GE_STOCK_ROOT/files/lib/wine/x86_64-unix/wine"
+
+env \
+    LD_LIBRARY_PATH="$GE_STOCK_LIBS" \
+    "$GE_STOCK_ROOT/files/lib/wine/x86_64-unix/wine" \
+    --version
+```
+
+この時点ではまだstock runnerである。
+`REPRODUCTION.md`のWine DWrite節に従ってpatched `dwrite.dll`を導入し、別名のrunnerへ固定してから本手順を続行する。
+
+> GE-Proton upstreamは、Steam外のnon-Steam applicationをProtonとして起動する場合はUMU経由をsupport対象としている。このprojectで直接`files/lib/wine/x86_64-unix/wine`を呼ぶ構成は、実機で成功したproject固有の固定構成であり、GE-Proton upstreamのsupport範囲とは区別する。
+
+## 0.4 curlで取得してよいもの・取得元未確定のもの
+
+現時点で固定URLと検証方法を記載できるのは、少なくとも次である。
+
+```text
+GE-Proton 11-1 archive
+GE-Proton 11-1 SHA-512 checksum
+GitHub API / release assets used by AviUtl2 Catalog
+```
+
+次については、取得元・再配布条件・生成方法をまだ完全に確定できていないため、架空のcurl commandを追加しない。
+
+```text
+AviUtl2 2.1.2本体
+Tahoma-Noto-Regular.otf
+Tahoma-Noto-Bold.otf
+nvidia-libs-v1.0.2 wrapper bundle
+prepared patched DXVK binary bundle
+prepared patched GE-Proton runner bundle
+```
+
+これらの取得方法が確定した時点で、URL、version、checksum、licenseまたは配布条件をセットで追記する。
+
 ---
 
 # 1. インストール方式
@@ -61,6 +311,10 @@ new Wine prefix
         ↓
 AviUtl2 Catalog 0.3.3
         ↓
+NVEnc output plugin
+├── AV1 NVENC branch
+└── HEVC NVENC branch
+        ↓
 custom r1284 final overlay
 ```
 
@@ -78,8 +332,10 @@ custom r1284 final overlay
 9. Fcitx5/Mozc用設定を登録
 10. AviUtl2単体を検証
 11. Catalog 0.3.3を導入
-12. custom r1284を最後に再配置
-13. 最終検証
+12. NVEncを導入し、`--check-features`でAV1またはHEVCを選択
+13. 選択したNVENC codecで短い出力試験を行う
+14. custom r1284を最後に再配置
+15. 最終検証
 
 ---
 
@@ -185,7 +441,43 @@ nvencodeapi64.dll
   6f28193dd276c257d3e80ee03627f2cb0bb94dec6582cf9c04c32744d088b75a
 ```
 
-## 2.6 L-SMASH Works r1284
+## 2.6 NVEnc output plugin
+
+CatalogからAviUtl2 2対応のNVEnc output pluginを導入する。
+導入後、prefix内に次が存在する必要がある。
+
+```text
+C:\ProgramData\aviutl2\Plugin\exe_files\NVEncC\...\NVEncC64.exe
+```
+
+codecの選択はGPU名だけで決めず、実際のdriverが返す`NVEncC64.exe --check-features`を正本にする。
+
+```text
+AV1 Encodeがsupported:
+  AV1 NVENC branch
+
+AV1 Encodeがunsupported、HEVC Encodeがsupported:
+  HEVC NVENC branch
+
+AV1とHEVCの両方がunsupported:
+  NVENC出力工程を停止
+```
+
+NVIDIAのNVENC仕様では、AV1 encodeはAda世代以降、HEVC Main profileは第2世代Maxwell以降が基本となる。
+HEVC Main10はPascal世代以降が基本となるが、最終判断は`--check-features`の実測結果を使用する。
+
+仕様根拠:
+
+```text
+NVIDIA Video Codec SDK 13.1 — NVENC Application Note
+NVIDIA Video Codec SDK 13.1 — NVENC Video Encoder API Programming Guide
+rigaya/NVEnc — Readme / --check-features
+```
+
+AV1/HEVCの分岐は**出力エンコード**の分岐である。
+`av1_cuvid`を使うL-SMASH Worksの節は**入力デコード**の検証であり、別の機能として扱う。
+
+## 2.7 L-SMASH Works r1284
 
 必要ファイル:
 
@@ -229,10 +521,10 @@ $HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03/output/SHA256SUMS
 
 ---
 
-# 3. Fish変数
+# 3. Fish変数と標準ディレクトリ配置
 
-以下は利用者自身のpathへ書き換える。
-`/home/alex`やbackup directoryをそのままコピーしない。
+この文書では、入力artifactをすべて`$HOME/Games/aviutl2/artifacts`へ配置する。
+`/home/alex`や日時付きbackup directoryへ読み替えず、まず次の標準値をそのまま使用する。
 
 ```fish
 set ROOT \
@@ -243,6 +535,36 @@ set REPO \
 
 set PREFIX \
     "$ROOT/prefix"
+
+set ARTIFACT_ROOT \
+    "$ROOT/artifacts"
+
+set AVIUTL2_SOURCE_DIR \
+    "$ARTIFACT_ROOT/AviUtl2-2.1.2"
+
+set DXVK_ARTIFACT_DIR \
+    "$ARTIFACT_ROOT/dxvk-2.7.1-aviutl2/x64"
+
+set FONT_SOURCE_DIR \
+    "$ARTIFACT_ROOT/fonts"
+
+set NVIDIA_WRAPPER_DIR \
+    "$ARTIFACT_ROOT/nvidia-libs-v1.0.2/x64"
+
+set LSMASH_ARTIFACT_DIR \
+    "$ROOT/build/l-smash-works-nvdec-repro-03/output"
+
+set TEST_MEDIA_DIR \
+    "$ROOT/test-media"
+
+set AV1_TEST_FILE \
+    "$TEST_MEDIA_DIR/av1-main10-test.mp4"
+
+set NVENC_TEST_DIR \
+    "$ROOT/test-output/nvenc"
+
+set NVENC_FEATURE_LOG \
+    "$ROOT/logs/nvencc-check-features.log"
 
 set GE_PROTON_ROOT \
     "$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1-aviutl2-test"
@@ -256,29 +578,65 @@ set GE_WINESERVER \
 set GE_LIBS \
     "$GE_PROTON_ROOT/files/lib64:$GE_PROTON_ROOT/files/lib:$GE_PROTON_ROOT/files/lib/wine/x86_64-unix:$GE_PROTON_ROOT/files/lib/wine/i386-unix"
 
-set AVIUTL2_SOURCE_DIR \
-    "/path/to/AviUtl2"
-
-set DXVK_ARTIFACT_DIR \
-    "/path/to/patched-dxvk-x64"
-
-set FONT_SOURCE_DIR \
-    "/path/to/aviutl2-fonts"
-
-set NVIDIA_WRAPPER_DIR \
-    "/path/to/nvidia-libs-v1.0.2/x64"
-
-set LSMASH_ARTIFACT_DIR \
-    "$ROOT/build/l-smash-works-nvdec-repro-03/output"
-
-set AV1_TEST_FILE \
-    "/path/to/av1-main10-test.mp4"
-
 set DXVK_CONFIG_FILE \
     "$ROOT/nvidia-dxvk.conf"
 
 set DLL_OVERRIDES \
     'nvcuda,nvcuvid,nvencodeapi64=n;d3d11,dxgi,d3d10core=n,b;d3dcompiler_47=n,b;dwrite=b'
+```
+
+標準ディレクトリを作成する。
+
+```fish
+mkdir -p \
+    "$AVIUTL2_SOURCE_DIR" \
+    "$DXVK_ARTIFACT_DIR" \
+    "$FONT_SOURCE_DIR" \
+    "$NVIDIA_WRAPPER_DIR" \
+    "$TEST_MEDIA_DIR" \
+    "$NVENC_TEST_DIR" \
+    "$ROOT/logs" \
+    "$ROOT/build"
+```
+
+配置後の構造は次のようにする。
+
+```text
+$HOME/Games/aviutl2/
+├── artifacts/
+│   ├── AviUtl2-2.1.2/
+│   │   └── aviutl2.exe
+│   ├── dxvk-2.7.1-aviutl2/
+│   │   └── x64/
+│   │       ├── d3d11.dll
+│   │       ├── dxgi.dll
+│   │       ├── d3d10core.dll
+│   │       └── d3dcompiler_47.dll
+│   ├── fonts/
+│   │   ├── NotoSansCJK-Regular.ttc
+│   │   ├── NotoSansCJK-Bold.ttc
+│   │   ├── Tahoma-Noto-Regular.otf
+│   │   └── Tahoma-Noto-Bold.otf
+│   └── nvidia-libs-v1.0.2/
+│       └── x64/
+│           ├── nvcuda.dll
+│           ├── nvcuvid.dll
+│           └── nvencodeapi64.dll
+├── build/
+│   └── l-smash-works-nvdec-repro-03/
+│       └── output/
+│           ├── lwinput.aui2
+│           └── lsmash.ini
+├── test-media/
+│   └── av1-main10-test.mp4
+└── test-output/
+    └── nvenc/
+```
+
+AviUtl2本体を展開した結果、`aviutl2.exe`がさらに内側のdirectoryへ入った場合は、directory全体を移動し、必ず次の位置へ揃える。
+
+```text
+$HOME/Games/aviutl2/artifacts/AviUtl2-2.1.2/aviutl2.exe
 ```
 
 repositoryの設定例を配置する。
@@ -1478,6 +1836,324 @@ Portable mode: 無効
 この段階でCatalogが公式L-SMASH Worksを配置しても正常である。
 まだ最終状態ではない。
 
+## 14.5 NVEnc output pluginを導入し、AV1/HEVCを分岐する
+
+この節は**NVENCによる出力エンコード**を検証する。
+前節の`AV1/NVDEC`は入力デコードの検証であり、ここでは別物として扱う。
+
+CatalogのGUIからAviUtl2 2対応のNVEnc output pluginを導入し、Catalogを通常終了する。
+その後、Wineを停止する。
+
+```fish
+stop_prefix_wine
+```
+
+### 14.5.1 `NVEncC64.exe`を特定する
+
+```fish
+set NVENCC_LIST (
+    find \
+        "$PREFIX/drive_c/ProgramData/aviutl2/Plugin/exe_files/NVEncC" \
+        -type f \
+        -iname 'NVEncC64.exe' \
+        -print \
+        2>/dev/null
+)
+
+printf '%s\n' \
+    $NVENCC_LIST
+```
+
+1件だけであることを確認し、設定する。
+
+```fish
+set NVENCC \
+    "$NVENCC_LIST[1]"
+
+file \
+    "$NVENCC"
+
+sha256sum \
+    "$NVENCC"
+```
+
+0件または複数件の場合は、codec分岐へ進まずCatalog側のNVEnc導入状態を確認する。
+
+### 14.5.2 driverが返すencode機能を保存する
+
+まず、GPU名とdriver versionを保存する。
+
+```fish
+nvidia-smi \
+    --query-gpu=name,driver_version \
+    --format=csv,noheader \
+    | tee \
+        "$ROOT/evidence/installation/nvenc-gpu-driver.txt"
+```
+
+```fish
+rm -f \
+    "$NVENC_FEATURE_LOG"
+
+cd \
+    (dirname "$NVENCC")
+
+env \
+    WINEPREFIX="$PREFIX" \
+    LD_LIBRARY_PATH="$GE_LIBS" \
+    WINEDLLOVERRIDES="$DLL_OVERRIDES" \
+    WINEDEBUG='-all,+loaddll,+nvencodeapi' \
+    "$GE_WINE" \
+    "$NVENCC" \
+    --check-features \
+    &> "$NVENC_FEATURE_LOG"
+
+set NVENC_FEATURE_STATUS \
+    $status
+
+printf 'NVEncC --check-features status: %s\n' \
+    "$NVENC_FEATURE_STATUS"
+
+cat \
+    "$NVENC_FEATURE_LOG"
+```
+
+終了コードだけでcodec対応を判定しない。
+`AV1`と`HEVC`のencode capabilityを出力から確認する。
+feature一覧はGPUだけでなくdriver versionにも依存するため、GPU型番だけで分岐しない。
+
+### 14.5.3 分岐A — AV1 NVENC
+
+`--check-features`がAV1 encodeをsupportedとして報告した場合のみ、この分岐を使用する。
+
+```fish
+set NVENC_CODEC \
+    av1
+
+set NVENC_OUTPUT_DEPTH \
+    10
+
+set NVENC_TEST_OUTPUT \
+    "$NVENC_TEST_DIR/nvenc-av1-test.mkv"
+
+set NVENC_TEST_LOG \
+    "$ROOT/logs/nvencc-av1-encode.log"
+```
+
+AV1 NVENCはAda世代以降で利用でき、8-bitと10-bit encodeに対応する。
+ただし、この文書では実際の`--check-features`結果がsupportedであることを必須条件とする。
+
+入力decode能力と出力encode能力を分離するため、試験入力はsoftware decodeで読む。
+
+```fish
+cp -a \
+    "$AV1_TEST_FILE" \
+    "$PREFIX/drive_c/AviUtl2/nvenc-branch-input.mp4"
+
+rm -f \
+    "$NVENC_TEST_OUTPUT" \
+    "$NVENC_TEST_LOG"
+
+cd \
+    (dirname "$NVENCC")
+
+env \
+    WINEPREFIX="$PREFIX" \
+    LD_LIBRARY_PATH="$GE_LIBS" \
+    WINEDLLOVERRIDES="$DLL_OVERRIDES" \
+    WINEDEBUG='-all,+loaddll,+nvencodeapi,+seh' \
+    "$GE_WINE" \
+    "$NVENCC" \
+    --avsw \
+    --codec av1 \
+    --output-depth 10 \
+    --frames 120 \
+    --input 'C:\AviUtl2\nvenc-branch-input.mp4' \
+    --output 'C:\AviUtl2\nvenc-av1-test.mkv' \
+    &> "$NVENC_TEST_LOG"
+
+set NVENC_TEST_STATUS \
+    $status
+
+cp -a \
+    "$PREFIX/drive_c/AviUtl2/nvenc-av1-test.mkv" \
+    "$NVENC_TEST_OUTPUT"
+```
+
+確認する。
+
+```fish
+printf 'NVEncC AV1 status: %s\n' \
+    "$NVENC_TEST_STATUS"
+
+ls -lh \
+    "$NVENC_TEST_OUTPUT"
+
+file \
+    "$NVENC_TEST_OUTPUT"
+
+sha256sum \
+    "$NVENC_TEST_OUTPUT"
+
+grep -nEi \
+    'av1|nvenc|nvencode|error|failed|unsupported|unhandled|page fault' \
+    "$NVENC_TEST_LOG" \
+    | tail -n 300
+```
+
+合格条件:
+
+```text
+--check-featuresでAV1 Encodeがsupported
+NVEncCがNVIDIA GPUを認識
+120 framesのencodeが完了
+nvenc-av1-test.mkvが空でない
+unsupported / failed / NVENC initialization errorがない
+```
+
+AviUtl2のNVEnc出力GUIでもcodecとしてAV1を選択し、短いprojectを出力する。
+CLI試験だけでAviUtl2 plugin全体の成功とは判定しない。
+
+### 14.5.4 分岐B — HEVC NVENC
+
+AV1 encodeがunsupportedで、HEVC encodeがsupportedの場合にこの分岐を使用する。
+
+まず、`--check-features`でHEVC 10-bit encode対応を確認する。
+
+HEVC Main10対応の場合:
+
+```fish
+set NVENC_OUTPUT_DEPTH \
+    10
+```
+
+10-bit非対応でHEVC 8-bitのみ対応する場合:
+
+```fish
+set NVENC_OUTPUT_DEPTH \
+    8
+```
+
+共通変数:
+
+```fish
+set NVENC_CODEC \
+    hevc
+
+set NVENC_TEST_OUTPUT \
+    "$NVENC_TEST_DIR/nvenc-hevc-test.mkv"
+
+set NVENC_TEST_LOG \
+    "$ROOT/logs/nvencc-hevc-encode.log"
+```
+
+入力decode能力と出力encode能力を分離するため、試験入力はsoftware decodeで読む。
+
+```fish
+cp -a \
+    "$AV1_TEST_FILE" \
+    "$PREFIX/drive_c/AviUtl2/nvenc-branch-input.mp4"
+
+rm -f \
+    "$NVENC_TEST_OUTPUT" \
+    "$NVENC_TEST_LOG"
+
+cd \
+    (dirname "$NVENCC")
+
+env \
+    WINEPREFIX="$PREFIX" \
+    LD_LIBRARY_PATH="$GE_LIBS" \
+    WINEDLLOVERRIDES="$DLL_OVERRIDES" \
+    WINEDEBUG='-all,+loaddll,+nvencodeapi,+seh' \
+    "$GE_WINE" \
+    "$NVENCC" \
+    --avsw \
+    --codec hevc \
+    --output-depth "$NVENC_OUTPUT_DEPTH" \
+    --frames 120 \
+    --input 'C:\AviUtl2\nvenc-branch-input.mp4' \
+    --output 'C:\AviUtl2\nvenc-hevc-test.mkv' \
+    &> "$NVENC_TEST_LOG"
+
+set NVENC_TEST_STATUS \
+    $status
+
+cp -a \
+    "$PREFIX/drive_c/AviUtl2/nvenc-hevc-test.mkv" \
+    "$NVENC_TEST_OUTPUT"
+```
+
+確認する。
+
+```fish
+printf 'NVEncC HEVC status: %s\n' \
+    "$NVENC_TEST_STATUS"
+
+printf 'HEVC output depth: %s-bit\n' \
+    "$NVENC_OUTPUT_DEPTH"
+
+ls -lh \
+    "$NVENC_TEST_OUTPUT"
+
+file \
+    "$NVENC_TEST_OUTPUT"
+
+sha256sum \
+    "$NVENC_TEST_OUTPUT"
+
+grep -nEi \
+    'hevc|nvenc|nvencode|error|failed|unsupported|unhandled|page fault' \
+    "$NVENC_TEST_LOG" \
+    | tail -n 300
+```
+
+合格条件:
+
+```text
+--check-featuresでHEVC Encodeがsupported
+選択したoutput depthがfeature一覧と一致
+NVEncCがNVIDIA GPUを認識
+120 framesのencodeが完了
+nvenc-hevc-test.mkvが空でない
+unsupported / failed / NVENC initialization errorがない
+```
+
+AviUtl2のNVEnc出力GUIでもcodecとしてHEVCを選択する。
+10-bit対応時はMain10相当を選び、非対応時に10-bitを強制しない。
+CLI試験だけでAviUtl2 plugin全体の成功とは判定しない。
+
+### 14.5.5 分岐結果を保存する
+
+選択した分岐を証拠として保存する。
+
+```fish
+begin
+    printf 'NVENC_CODEC=%s\n' \
+        "$NVENC_CODEC"
+
+    printf 'NVENC_OUTPUT_DEPTH=%s\n' \
+        "$NVENC_OUTPUT_DEPTH"
+
+    printf 'NVENCC=%s\n' \
+        "$NVENCC"
+
+    printf 'NVENC_FEATURE_LOG=%s\n' \
+        "$NVENC_FEATURE_LOG"
+
+    printf 'NVENC_TEST_LOG=%s\n' \
+        "$NVENC_TEST_LOG"
+
+    printf 'NVENC_TEST_OUTPUT=%s\n' \
+        "$NVENC_TEST_OUTPUT"
+end \
+    | tee \
+        "$ROOT/evidence/installation/nvenc-selected-branch.txt"
+```
+
+AV1とHEVCの両方がunsupportedの場合は、この文書のNVENC経路ではインストール完了としない。
+H.264への暗黙fallbackは行わず、別の分岐として明示的に設計する。
+
 ---
 
 # 15. Catalog後にcustom r1284を最後にoverlayする
@@ -1725,7 +2401,20 @@ CUDA initialization failureがない
 hardware-frame-transfer failureがない
 ```
 
-## 18.4 Catalog
+## 18.4 NVENC出力
+
+```text
+NVEncC64.exeを特定できる
+--check-featuresの結果を保存している
+AV1またはHEVCの対応分岐を明示的に選択している
+選択したcodecで短いCLI encodeが成功する
+AviUtl2のNVEnc出力GUIでも同じcodecで出力できる
+AV1非対応環境でAV1を強制していない
+HEVC 10-bit非対応環境でMain10を強制していない
+NVENC codecとNVDEC input codecを混同していない
+```
+
+## 18.5 Catalog
 
 ```text
 Catalog 0.3.3が起動する
@@ -1774,6 +2463,7 @@ sha256sum \
     "$PREFIX/drive_c/windows/system32/nvencodeapi64.dll" \
     "$ACTIVE_LWINPUT" \
     "$ACTIVE_INI" \
+    "$NVENC_TEST_OUTPUT" \
     | tee \
         "$ROOT/evidence/installation/final-SHA256SUMS"
 ```
@@ -1788,6 +2478,10 @@ system Wineとpatched GE-Protonを混ぜる
 異なるDXVK buildのDLLを混ぜる
 LutrisにDXVKを自動上書きさせる
 AV1が再生できただけでNVDEC成功と判定する
+NVDECのAV1対応とNVENCのAV1対応を同一視する
+--check-featuresを確認せずGPU名だけでNVENC codecを決める
+AV1 encode非対応GPUでAV1を強制する
+HEVC Main10非対応GPUで10-bitを強制する
 Catalog導入後の公式L-SMASH Worksを最終状態とする
 installed.jsonをr1284へ手動変更する
 hash-cache.jsonを削除・手動編集する
@@ -1807,6 +2501,8 @@ CatalogでL-SMASH WorksをRemoveする
 3. Wine source/build treeの初回configure command
 4. 空prefixをCLIだけで正常bootstrapするcommand
 5. AviUtl2 2.1.2の公式取得から`C:\AviUtl2`配置までのcommand
+6. Nanashi環境でのHEVC NVENC分岐とAviUtl2 NVEnc GUI出力の実測
+7. Alex環境でのAV1 NVENC分岐とAviUtl2 NVEnc GUI出力の実測
 6. `Tahoma-Noto-*.otf`の合法かつ再現可能な生成方法
 7. NVIDIA Wine wrapperの取得元、version、展開command
 8. NVIDIA driverとVulkan ICDのpreflight
