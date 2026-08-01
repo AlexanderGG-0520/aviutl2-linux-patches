@@ -1,0 +1,248 @@
+name: Sync L-SMASH Works installation docs
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/sync-lsmash-installation.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Replace the obsolete L-SMASH Works section
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          path = Path("docs/INSTALLATION.md")
+          text = path.read_text(encoding="utf-8")
+
+          start_heading = "## 2.7 L-SMASH Works r1284"
+          end_heading = "\n---\n\n# 3. Fish変数と標準ディレクトリ配置"
+
+          start = text.index(start_heading)
+          end = text.index(end_heading, start)
+
+          replacement = r'''## 2.7 L-SMASH Works r1284をsourceから完全buildする
+
+          このrepositoryには、固定commitの依存関係を取得し、MinGW-w64でcross-buildして、最終的な`lwinput.aui2`まで生成するscriptを収録する。
+
+          ```text
+          scripts/scripts/build-l-smash-works-nvdec.fish
+          ```
+
+          このscriptは次を一括して行う。
+
+          1. L-SMASH Worksを検証済みbase commitへ固定する
+          2. repositoryのhardware-frame-transfer patchを`git am`で適用する
+          3. revision生成に必要なL-SMASH Worksの全履歴を取得する
+          4. zlib、game-music-emu、dav1d、libvpx、nv-codec-headers、libvplをcross-buildする
+          5. FFmpegを`av1_cuvid`有効でcross-buildする
+          6. obuparseとl-smashをcross-buildする
+          7. patched L-SMASH Works r1284をbuildする
+          8. `lwinput.aui2`と`config/lsmash.ini`をoutput directoryへ配置する
+          9. r1284表記、CUVID configure marker、PE32+形式を検証する
+          10. `PROVENANCE.txt`と`SHA256SUMS`を生成する
+
+          使用するpatch:
+
+          ```text
+          patches/l-smash-works/0001-transfer-hardware-frames-before-output.patch
+          ```
+
+          このpatchは、CUVIDなどのhardware decoderが返すGPU上のframeを、出力処理の前に`av_hwframe_transfer_data()`でsoftware frameへ転送する。
+
+          ### 2.7.1 build依存関係を確認する
+
+          0.1節のsource-build packageを導入済みであることを確認する。
+
+          ```fish
+          for command_name in \
+              git \
+              cmake \
+              meson \
+              ninja \
+              nasm \
+              make \
+              pkg-config \
+              nproc \
+              file \
+              strings \
+              sha256sum \
+              x86_64-w64-mingw32-gcc \
+              x86_64-w64-mingw32-g++ \
+              x86_64-w64-mingw32-ar \
+              x86_64-w64-mingw32-ranlib \
+              x86_64-w64-mingw32-strip \
+              x86_64-w64-mingw32-windres \
+              x86_64-w64-mingw32-objdump
+
+              command -q "$command_name"
+
+              or echo "MISSING BUILD COMMAND: $command_name" >&2
+          end
+          ```
+
+          不足がある状態でbuildへ進まない。
+
+          ### 2.7.2 fresh work directoryで完全buildする
+
+          GitHub Contents APIで追加されたfileは実行bitを持たない場合があるため、直接実行ではなく`fish`へ渡す。
+
+          ```fish
+          set REPO \
+              "$HOME/projects/aviutl2-linux-patches"
+
+          set LSMASH_WORK \
+              "$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03"
+
+          fish \
+              "$REPO/scripts/scripts/build-l-smash-works-nvdec.fish" \
+              --work-dir "$LSMASH_WORK" \
+              --jobs (nproc)
+          ```
+
+          scriptは既存work directoryを再利用しない。同名directoryが存在する場合は、中身を確認せず削除せず、別名のfresh directoryを指定する。
+
+          ```fish
+          set LSMASH_WORK \
+              "$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-04"
+
+          fish \
+              "$REPO/scripts/scripts/build-l-smash-works-nvdec.fish" \
+              --work-dir "$LSMASH_WORK" \
+              --jobs (nproc)
+          ```
+
+          ### 2.7.3 固定source identity
+
+          | Component | Commit |
+          | --- | --- |
+          | L-SMASH Works base | `a47764915f06fcd472e26ba2fbf25aff4b9d252e` |
+          | L-SMASH Works patched | `393df5ef669707f776261e4ac1bcc7e9a9a227ab` |
+          | zlib | `da607da739fa6047df13e66a2af6b8bec7c2a498` |
+          | game-music-emu | `fe8da4b6d3876d7542c2fb69d94487e19836d678` |
+          | dav1d | `54706fc6bc0cdecab7e9593974a4039cc038fca7` |
+          | libvpx | `ade52487a37ef76a0f209bd39bea9fe67d6db4c4` |
+          | nv-codec-headers | `eddcea9e27f6b772057c9b3f87de2cc1737faffc` |
+          | libvpl | `674d015bcb294bc39fa276e99a652ea045423e82` |
+          | FFmpeg | `cfa62de001af8ffeb7e22561f246469c7b809951` |
+          | obuparse | `c2156b4a133714d0a9c04a7cd341efb1af415a33` |
+          | l-smash | `04315d02fef15a75f747493920724c91a62b8538` |
+
+          L-SMASH Worksのbase revision countは`1283`、patch適用後は`1284`でなければscriptが停止する。
+
+          ### 2.7.4 生成物を確認する
+
+          成功時は次が生成される。
+
+          ```text
+          $HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03/output/
+          ├── lwinput.aui2
+          ├── lsmash.ini
+          ├── PROVENANCE.txt
+          └── SHA256SUMS
+          ```
+
+          ```fish
+          set LSMASH_OUTPUT \
+              "$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03/output"
+
+          for file_path in \
+              "$LSMASH_OUTPUT/lwinput.aui2" \
+              "$LSMASH_OUTPUT/lsmash.ini" \
+              "$LSMASH_OUTPUT/PROVENANCE.txt" \
+              "$LSMASH_OUTPUT/SHA256SUMS"
+
+              test -s "$file_path"
+
+              or echo "MISSING OR EMPTY: $file_path" >&2
+          end
+
+          sha256sum \
+              -c \
+              "$LSMASH_OUTPUT/SHA256SUMS"
+          ```
+
+          binary markerを再確認する。
+
+          ```fish
+          begin
+              strings -a -n 5 "$LSMASH_OUTPUT/lwinput.aui2"
+              strings -a --encoding=l -n 5 "$LSMASH_OUTPUT/lwinput.aui2"
+          end \
+              | grep -E \
+                  'L-SMASH Works File Reader for AviUtl2 r1284 by Mr-Ojii|--enable-cuvid|--enable-decoder=av1_cuvid'
+          ```
+
+          最低限、次の3種類が確認できること。
+
+          ```text
+          L-SMASH Works File Reader for AviUtl2 r1284 by Mr-Ojii
+          --enable-cuvid
+          --enable-decoder=av1_cuvid
+          ```
+
+          Alex環境の最終repro-03で得たartifact:
+
+          ```text
+          lwinput.aui2 SHA-256:
+            db465570a4c049624f369086232cf47c387975d54fa615d895d090fe1a17bbe0
+
+          lsmash.ini SHA-256:
+            10620155d1470ea270121f67357f3da89cb8151ffac651c049e98238253a9a9f
+          ```
+
+          absolute build prefixやtoolchain versionが異なる場合、機能的に同一でも`lwinput.aui2`のSHA-256は一致しないことがある。
+          SHA不一致だけで失敗とせず、`PROVENANCE.txt`、固定commit、r1284 marker、CUVID marker、runtime NVDEC検証を組み合わせて判定する。
+
+          build scriptはWine prefixへpluginをインストールしない。生成物をprefixへ配置する工程は、後続のL-SMASH Works導入節で行う。
+          '''
+
+          # Remove indentation introduced by the YAML block and raw string.
+          replacement = "\n".join(
+              line[10:] if line.startswith("          ") else line
+              for line in replacement.splitlines()
+          )
+
+          text = text[:start] + replacement + text[end:]
+          text = text.replace(
+              "└── custom L-SMASH Works r1284 output",
+              "└── source-built custom L-SMASH Works r1284 output",
+          )
+
+          obsolete = "6. L-SMASH Worksの固定依存関係から`lwinput.aui2`までを生成するstandalone build script\n"
+          text = text.replace(obsolete, "")
+          for old, new in [
+              ("7. Nanashi環境で", "6. Nanashi環境で"),
+              ("8. Alex環境で", "7. Alex環境で"),
+              ("9. `Tahoma-Noto-*.otf`", "8. `Tahoma-Noto-*.otf`"),
+              ("10. NVIDIA Wine wrapper", "9. NVIDIA Wine wrapper"),
+              ("11. NVIDIA driver", "10. NVIDIA driver"),
+              ("12. Nanashi環境でのLutris", "11. Nanashi環境でのLutris"),
+              ("13. clean prefix", "12. clean prefix"),
+          ]:
+              text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Commit the documentation update and remove this one-shot workflow
+        shell: bash
+        run: |
+          rm -f .github/workflows/sync-lsmash-installation.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add docs/INSTALLATION.md .github/workflows/sync-lsmash-installation.yml
+          git commit -m "docs: document the complete L-SMASH Works build"
+          git push origin HEAD:main
