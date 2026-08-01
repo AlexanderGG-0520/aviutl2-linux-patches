@@ -1,0 +1,432 @@
+name: Sync installation artifact preparation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/sync-installation-artifacts.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update INSTALLATION.md
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          path = Path("docs/INSTALLATION.md")
+          text = path.read_text(encoding="utf-8")
+
+          text = text.replace(
+              "- `Tahoma-Noto-Regular.otf`と`Tahoma-Noto-Bold.otf`の生成\n"
+              "- `nvidia-libs-v1.0.2`の取得・展開\n",
+              "",
+          )
+          text = text.replace(
+              "    sed \\\n    fcitx5 \\\n",
+              "    sed \\\n    noto-fonts-cjk \\\n    python-fonttools \\\n    fcitx5 \\\n",
+          )
+          text = text.replace("AV1 Main 10-bit検証素材\n", "")
+
+          start = text.index("## 2.2 patched DXVK")
+          end = text.index("\n## 2.3 patched DWrite runner", start)
+          replacement = r'''## 2.2 patched DXVKをbuildする
+
+          repositoryには、検証済みDXVK 2.7.1 base commitへAviUtl2用patchを適用し、64-bit DLLをfresh directoryへbuildするscriptが存在する。
+
+          ```text
+          scripts/build-dxvk-aviutl2.sh
+          ```
+
+          このscriptは次を行う。
+
+          1. DXVKをcloneする
+          2. base commit `c3dd74be6baec53786d4e064a572185b70347a17`へ固定する
+          3. `patches/dxvk/0001-aviutl2-format-support.patch`を適用する
+          4. `build-win64.txt`を使ってMinGW-w64 buildを行う
+          5. `d3d11.dll`、`dxgi.dll`、`d3d10core.dll`をflat output directoryへ配置する
+          6. compatibility marker、SHA-256、build metadataを検証・保存する
+
+          `d3dcompiler_47.dll`はこのAviUtl2用DXVK patchの対象ではない。新規prefixにGE-Proton/Wineが配置するDLLをそのまま使用し、DXVK artifactの必須入力には含めない。
+
+          fresh pathを指定してbuildする。
+
+          ```fish
+          set DXVK_WORK \
+              "$HOME/Games/aviutl2/build/dxvk-2.7.1-aviutl2-source"
+
+          set DXVK_ARTIFACT_DIR \
+              "$HOME/Games/aviutl2/artifacts/dxvk-2.7.1-aviutl2/x64"
+
+          mkdir -p \
+              (dirname "$DXVK_WORK") \
+              (dirname "$DXVK_ARTIFACT_DIR")
+
+          bash \
+              "$REPO/scripts/build-dxvk-aviutl2.sh" \
+              --work-dir "$DXVK_WORK" \
+              --output-dir "$DXVK_ARTIFACT_DIR"
+          ```
+
+          既存のwork/output directoryは再利用しない。同名pathが存在する場合は、削除で誤魔化さず新しい名前を指定する。
+
+          成功時に必要なartifact:
+
+          ```text
+          $HOME/Games/aviutl2/artifacts/dxvk-2.7.1-aviutl2/x64/
+          ├── d3d11.dll
+          ├── dxgi.dll
+          ├── d3d10core.dll
+          ├── SHA256SUMS
+          └── BUILD-METADATA
+          ```
+
+          確認する。
+
+          ```fish
+          for dll in \
+              d3d11.dll \
+              dxgi.dll \
+              d3d10core.dll
+
+              test -s "$DXVK_ARTIFACT_DIR/$dll"
+
+              or echo "MISSING OR EMPTY: $DXVK_ARTIFACT_DIR/$dll" >&2
+          end
+
+          pushd "$DXVK_ARTIFACT_DIR"
+          sha256sum -c SHA256SUMS
+          popd
+          ```
+
+          Alex環境で確認したSHA-256:
+
+          ```text
+          d3d11.dll
+            1c706356495405d2f929e7169f03964ea6d1af5d7e21f2de93fd9c0e82d25364
+
+          dxgi.dll
+            ec02eb37620ff52361cb45376a4611fc4210d96e71d0363f1cc9807f151c01be
+
+          d3d10core.dll
+            3bf5fec5115649dfb6fed1613a4c3f9487c2f2aaf74c2786d9f9d7d21a2f1482
+          ```
+
+          別toolchainや絶対build pathではbinary hashが変わる可能性がある。`BUILD-METADATA`、固定commit、patch identity、compatibility marker、実際のAviUtl2起動を合わせて判定する。
+          '''
+          replacement = "\n".join(
+              line[10:] if line.startswith("          ") else line
+              for line in replacement.splitlines()
+          )
+          text = text[:start] + replacement + text[end:]
+
+          start = text.index("## 2.4 日本語フォント")
+          end = text.index("\n## 2.5 NVIDIA Wine wrapper", start)
+          replacement = r'''## 2.4 日本語フォントを取得・生成する
+
+          Arch/CachyOSの`noto-fonts-cjk`からNoto Sans CJKのTTCを取得し、`python-fonttools`でWine/DirectWriteが`Tahoma`として解決できるlocal compatibility OTFを生成する。
+
+          ```fish
+          sudo pacman -S --needed \
+              noto-fonts-cjk \
+              python-fonttools
+          ```
+
+          標準出力先を設定して、repositoryのprepare scriptを実行する。
+
+          ```fish
+          set FONT_SOURCE_DIR \
+              "$HOME/Games/aviutl2/artifacts/fonts"
+
+          python3 \
+              "$REPO/scripts/scripts/prepare-aviutl2-fonts.py" \
+              --output-dir "$FONT_SOURCE_DIR"
+          ```
+
+          scriptは次を行う。
+
+          1. `/usr/share/fonts`から`NotoSansCJK-Regular.ttc`と`NotoSansCJK-Bold.ttc`を一意に検出する
+          2. Japanese face (`Noto Sans CJK JP`)を選択する
+          3. family nameをlocal compatibility用の`Tahoma`へ変更する
+          4. `Tahoma-Noto-Regular.otf`と`Tahoma-Noto-Bold.otf`を生成する
+          5. 4ファイルの`SHA256SUMS`を生成する
+
+          成功時の構造:
+
+          ```text
+          $HOME/Games/aviutl2/artifacts/fonts/
+          ├── NotoSansCJK-Regular.ttc
+          ├── NotoSansCJK-Bold.ttc
+          ├── Tahoma-Noto-Regular.otf
+          ├── Tahoma-Noto-Bold.otf
+          └── SHA256SUMS
+          ```
+
+          確認する。
+
+          ```fish
+          for font_file in \
+              NotoSansCJK-Regular.ttc \
+              NotoSansCJK-Bold.ttc \
+              Tahoma-Noto-Regular.otf \
+              Tahoma-Noto-Bold.otf
+
+              test -s "$FONT_SOURCE_DIR/$font_file"
+
+              or echo "MISSING OR EMPTY: $FONT_SOURCE_DIR/$font_file" >&2
+          end
+
+          pushd "$FONT_SOURCE_DIR"
+          sha256sum -c SHA256SUMS
+          popd
+          ```
+
+          Noto CJKはSIL Open Font License 1.1で提供される。生成した`Tahoma-Noto-*.otf`はこのWine prefixのlocal compatibility用途とし、MicrosoftのTahoma本体を含むものではない。生成物をrepositoryへcommitしない。
+          '''
+          replacement = "\n".join(
+              line[10:] if line.startswith("          ") else line
+              for line in replacement.splitlines()
+          )
+          text = text[:start] + replacement + text[end:]
+
+          start = text.index("## 2.5 NVIDIA Wine wrapper")
+          end = text.index("\n## 2.6 NVEnc output plugin", start)
+          replacement = r'''## 2.5 NVIDIA Wine wrapperを取得する
+
+          WineからNVIDIA CUDA、CUVID/NVDEC、NVENC bridgeを利用するため、SveSop/nvidia-libs `v1.0.2`の64-bit DLLを取得する。
+
+          repositoryのprepare scriptはGitHub Releases APIから固定tagを読み、`fakedll`ではない通常archiveを一意に選択して取得する。
+
+          ```fish
+          set NVIDIA_WRAPPER_DIR \
+              "$HOME/Games/aviutl2/artifacts/nvidia-libs-v1.0.2/x64"
+
+          fish \
+              "$REPO/scripts/scripts/prepare-nvidia-libs.fish" \
+              --output-dir "$NVIDIA_WRAPPER_DIR"
+          ```
+
+          成功時の構造:
+
+          ```text
+          $HOME/Games/aviutl2/artifacts/nvidia-libs-v1.0.2/x64/
+          ├── nvcuda.dll
+          ├── nvcuvid.dll
+          ├── nvencodeapi64.dll
+          ├── SHA256SUMS
+          └── SHA256SUMS.expected
+          ```
+
+          scriptはAlex環境で確認した次のSHA-256と照合する。
+
+          ```text
+          nvcuda.dll
+            86a7db21366704af4e0e61884aaaafb80b2e87d427c4214dcb775d17b37fd7cc
+
+          nvcuvid.dll
+            fd51c2f98f8006f097240a1d2cf53d72a6d1b741618fb679226ec563d2ad0944
+
+          nvencodeapi64.dll
+            6f28193dd276c257d3e80ee03627f2cb0bb94dec6582cf9c04c32744d088b75a
+          ```
+
+          確認する。
+
+          ```fish
+          pushd "$NVIDIA_WRAPPER_DIR"
+          sha256sum -c SHA256SUMS.expected
+          file nvcuda.dll nvcuvid.dll nvencodeapi64.dll
+          popd
+          ```
+
+          prepare scriptはartifactを取得するだけで、Wine prefixへsymlinkを作成しない。prefixへの導入とDLL override登録は後続節で行う。
+          '''
+          replacement = "\n".join(
+              line[10:] if line.startswith("          ") else line
+              for line in replacement.splitlines()
+          )
+          text = text[:start] + replacement + text[end:]
+
+          text = text.replace(
+              'set TEST_MEDIA_DIR \\\n    "$ROOT/test-media"\n\n'
+              'set AV1_TEST_FILE \\\n    "$TEST_MEDIA_DIR/av1-main10-test.mp4"\n\n',
+              '',
+          )
+          text = text.replace('    "$TEST_MEDIA_DIR" \\\n', '')
+          text = text.replace('        "$DXVK_ARTIFACT_DIR/d3dcompiler_47.dll" \\\n', '')
+          text = text.replace(
+              '        "$LSMASH_ARTIFACT_DIR/lsmash.ini" \\\n'
+              '        "$AV1_TEST_FILE"\n',
+              '        "$LSMASH_ARTIFACT_DIR/lsmash.ini"\n',
+          )
+          text = text.replace('    "$DXVK_ARTIFACT_DIR/d3dcompiler_47.dll" \\\n', '')
+          text = text.replace(
+              '        d3d10core \\\n        d3dcompiler_47\n',
+              '        d3d10core\n',
+          )
+          text = text.replace(
+              '│   │       ├── d3d10core.dll\n│   │       └── d3dcompiler_47.dll\n',
+              '│   │       └── d3d10core.dll\n',
+          )
+          text = text.replace('4ファイルを同じbuildから配置する。', '3ファイルを同じbuildから配置する。')
+
+          start = text.index("### 14.5.3 分岐A — AV1 NVENC")
+          end = text.index("\n---\n\n# 15. Catalog後にcustom r1284を最後にoverlayする", start)
+          replacement = r'''### 14.5.3 分岐A — AV1 NVENC
+
+          `--check-features`がAV1 encodeをsupportedとして報告した場合のみ、この分岐を使用する。
+
+          ```fish
+          set NVENC_CODEC \
+              av1
+
+          set NVENC_OUTPUT_DEPTH \
+              10
+
+          set NVENC_GUI_OUTPUT \
+              "$NVENC_TEST_DIR/aviutl2-nvenc-av1.mkv"
+          ```
+
+          外部のcodec検証素材は必要ない。AviUtl2の内部生成objectだけで5〜10秒のtimelineを作る。
+
+          NVEnc出力GUIで次を選択する。
+
+          ```text
+          codec: AV1
+          bit depth: 10-bit
+          output: $HOME/Games/aviutl2/test-output/nvenc/aviutl2-nvenc-av1.mkv
+          ```
+
+          合格条件:
+
+          ```text
+          --check-featuresでAV1 Encodeがsupported
+          NVEncCがNVIDIA GPUを認識
+          AviUtl2のNVEnc出力が完了
+          出力fileが空でない
+          unsupported / failed / NVENC initialization errorがない
+          ```
+
+          ### 14.5.4 分岐B — HEVC NVENC
+
+          AV1 encodeがunsupportedで、HEVC encodeがsupportedの場合にこの分岐を使用する。
+
+          `--check-features`でHEVC 10-bit encode対応を確認する。
+
+          HEVC Main10対応の場合:
+
+          ```fish
+          set NVENC_OUTPUT_DEPTH \
+              10
+          ```
+
+          10-bit非対応でHEVC 8-bitのみ対応する場合:
+
+          ```fish
+          set NVENC_OUTPUT_DEPTH \
+              8
+          ```
+
+          共通変数:
+
+          ```fish
+          set NVENC_CODEC \
+              hevc
+
+          set NVENC_GUI_OUTPUT \
+              "$NVENC_TEST_DIR/aviutl2-nvenc-hevc.mkv"
+          ```
+
+          外部のcodec検証素材は必要ない。AviUtl2の内部生成objectだけで5〜10秒のtimelineを作り、NVEnc出力GUIでHEVCを選択する。
+
+          ```text
+          codec: HEVC
+          bit depth: --check-featuresで確認した8-bitまたは10-bit
+          output: $HOME/Games/aviutl2/test-output/nvenc/aviutl2-nvenc-hevc.mkv
+          ```
+
+          10-bit非対応GPUでMain10を強制しない。
+
+          合格条件:
+
+          ```text
+          --check-featuresでHEVC Encodeがsupported
+          選択したoutput depthがfeature一覧と一致
+          NVEncCがNVIDIA GPUを認識
+          AviUtl2のNVEnc出力が完了
+          出力fileが空でない
+          unsupported / failed / NVENC initialization errorがない
+          ```
+
+          ### 14.5.5 分岐結果を保存する
+
+          GUI出力後、選択した分岐と生成物を証拠として保存する。
+
+          ```fish
+          require_path "$NVENC_GUI_OUTPUT"
+
+          file "$NVENC_GUI_OUTPUT"
+          sha256sum "$NVENC_GUI_OUTPUT"
+
+          begin
+              printf 'NVENC_CODEC=%s\n' \
+                  "$NVENC_CODEC"
+
+              printf 'NVENC_OUTPUT_DEPTH=%s\n' \
+                  "$NVENC_OUTPUT_DEPTH"
+
+              printf 'NVENCC=%s\n' \
+                  "$NVENCC"
+
+              printf 'NVENC_FEATURE_LOG=%s\n' \
+                  "$NVENC_FEATURE_LOG"
+
+              printf 'NVENC_GUI_OUTPUT=%s\n' \
+                  "$NVENC_GUI_OUTPUT"
+          end \
+              | tee \
+                  "$ROOT/evidence/installation/nvenc-selected-branch.txt"
+          ```
+
+          AV1とHEVCの両方がunsupportedの場合は、この文書のNVENC経路ではインストール完了としない。
+          H.264への暗黙fallbackは行わず、別の分岐として明示的に設計する。
+          '''
+          replacement = "\n".join(
+              line[10:] if line.startswith("          ") else line
+              for line in replacement.splitlines()
+          )
+          text = text[:start] + replacement + text[end:]
+
+          lines = []
+          for line in text.splitlines():
+              if (
+                  "test-media/" in line
+                  or "av1-main10-test.mp4" in line
+                  or "$AV1_TEST_FILE" in line
+              ):
+                  continue
+              lines.append(line)
+          text = "\n".join(lines) + "\n"
+
+          path.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Commit documentation update and remove one-shot workflow
+        shell: bash
+        run: |
+          rm -f .github/workflows/sync-installation-artifacts.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add docs/INSTALLATION.md .github/workflows/sync-installation-artifacts.yml
+          git commit -m "docs: add missing artifact preparation steps"
+          git push origin HEAD:main
