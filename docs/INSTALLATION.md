@@ -36,7 +36,6 @@
 - Wine source/build treeの初回configure
 - `Tahoma-Noto-Regular.otf`と`Tahoma-Noto-Bold.otf`の生成
 - `nvidia-libs-v1.0.2`の取得・展開
-- AviUtl2本体の公式入手元からの自動配置
 - 空prefixをCLIだけで生成する単独の確定済みcommand
 
 この文書では、それらを推測で補わない。
@@ -274,6 +273,7 @@ env \
 現時点で固定URLと検証方法を記載できるのは、少なくとも次である。
 
 ```text
+AviUtl2 2.1.2 official ZIP
 GE-Proton 11-1 archive
 GE-Proton 11-1 SHA-512 checksum
 GitHub API / release assets used by AviUtl2 Catalog
@@ -282,7 +282,6 @@ GitHub API / release assets used by AviUtl2 Catalog
 次については、取得元・再配布条件・生成方法をまだ完全に確定できていないため、架空のcurl commandを追加しない。
 
 ```text
-AviUtl2 2.1.2本体
 Tahoma-Noto-Regular.otf
 Tahoma-Noto-Bold.otf
 nvidia-libs-v1.0.2 wrapper bundle
@@ -343,10 +342,118 @@ custom r1284 final overlay
 
 インストール開始前に、次を用意する。
 
-## 2.1 必須
+## 2.1 AviUtl2 2.1.2本体を公式サイトから取得する
+
+AviUtl2本体はrepositoryへ再配布せず、ＫＥＮくんの公式サイトからZIP版を直接取得する。
+公式配布ページでは2.1.2のZIPが`aviutl2_v2.1.2.zip`として公開されている。
+
+次のfunctionは、公式ZIPを取得し、展開結果から`aviutl2.exe`を検出して、標準artifact directoryへ正規化する。
+
+```fish
+function prepare_aviutl2_212
+    set -l root \
+        "$HOME/Games/aviutl2"
+
+    set -l download_dir \
+        "$root/downloads"
+
+    set -l archive \
+        "$download_dir/aviutl2_v2.1.2.zip"
+
+    set -l extract_dir \
+        "$root/build/aviutl2-v2.1.2-extract"
+
+    set -l artifact_dir \
+        "$root/artifacts/AviUtl2-2.1.2"
+
+    mkdir -p \
+        "$download_dir" \
+        "$root/build" \
+        "$root/artifacts"
+
+    or return 1
+
+    curl \
+        --fail \
+        --location \
+        --retry 3 \
+        --output "$archive" \
+        "https://spring-fragrance.mints.ne.jp/aviutl/aviutl2_v2.1.2.zip"
+
+    or return 1
+
+    sha256sum \
+        "$archive"
+
+    rm -rf \
+        "$extract_dir"
+
+    mkdir -p \
+        "$extract_dir"
+
+    or return 1
+
+    bsdtar \
+        -xf "$archive" \
+        -C "$extract_dir"
+
+    or return 1
+
+    set -l aviutl2_exe \
+        (find "$extract_dir" \
+            -type f \
+            -iname 'aviutl2.exe' \
+            -print \
+            -quit)
+
+    if test -z "$aviutl2_exe"
+        echo "ERROR: aviutl2.exe was not found in: $archive" >&2
+        return 1
+    end
+
+    rm -rf \
+        "$artifact_dir"
+
+    mkdir -p \
+        "$artifact_dir"
+
+    or return 1
+
+    cp -a \
+        (dirname "$aviutl2_exe")/. \
+        "$artifact_dir/"
+
+    or return 1
+
+    test -f \
+        "$artifact_dir/aviutl2.exe"
+
+    or begin
+        echo "ERROR: normalized aviutl2.exe is missing" >&2
+        return 1
+    end
+
+    file \
+        "$artifact_dir/aviutl2.exe"
+
+    echo "AviUtl2 artifact: $artifact_dir"
+end
+
+prepare_aviutl2_212
+```
+
+正常に完了すると、少なくとも次が存在する。
 
 ```text
-AviUtl2 2.1.2本体
+$HOME/Games/aviutl2/artifacts/AviUtl2-2.1.2/aviutl2.exe
+```
+
+公式サイトはプログラムファイルの不特定多数への再配布を控えるよう案内している。
+取得したZIPや展開済み本体を、このpatch repositoryへcommitしない。
+
+AviUtl2本体以外に、インストール開始前に次のartifactも必要になる。
+
+```text
 patched GE-Proton 11-1 runner
 patched DXVK 2.7.1 x64 DLL set
 Japanese font files
@@ -479,14 +586,14 @@ AV1/HEVCの分岐は**出力エンコード**の分岐である。
 
 ## 2.7 L-SMASH Works r1284
 
-必要ファイル:
+インストールに必要な最終artifactは次の2ファイルである。
 
 ```text
 lwinput.aui2
 lsmash.ini
 ```
 
-最終採用artifact:
+Alex環境での最終採用artifact:
 
 ```text
 revision:
@@ -499,24 +606,138 @@ lsmash.ini SHA-256:
   10620155d1470ea270121f67357f3da89cb8151ffac651c049e98238253a9a9f
 ```
 
-sourceから生成する場合:
+このrepositoryに`build-l-smash-works-nvdec.fish`は存在しないため、そのscriptを呼び出してはいけない。
+存在する修正物は次のmail patchである。
 
-```fish
-cd ~/projects/aviutl2-linux-patches
-
-scripts/build-l-smash-works-nvdec.fish \
-    --work-dir \
-    "$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03" \
-    --jobs (nproc)
+```text
+patches/l-smash-works/0001-transfer-hardware-frames-before-output.patch
 ```
 
-生成物:
+このpatchは、CUVIDなどのhardware decoderが返すGPU上のframeを、出力処理の前に`av_hwframe_transfer_data()`でsoftware frameへ転送する。
+
+sourceを準備する場合は、L-SMASH Worksの検証済みbase commitへpatchを直接適用する。
+次のfunctionは**patched source treeを作るところまで**を行う。`lwinput.aui2`のbuild自体は行わない。
+
+```fish
+function prepare_patched_lsmash_source
+    set -l repo \
+        "$HOME/projects/aviutl2-linux-patches"
+
+    set -l work_dir \
+        "$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03"
+
+    set -l source_dir \
+        "$work_dir/src/L-SMASH-Works"
+
+    set -l patch_file \
+        "$repo/patches/l-smash-works/0001-transfer-hardware-frames-before-output.patch"
+
+    set -l base_commit \
+        a47764915f06fcd472e26ba2fbf25aff4b9d252e
+
+    set -l patched_commit \
+        393df5ef669707f776261e4ac1bcc7e9a9a227ab
+
+    test -f \
+        "$patch_file"
+
+    or begin
+        echo "ERROR: missing patch: $patch_file" >&2
+        return 1
+    end
+
+    if test -e "$source_dir"
+        echo "ERROR: source directory already exists: $source_dir" >&2
+        echo "Use a new work directory or remove it manually after inspection." >&2
+        return 1
+    end
+
+    mkdir -p \
+        (dirname "$source_dir")
+
+    or return 1
+
+    git clone \
+        "https://github.com/Mr-Ojii/L-SMASH-Works.git" \
+        "$source_dir"
+
+    or return 1
+
+    git \
+        -C "$source_dir" \
+        checkout \
+        --detach \
+        "$base_commit"
+
+    or return 1
+
+    env \
+        GIT_COMMITTER_NAME='alexandergg-0520' \
+        GIT_COMMITTER_EMAIL='uket.panda.1st@gmail.com' \
+        GIT_COMMITTER_DATE='2026-07-31T03:58:59+09:00' \
+        git \
+        -C "$source_dir" \
+        -c commit.gpgSign=false \
+        am \
+        --committer-date-is-author-date \
+        "$patch_file"
+
+    or return 1
+
+    set -l actual_commit \
+        (git -C "$source_dir" rev-parse HEAD)
+
+    if test "$actual_commit" != "$patched_commit"
+        echo "ERROR: patched commit mismatch" >&2
+        echo "expected: $patched_commit" >&2
+        echo "actual:   $actual_commit" >&2
+        return 1
+    end
+
+    git \
+        -C "$source_dir" \
+        status \
+        --short \
+        --branch
+
+    echo "Patched L-SMASH Works source: $source_dir"
+end
+
+prepare_patched_lsmash_source
+```
+
+patch適用後の期待commit:
+
+```text
+393df5ef669707f776261e4ac1bcc7e9a9a227ab
+```
+
+現時点のrepositoryには、FFmpeg、dav1d、nv-codec-headers、L-SMASHなどを固定commitでcross-buildし、最終`lwinput.aui2`を生成する保守対象のstandalone build scriptは存在しない。
+そのため、新規インストールでは次のいずれかを選ぶ。
+
+1. 検証済みのprepared `lwinput.aui2`を用意する。
+2. コマンド台帳に記録された完全build chainを再実行し、生成物とprovenanceを保存する。
+
+`lsmash.ini`はrepositoryの次の設定を使用できる。
+
+```text
+config/lsmash.ini
+```
+
+```fish
+mkdir -p \
+    "$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03/output"
+
+cp -a \
+    "$HOME/projects/aviutl2-linux-patches/config/lsmash.ini" \
+    "$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03/output/lsmash.ini"
+```
+
+最終的に次が揃うまで、L-SMASH Worksのインストール工程へ進まない。
 
 ```text
 $HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03/output/lwinput.aui2
 $HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03/output/lsmash.ini
-$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03/output/PROVENANCE.txt
-$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03/output/SHA256SUMS
 ```
 
 ---
@@ -633,7 +854,7 @@ $HOME/Games/aviutl2/
     └── nvenc/
 ```
 
-AviUtl2本体を展開した結果、`aviutl2.exe`がさらに内側のdirectoryへ入った場合は、directory全体を移動し、必ず次の位置へ揃える。
+2.1節の`prepare_aviutl2_212`は、ZIP内のdirectory構造にかかわらず、`aviutl2.exe`を含むdirectoryを次へ正規化する。
 
 ```text
 $HOME/Games/aviutl2/artifacts/AviUtl2-2.1.2/aviutl2.exe
@@ -2496,18 +2717,19 @@ CatalogでL-SMASH WorksをRemoveする
 
 このINSTALLATION.mdを完全なclean-room手順にするには、次を別環境で実測する必要がある。
 
-1. GE-Proton 11-1の取得commandとSHA-256
+1. GE-Proton 11-1 archiveの取得・SHA-512検証を別環境で実測する
 2. stock runnerからpatched runnerをゼロから作る全command
 3. Wine source/build treeの初回configure command
 4. 空prefixをCLIだけで正常bootstrapするcommand
-5. AviUtl2 2.1.2の公式取得から`C:\AviUtl2`配置までのcommand
-6. Nanashi環境でのHEVC NVENC分岐とAviUtl2 NVEnc GUI出力の実測
-7. Alex環境でのAV1 NVENC分岐とAviUtl2 NVEnc GUI出力の実測
-6. `Tahoma-Noto-*.otf`の合法かつ再現可能な生成方法
-7. NVIDIA Wine wrapperの取得元、version、展開command
-8. NVIDIA driverとVulkan ICDのpreflight
-9. Nanashi環境でのLutris Linux Runner登録commandまたはexport可能な設定
-10. clean prefixで最初から最後まで通した最終ログ
+5. AviUtl2 2.1.2公式ZIPの取得・展開・`C:\AviUtl2`配置を別環境で実測する
+6. L-SMASH Worksの固定依存関係から`lwinput.aui2`までを生成するstandalone build script
+7. Nanashi環境でのHEVC NVENC分岐とAviUtl2 NVEnc GUI出力の実測
+8. Alex環境でのAV1 NVENC分岐とAviUtl2 NVEnc GUI出力の実測
+9. `Tahoma-Noto-*.otf`の合法かつ再現可能な生成方法
+10. NVIDIA Wine wrapperの取得元、version、展開command
+11. NVIDIA driverとVulkan ICDのpreflight
+12. Nanashi環境でのLutris Linux Runner登録commandまたはexport可能な設定
+13. clean prefixで最初から最後まで通した最終ログ
 
 これらが確認されるまでは、この文書を「prepared artifactsからの新規prefix install手順」として扱う。
 復旧手順としては扱わない。
