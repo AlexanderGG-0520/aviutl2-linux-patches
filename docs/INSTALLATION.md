@@ -304,7 +304,7 @@ prepared artifacts
 ├── AviUtl2 2.1.2 files
 ├── Japanese font files
 ├── NVIDIA Wine wrapper x64 DLLs
-└── custom L-SMASH Works r1284 output
+└── source-built custom L-SMASH Works r1284 output
         ↓
 new Wine prefix
         ↓
@@ -584,30 +584,28 @@ rigaya/NVEnc — Readme / --check-features
 AV1/HEVCの分岐は**出力エンコード**の分岐である。
 `av1_cuvid`を使うL-SMASH Worksの節は**入力デコード**の検証であり、別の機能として扱う。
 
-## 2.7 L-SMASH Works r1284
+## 2.7 L-SMASH Works r1284をsourceから完全buildする
 
-インストールに必要な最終artifactは次の2ファイルである。
-
-```text
-lwinput.aui2
-lsmash.ini
-```
-
-Alex環境での最終採用artifact:
+このrepositoryには、固定commitの依存関係を取得し、MinGW-w64でcross-buildして、最終的な`lwinput.aui2`まで生成するscriptを収録する。
 
 ```text
-revision:
-  L-SMASH Works File Reader for AviUtl2 r1284 by Mr-Ojii
-
-lwinput.aui2 SHA-256:
-  db465570a4c049624f369086232cf47c387975d54fa615d895d090fe1a17bbe0
-
-lsmash.ini SHA-256:
-  10620155d1470ea270121f67357f3da89cb8151ffac651c049e98238253a9a9f
+scripts/scripts/build-l-smash-works-nvdec.fish
 ```
 
-このrepositoryに`build-l-smash-works-nvdec.fish`は存在しないため、そのscriptを呼び出してはいけない。
-存在する修正物は次のmail patchである。
+このscriptは次を一括して行う。
+
+1. L-SMASH Worksを検証済みbase commitへ固定する
+2. repositoryのhardware-frame-transfer patchを`git am`で適用する
+3. revision生成に必要なL-SMASH Worksの全履歴を取得する
+4. zlib、game-music-emu、dav1d、libvpx、nv-codec-headers、libvplをcross-buildする
+5. FFmpegを`av1_cuvid`有効でcross-buildする
+6. obuparseとl-smashをcross-buildする
+7. patched L-SMASH Works r1284をbuildする
+8. `lwinput.aui2`と`config/lsmash.ini`をoutput directoryへ配置する
+9. r1284表記、CUVID configure marker、PE32+形式を検証する
+10. `PROVENANCE.txt`と`SHA256SUMS`を生成する
+
+使用するpatch:
 
 ```text
 patches/l-smash-works/0001-transfer-hardware-frames-before-output.patch
@@ -615,131 +613,151 @@ patches/l-smash-works/0001-transfer-hardware-frames-before-output.patch
 
 このpatchは、CUVIDなどのhardware decoderが返すGPU上のframeを、出力処理の前に`av_hwframe_transfer_data()`でsoftware frameへ転送する。
 
-sourceを準備する場合は、L-SMASH Worksの検証済みbase commitへpatchを直接適用する。
-次のfunctionは**patched source treeを作るところまで**を行う。`lwinput.aui2`のbuild自体は行わない。
+### 2.7.1 build依存関係を確認する
+
+0.1節のsource-build packageを導入済みであることを確認する。
 
 ```fish
-function prepare_patched_lsmash_source
-    set -l repo \
-        "$HOME/projects/aviutl2-linux-patches"
-
-    set -l work_dir \
-        "$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03"
-
-    set -l source_dir \
-        "$work_dir/src/L-SMASH-Works"
-
-    set -l patch_file \
-        "$repo/patches/l-smash-works/0001-transfer-hardware-frames-before-output.patch"
-
-    set -l base_commit \
-        a47764915f06fcd472e26ba2fbf25aff4b9d252e
-
-    set -l patched_commit \
-        393df5ef669707f776261e4ac1bcc7e9a9a227ab
-
-    test -f \
-        "$patch_file"
-
-    or begin
-        echo "ERROR: missing patch: $patch_file" >&2
-        return 1
-    end
-
-    if test -e "$source_dir"
-        echo "ERROR: source directory already exists: $source_dir" >&2
-        echo "Use a new work directory or remove it manually after inspection." >&2
-        return 1
-    end
-
-    mkdir -p \
-        (dirname "$source_dir")
-
-    or return 1
-
-    git clone \
-        "https://github.com/Mr-Ojii/L-SMASH-Works.git" \
-        "$source_dir"
-
-    or return 1
-
+for command_name in \
     git \
-        -C "$source_dir" \
-        checkout \
-        --detach \
-        "$base_commit"
+    cmake \
+    meson \
+    ninja \
+    nasm \
+    make \
+    pkg-config \
+    nproc \
+    file \
+    strings \
+    sha256sum \
+    x86_64-w64-mingw32-gcc \
+    x86_64-w64-mingw32-g++ \
+    x86_64-w64-mingw32-ar \
+    x86_64-w64-mingw32-ranlib \
+    x86_64-w64-mingw32-strip \
+    x86_64-w64-mingw32-windres \
+    x86_64-w64-mingw32-objdump
 
-    or return 1
+    command -q "$command_name"
 
-    env \
-        GIT_COMMITTER_NAME='alexandergg-0520' \
-        GIT_COMMITTER_EMAIL='uket.panda.1st@gmail.com' \
-        GIT_COMMITTER_DATE='2026-07-31T03:58:59+09:00' \
-        git \
-        -C "$source_dir" \
-        -c commit.gpgSign=false \
-        am \
-        --committer-date-is-author-date \
-        "$patch_file"
-
-    or return 1
-
-    set -l actual_commit \
-        (git -C "$source_dir" rev-parse HEAD)
-
-    if test "$actual_commit" != "$patched_commit"
-        echo "ERROR: patched commit mismatch" >&2
-        echo "expected: $patched_commit" >&2
-        echo "actual:   $actual_commit" >&2
-        return 1
-    end
-
-    git \
-        -C "$source_dir" \
-        status \
-        --short \
-        --branch
-
-    echo "Patched L-SMASH Works source: $source_dir"
+    or echo "MISSING BUILD COMMAND: $command_name" >&2
 end
-
-prepare_patched_lsmash_source
 ```
 
-patch適用後の期待commit:
+不足がある状態でbuildへ進まない。
 
-```text
-393df5ef669707f776261e4ac1bcc7e9a9a227ab
+### 2.7.2 fresh work directoryで完全buildする
+
+GitHub Contents APIで追加されたfileは実行bitを持たない場合があるため、直接実行ではなく`fish`へ渡す。
+
+```fish
+set REPO \
+    "$HOME/projects/aviutl2-linux-patches"
+
+set LSMASH_WORK \
+    "$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03"
+
+fish \
+    "$REPO/scripts/scripts/build-l-smash-works-nvdec.fish" \
+    --work-dir "$LSMASH_WORK" \
+    --jobs (nproc)
 ```
 
-現時点のrepositoryには、FFmpeg、dav1d、nv-codec-headers、L-SMASHなどを固定commitでcross-buildし、最終`lwinput.aui2`を生成する保守対象のstandalone build scriptは存在しない。
-そのため、新規インストールでは次のいずれかを選ぶ。
+scriptは既存work directoryを再利用しない。同名directoryが存在する場合は、中身を確認せず削除せず、別名のfresh directoryを指定する。
 
-1. 検証済みのprepared `lwinput.aui2`を用意する。
-2. コマンド台帳に記録された完全build chainを再実行し、生成物とprovenanceを保存する。
+```fish
+set LSMASH_WORK \
+    "$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-04"
 
-`lsmash.ini`はrepositoryの次の設定を使用できる。
+fish \
+    "$REPO/scripts/scripts/build-l-smash-works-nvdec.fish" \
+    --work-dir "$LSMASH_WORK" \
+    --jobs (nproc)
+```
+
+### 2.7.3 固定source identity
+
+| Component | Commit |
+| --- | --- |
+| L-SMASH Works base | `a47764915f06fcd472e26ba2fbf25aff4b9d252e` |
+| L-SMASH Works patched | `393df5ef669707f776261e4ac1bcc7e9a9a227ab` |
+| zlib | `da607da739fa6047df13e66a2af6b8bec7c2a498` |
+| game-music-emu | `fe8da4b6d3876d7542c2fb69d94487e19836d678` |
+| dav1d | `54706fc6bc0cdecab7e9593974a4039cc038fca7` |
+| libvpx | `ade52487a37ef76a0f209bd39bea9fe67d6db4c4` |
+| nv-codec-headers | `eddcea9e27f6b772057c9b3f87de2cc1737faffc` |
+| libvpl | `674d015bcb294bc39fa276e99a652ea045423e82` |
+| FFmpeg | `cfa62de001af8ffeb7e22561f246469c7b809951` |
+| obuparse | `c2156b4a133714d0a9c04a7cd341efb1af415a33` |
+| l-smash | `04315d02fef15a75f747493920724c91a62b8538` |
+
+L-SMASH Worksのbase revision countは`1283`、patch適用後は`1284`でなければscriptが停止する。
+
+### 2.7.4 生成物を確認する
+
+成功時は次が生成される。
 
 ```text
-config/lsmash.ini
+$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03/output/
+├── lwinput.aui2
+├── lsmash.ini
+├── PROVENANCE.txt
+└── SHA256SUMS
 ```
 
 ```fish
-mkdir -p \
+set LSMASH_OUTPUT \
     "$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03/output"
 
-cp -a \
-    "$HOME/projects/aviutl2-linux-patches/config/lsmash.ini" \
-    "$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03/output/lsmash.ini"
+for file_path in \
+    "$LSMASH_OUTPUT/lwinput.aui2" \
+    "$LSMASH_OUTPUT/lsmash.ini" \
+    "$LSMASH_OUTPUT/PROVENANCE.txt" \
+    "$LSMASH_OUTPUT/SHA256SUMS"
+
+    test -s "$file_path"
+
+    or echo "MISSING OR EMPTY: $file_path" >&2
+end
+
+sha256sum \
+    -c \
+    "$LSMASH_OUTPUT/SHA256SUMS"
 ```
 
-最終的に次が揃うまで、L-SMASH Worksのインストール工程へ進まない。
+binary markerを再確認する。
+
+```fish
+begin
+    strings -a -n 5 "$LSMASH_OUTPUT/lwinput.aui2"
+    strings -a --encoding=l -n 5 "$LSMASH_OUTPUT/lwinput.aui2"
+end \
+    | grep -E \
+        'L-SMASH Works File Reader for AviUtl2 r1284 by Mr-Ojii|--enable-cuvid|--enable-decoder=av1_cuvid'
+```
+
+最低限、次の3種類が確認できること。
 
 ```text
-$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03/output/lwinput.aui2
-$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro-03/output/lsmash.ini
+L-SMASH Works File Reader for AviUtl2 r1284 by Mr-Ojii
+--enable-cuvid
+--enable-decoder=av1_cuvid
 ```
 
+Alex環境の最終repro-03で得たartifact:
+
+```text
+lwinput.aui2 SHA-256:
+  db465570a4c049624f369086232cf47c387975d54fa615d895d090fe1a17bbe0
+
+lsmash.ini SHA-256:
+  10620155d1470ea270121f67357f3da89cb8151ffac651c049e98238253a9a9f
+```
+
+absolute build prefixやtoolchain versionが異なる場合、機能的に同一でも`lwinput.aui2`のSHA-256は一致しないことがある。
+SHA不一致だけで失敗とせず、`PROVENANCE.txt`、固定commit、r1284 marker、CUVID marker、runtime NVDEC検証を組み合わせて判定する。
+
+build scriptはWine prefixへpluginをインストールしない。生成物をprefixへ配置する工程は、後続のL-SMASH Works導入節で行う。
 ---
 
 # 3. Fish変数と標準ディレクトリ配置
@@ -2737,14 +2755,13 @@ CatalogでL-SMASH WorksをRemoveする
 3. Wine source/build treeの初回configure command
 4. 空prefixをCLIだけで正常bootstrapするcommand
 5. AviUtl2 2.1.2公式ZIPの取得・展開・`C:\AviUtl2`配置を別環境で実測する
-6. L-SMASH Worksの固定依存関係から`lwinput.aui2`までを生成するstandalone build script
-7. Nanashi環境でのHEVC NVENC分岐とAviUtl2 NVEnc GUI出力の実測
-8. Alex環境でのAV1 NVENC分岐とAviUtl2 NVEnc GUI出力の実測
-9. `Tahoma-Noto-*.otf`の合法かつ再現可能な生成方法
-10. NVIDIA Wine wrapperの取得元、version、展開command
-11. NVIDIA driverとVulkan ICDのpreflight
-12. Nanashi環境でのLutris Linux Runner登録commandまたはexport可能な設定
-13. clean prefixで最初から最後まで通した最終ログ
+6. Nanashi環境でのHEVC NVENC分岐とAviUtl2 NVEnc GUI出力の実測
+7. Alex環境でのAV1 NVENC分岐とAviUtl2 NVEnc GUI出力の実測
+8. `Tahoma-Noto-*.otf`の合法かつ再現可能な生成方法
+9. NVIDIA Wine wrapperの取得元、version、展開command
+10. NVIDIA driverとVulkan ICDのpreflight
+11. Nanashi環境でのLutris Linux Runner登録commandまたはexport可能な設定
+12. clean prefixで最初から最後まで通した最終ログ
 
 これらが確認されるまでは、この文書を「prepared artifactsからの新規prefix install手順」として扱う。
 復旧手順としては扱わない。
