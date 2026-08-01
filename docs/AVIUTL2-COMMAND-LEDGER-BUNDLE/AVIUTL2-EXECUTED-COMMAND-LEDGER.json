@@ -1,0 +1,2855 @@
+[
+  {
+    "id": "H001",
+    "cls": "検証専用",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:17:55 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H002",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2 on Linux環境の構築・調査・検証に関係する処理を実行する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:18:20 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H003",
+    "cls": "検証専用",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:18:37 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H004",
+    "cls": "検証専用",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:19:20 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H005",
+    "cls": "検証専用",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:19:28 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H006",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:19:33 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H007",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2を指定runner、prefix、DLL override、DXVK設定で起動・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:19:43 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H008",
+    "cls": "検証専用",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:20:29 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H009",
+    "cls": "検証専用",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:22:27 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H010",
+    "cls": "検証専用",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:22:39 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H011",
+    "cls": "検証専用",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:22:43 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H012",
+    "cls": "実行確認不能",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:29:14 +0900",
+    "adopt": "要追加確認"
+  },
+  {
+    "id": "H013",
+    "cls": "検証専用",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:33:28 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H014",
+    "cls": "実行確認不能",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:33:33 +0900",
+    "adopt": "要追加確認"
+  },
+  {
+    "id": "H015",
+    "cls": "実行確認不能",
+    "purpose": "後続コマンドで使用するシェル変数を設定する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:33:38 +0900",
+    "adopt": "要追加確認"
+  },
+  {
+    "id": "H016",
+    "cls": "失敗・旧手順",
+    "purpose": "Wine prefixを作成または更新し、レジストリとランタイム状態を反映する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:33:42 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H017",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:33:52 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H018",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:34:10 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H019",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:34:14 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H020",
+    "cls": "検証専用",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:37:47 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H021",
+    "cls": "失敗・旧手順",
+    "purpose": "WineレジストリへDLL override、フォント、IMEなどの設定を登録する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:38:02 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H022",
+    "cls": "検証専用",
+    "purpose": "Wineレジストリの設定値を確認する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:48:18 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H023",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2を指定runner、prefix、DLL override、DXVK設定で起動・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:48:23 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H024",
+    "cls": "検証専用",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:48:31 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H025",
+    "cls": "検証専用",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:50:40 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H026",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2 on Linux環境の構築・調査・検証に関係する処理を実行する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:50:58 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H027",
+    "cls": "失敗・旧手順",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:51:14 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H028",
+    "cls": "検証専用",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:52:10 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H029",
+    "cls": "実行確認不能",
+    "purpose": "AviUtl2 on Linux環境の構築・調査・検証に関係する処理を実行する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:52:18 +0900",
+    "adopt": "要追加確認"
+  },
+  {
+    "id": "H030",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2 on Linux環境の構築・調査・検証に関係する処理を実行する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:52:25 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H031",
+    "cls": "検証専用",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:52:30 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H032",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2 on Linux環境の構築・調査・検証に関係する処理を実行する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:52:35 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H033",
+    "cls": "成功",
+    "purpose": "DXVKのMesonビルドディレクトリを構成する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:52:40 +0900",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "H034",
+    "cls": "検証専用",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:55:48 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H035",
+    "cls": "検証専用",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:55:53 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H036",
+    "cls": "検証専用",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:56:01 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H037",
+    "cls": "検証専用",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:56:20 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H038",
+    "cls": "検証専用",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:56:25 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H039",
+    "cls": "検証専用",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:57:24 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H040",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2 on Linux環境の構築・調査・検証に関係する処理を実行する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:57:28 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H041",
+    "cls": "検証専用",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:57:45 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H042",
+    "cls": "失敗・旧手順",
+    "purpose": "Wine prefixを作成または更新し、レジストリとランタイム状態を反映する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 20:15:05 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H043",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 20:15:26 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H044",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2 on Linux環境の構築・調査・検証に関係する処理を実行する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 20:15:44 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H045",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 20:20:00 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H046",
+    "cls": "失敗・旧手順",
+    "purpose": "WineレジストリへDLL override、フォント、IMEなどの設定を登録する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 20:27:35 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H047",
+    "cls": "検証専用",
+    "purpose": "Wineレジストリの設定値を確認する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 20:27:39 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H048",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2を指定runner、prefix、DLL override、DXVK設定で起動・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 20:27:45 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H049",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 20:38:00 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H050",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2を指定runner、prefix、DLL override、DXVK設定で起動・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 20:38:30 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H051",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2を指定runner、prefix、DLL override、DXVK設定で起動・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 20:44:05 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H052",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2を指定runner、prefix、DLL override、DXVK設定で起動・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 20:51:36 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H053",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2を指定runner、prefix、DLL override、DXVK設定で起動・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 21:07:05 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H054",
+    "cls": "成功",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 22:01:54 +0900",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "H055",
+    "cls": "検証専用",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 22:02:03 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H056",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2を指定runner、prefix、DLL override、DXVK設定で起動・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 22:03:19 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H057",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2を指定runner、prefix、DLL override、DXVK設定で起動・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 22:08:30 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H058",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2を指定runner、prefix、DLL override、DXVK設定で起動・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 22:15:26 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H059",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 22:25:40 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H060",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 22:30:00 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H061",
+    "cls": "失敗・旧手順",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 22:32:07 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H062",
+    "cls": "失敗・旧手順",
+    "purpose": "WineレジストリへDLL override、フォント、IMEなどの設定を登録する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 22:36:25 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H063",
+    "cls": "失敗・旧手順",
+    "purpose": "WineレジストリへDLL override、フォント、IMEなどの設定を登録する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 22:36:35 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H064",
+    "cls": "検証専用",
+    "purpose": "Wineレジストリの設定値を確認する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 22:36:54 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H065",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 22:38:53 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H066",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2を指定runner、prefix、DLL override、DXVK設定で起動・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 22:39:03 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H067",
+    "cls": "成功",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 22:45:13 +0900",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "H068",
+    "cls": "成功",
+    "purpose": "Wineレジストリの旧設定を削除する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 22:46:24 +0900",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "H069",
+    "cls": "成功",
+    "purpose": "WineレジストリへDLL override、フォント、IMEなどの設定を登録する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 22:46:32 +0900",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "H070",
+    "cls": "成功",
+    "purpose": "Wine prefixを作成または更新し、レジストリとランタイム状態を反映する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 22:46:40 +0900",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "H071",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2を指定runner、prefix、DLL override、DXVK設定で起動・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 22:46:50 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H072",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 22:56:12 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H073",
+    "cls": "失敗・旧手順",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 23:10:09 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H074",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 23:23:54 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H075",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 23:24:00 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H076",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 23:24:09 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H077",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2を指定runner、prefix、DLL override、DXVK設定で起動・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 23:24:32 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H078",
+    "cls": "失敗・旧手順",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 23:50:02 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H079",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-30 23:54:55 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H080",
+    "cls": "失敗・旧手順",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 00:03:43 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H081",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2を指定runner、prefix、DLL override、DXVK設定で起動・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 00:06:38 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H082",
+    "cls": "失敗・旧手順",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 01:02:11 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H083",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 01:28:29 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H084",
+    "cls": "失敗・旧手順",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 01:28:59 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H085",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 01:35:17 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H086",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2 on Linux環境の構築・調査・検証に関係する処理を実行する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 01:36:32 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H087",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 01:57:27 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H088",
+    "cls": "検証専用",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 01:57:33 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H089",
+    "cls": "失敗・旧手順",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 01:57:39 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H090",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 01:57:45 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H091",
+    "cls": "検証専用",
+    "purpose": "AviUtl2 Catalogの取得、導入、起動、設定または更新停止状態を処理する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 01:57:53 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H092",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2 Catalogの取得、導入、起動、設定または更新停止状態を処理する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 01:57:59 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H093",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:06:30 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H094",
+    "cls": "検証専用",
+    "purpose": "AviUtl2 Catalogの取得、導入、起動、設定または更新停止状態を処理する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:06:34 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H095",
+    "cls": "検証専用",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:07:39 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H096",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2を指定runner、prefix、DLL override、DXVK設定で起動・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:07:52 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H097",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:11:07 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H098",
+    "cls": "検証専用",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:11:14 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H099",
+    "cls": "検証専用",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:11:19 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H100",
+    "cls": "失敗・旧手順",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:11:30 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H101",
+    "cls": "検証専用",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:11:34 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H102",
+    "cls": "検証専用",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:11:38 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H103",
+    "cls": "検証専用",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:34:13 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H104",
+    "cls": "検証専用",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:34:28 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H105",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2を指定runner、prefix、DLL override、DXVK設定で起動・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:34:45 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H106",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:36:11 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H107",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2 Catalogの取得、導入、起動、設定または更新停止状態を処理する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:39:13 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H108",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:44:00 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H109",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2を指定runner、prefix、DLL override、DXVK設定で起動・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:44:14 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H110",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2 on Linux環境の構築・調査・検証に関係する処理を実行する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:48:02 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H111",
+    "cls": "検証専用",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:52:43 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H112",
+    "cls": "成功",
+    "purpose": "AV1検証素材を作成またはメディア属性を確認する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:52:56 +0900",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "H113",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:53:05 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H114",
+    "cls": "成功",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:57:14 +0900",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "H115",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:57:37 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H116",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:58:37 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H117",
+    "cls": "成功",
+    "purpose": "WineレジストリへDLL override、フォント、IMEなどの設定を登録する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:58:47 +0900",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "H118",
+    "cls": "検証専用",
+    "purpose": "Wineレジストリの設定値を確認する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:58:55 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H119",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 02:59:01 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H120",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 03:19:07 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H121",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 03:19:21 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H122",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 03:21:37 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H123",
+    "cls": "成功",
+    "purpose": "WineレジストリへDLL override、フォント、IMEなどの設定を登録する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 03:21:47 +0900",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "H124",
+    "cls": "検証専用",
+    "purpose": "Wineレジストリの設定値を確認する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 03:21:53 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H125",
+    "cls": "失敗・旧手順",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 03:21:58 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H126",
+    "cls": "検証専用",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 03:25:05 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H127",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 03:25:14 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H128",
+    "cls": "失敗・旧手順",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 04:27:46 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H129",
+    "cls": "失敗・旧手順",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 04:30:05 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H130",
+    "cls": "失敗・旧手順",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 04:32:35 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H131",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 04:32:40 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H132",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 04:35:40 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H133",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 04:41:34 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H134",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 04:45:10 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H135",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 04:48:30 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H136",
+    "cls": "失敗・旧手順",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 04:48:35 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H137",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 04:48:45 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H138",
+    "cls": "検証専用",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 04:50:57 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H139",
+    "cls": "失敗・旧手順",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 04:51:50 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H140",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 04:52:33 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H141",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 04:55:02 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H142",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 04:59:04 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H143",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2を指定runner、prefix、DLL override、DXVK設定で起動・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:00:36 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H144",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:04:21 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H145",
+    "cls": "失敗・旧手順",
+    "purpose": "WineレジストリへDLL override、フォント、IMEなどの設定を登録する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:05:53 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H146",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:06:01 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H147",
+    "cls": "検証専用",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:06:53 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H148",
+    "cls": "成功",
+    "purpose": "WineレジストリへDLL override、フォント、IMEなどの設定を登録する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:10:46 +0900",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "H149",
+    "cls": "検証専用",
+    "purpose": "Wineレジストリの設定値を確認する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:11:00 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H150",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:11:04 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H151",
+    "cls": "検証専用",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:16:51 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H152",
+    "cls": "失敗・旧手順",
+    "purpose": "WineレジストリへDLL override、フォント、IMEなどの設定を登録する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:17:02 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H153",
+    "cls": "検証専用",
+    "purpose": "Wineレジストリの設定値を確認する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:17:07 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H154",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:20:07 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H155",
+    "cls": "失敗・旧手順",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:23:27 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H156",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:23:32 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H157",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:31:43 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H158",
+    "cls": "失敗・旧手順",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:34:22 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H159",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:34:25 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H160",
+    "cls": "失敗・旧手順",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:36:21 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H161",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:36:25 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H162",
+    "cls": "失敗・旧手順",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:42:50 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H163",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:42:54 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H164",
+    "cls": "検証専用",
+    "purpose": "バイナリ、artifact、DLLまたは設定ファイルの同一性・形式・埋め込みmarkerを検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:48:01 +0900",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "H165",
+    "cls": "成功",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:51:14 +0900",
+    "adopt": "内容を修正してからREPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "H166",
+    "cls": "成功",
+    "purpose": "対象ソースまたは依存ライブラリをビルド・インストールする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 05:57:47 +0900",
+    "adopt": "内容を修正してからREPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "H167",
+    "cls": "成功",
+    "purpose": "対象ソースまたは依存ライブラリをビルド・インストールする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 06:41:29 +0900",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "H168",
+    "cls": "失敗・旧手順",
+    "purpose": "DXVKをコンパイルする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 11:42:20 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H169",
+    "cls": "失敗・旧手順",
+    "purpose": "DXVKをコンパイルする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 11:45:29 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H170",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 11:47:03 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H171",
+    "cls": "失敗・旧手順",
+    "purpose": "ファイル、プロセス、ログ、設定またはソース状態を調査・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 11:52:42 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H172",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 14:00:03 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H173",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 14:00:22 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H174",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 14:00:53 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H175",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 14:01:13 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H176",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 14:01:23 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H177",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 14:01:28 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H178",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 14:01:40 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H179",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 14:01:43 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H180",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 14:02:06 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H181",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 14:03:06 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H182",
+    "cls": "失敗・旧手順",
+    "purpose": "対象Wine prefixのプロセスを停止または終了待ちする。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 14:03:20 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H183",
+    "cls": "失敗・旧手順",
+    "purpose": "Wine prefixを作成または更新し、レジストリとランタイム状態を反映する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 14:03:25 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H184",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 14:03:44 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H185",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 14:03:54 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H186",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 14:04:02 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H187",
+    "cls": "失敗・旧手順",
+    "purpose": "必要なprefix、runner、DLL、フォント、プラグインまたはcheckpointを作成・配置する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 14:04:17 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H188",
+    "cls": "失敗・旧手順",
+    "purpose": "AviUtl2を指定runner、prefix、DLL override、DXVK設定で起動・検証する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-07-31 14:04:32 +0900",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "H189",
+    "cls": "実行確認不能",
+    "purpose": "AviUtl2 Catalogの取得、導入、起動、設定または更新停止状態を処理する。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "Fish history reconstructed in (223).txt; timestamp 2026-08-01 00:31:50 +0900",
+    "adopt": "要追加確認"
+  },
+  {
+    "id": "V224-01",
+    "cls": "検証専用",
+    "purpose": "保存済み環境、ソース、prefix、runner、Catalog、L-SMASH Worksまたは履歴の状態を読み取り専用で監査する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(224).txt lines 2-403",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V225-01",
+    "cls": "検証専用",
+    "purpose": "保存済み環境、ソース、prefix、runner、Catalog、L-SMASH Worksまたは履歴の状態を読み取り専用で監査する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(225).txt lines 2-860",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V226-01",
+    "cls": "検証専用",
+    "purpose": "保存済み環境、ソース、prefix、runner、Catalog、L-SMASH Worksまたは履歴の状態を読み取り専用で監査する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(226).txt lines 2-540",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V228-01",
+    "cls": "検証専用",
+    "purpose": "保存済み環境、ソース、prefix、runner、Catalog、L-SMASH Worksまたは履歴の状態を読み取り専用で監査する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(228).txt lines 715-1124",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V229-01",
+    "cls": "検証専用",
+    "purpose": "保存済み環境、ソース、prefix、runner、Catalog、L-SMASH Worksまたは履歴の状態を読み取り専用で監査する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(229).txt lines 2-254",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V230-01",
+    "cls": "検証専用",
+    "purpose": "保存済み環境、ソース、prefix、runner、Catalog、L-SMASH Worksまたは履歴の状態を読み取り専用で監査する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(230).txt lines 2-351",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V231-01",
+    "cls": "検証専用",
+    "purpose": "保存済み環境、ソース、prefix、runner、Catalog、L-SMASH Worksまたは履歴の状態を読み取り専用で監査する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(231).txt lines 2-519",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V233-01",
+    "cls": "検証専用",
+    "purpose": "保存済み環境、ソース、prefix、runner、Catalog、L-SMASH Worksまたは履歴の状態を読み取り専用で監査する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(233).txt lines 2-520",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V234-01",
+    "cls": "検証専用",
+    "purpose": "保存済み環境、ソース、prefix、runner、Catalog、L-SMASH Worksまたは履歴の状態を読み取り専用で監査する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(234).txt lines 2-221",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V235-01",
+    "cls": "検証専用",
+    "purpose": "保存済み環境、ソース、prefix、runner、Catalog、L-SMASH Worksまたは履歴の状態を読み取り専用で監査する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(235).txt lines 2-336",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V238-01",
+    "cls": "検証専用",
+    "purpose": "保存済み環境、ソース、prefix、runner、Catalog、L-SMASH Worksまたは履歴の状態を読み取り専用で監査する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(238).txt lines 2-228",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V240-01",
+    "cls": "検証専用",
+    "purpose": "保存済み環境、ソース、prefix、runner、Catalog、L-SMASH Worksまたは履歴の状態を読み取り専用で監査する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(240).txt lines 2-302",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "D227-01",
+    "cls": "実行確認不能",
+    "purpose": "AviUtl2環境を監査するFishスクリプト本文。",
+    "cwd": "不明",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(227).txt full file",
+    "adopt": "要追加確認"
+  },
+  {
+    "id": "V237-01",
+    "cls": "検証専用",
+    "purpose": "Catalogとcustom L-SMASH Worksのhash分類を読み取り専用で検証する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(237).txt lines 2-336",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S237-02",
+    "cls": "成功",
+    "purpose": "L-SMASH Works再現用パッチをrepositoryへ適用し、Fish構文とdiffを確認する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(237).txt lines 1351-1366",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "C237-03",
+    "cls": "失敗・旧手順",
+    "purpose": "最初のrepro-01 work directoryでL-SMASH Worksを再現ビルドする。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(237).txt lines 1377-1382",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "C237-04",
+    "cls": "失敗・旧手順",
+    "purpose": "FFmpeg validation修正patchを適用する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(237).txt lines 2817-2827",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "S237-05",
+    "cls": "成功",
+    "purpose": "入手できたFFmpeg component validation patchを適用し構文・diffを確認する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(237).txt lines 2833-2844",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "C237-06",
+    "cls": "失敗・旧手順",
+    "purpose": "repository直下の`ffbuild/config.mak`を検証する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(237).txt lines 2847-2852",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "C237-07",
+    "cls": "失敗・旧手順",
+    "purpose": "修正後のrepro-02 buildを実行する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(237).txt lines 2855-2861",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "S239-01",
+    "cls": "成功",
+    "purpose": "full L-SMASH Works history取得patchを適用し、最終build scriptの構文を確認する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(239).txt lines 2-13",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S239-02",
+    "cls": "成功",
+    "purpose": "最終採用されたrepro-03 work directoryでcustom L-SMASH Works r1284を完全ビルドする。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(239).txt lines 16-21",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S241-01",
+    "cls": "成功",
+    "purpose": "最終再構築で使用するroot、prefix、runner、override変数を設定する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(241).txt lines 2-32",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "D241-02",
+    "cls": "実行確認不能",
+    "purpose": "GE-Proton11-1がない場合だけrelease archiveを取得・展開する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(241).txt lines 34-50",
+    "adopt": "要追加確認"
+  },
+  {
+    "id": "V241-03",
+    "cls": "検証専用",
+    "purpose": "GE Wine binary形式とWine versionを確認する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(241).txt lines 53-59",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S241-04",
+    "cls": "成功",
+    "purpose": "旧base prefixのWineプロセスを停止する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(241).txt lines 63-68",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S241-05",
+    "cls": "成功",
+    "purpose": "既存`prefix-ge`をtimestamp付きbackupへ退避する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(241).txt lines 71-78",
+    "adopt": "内容を修正してからREPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "C241-06",
+    "cls": "失敗・旧手順",
+    "purpose": "raw GE Wineで新しい64-bit `prefix-ge`を作成する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(241).txt lines 81-91",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "V241-07",
+    "cls": "検証専用",
+    "purpose": "作成されたprefix基本ファイルの存在を確認する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(241).txt lines 106-113",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S241-08",
+    "cls": "成功",
+    "purpose": "AviUtl2本体ディレクトリをbase prefixから`prefix-ge`へコピーする。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(241).txt lines 116-121",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S241-09",
+    "cls": "成功",
+    "purpose": "ProgramDataのAviUtl2データをbase prefixから`prefix-ge`へコピーする。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(241).txt lines 124-132",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S241-10",
+    "cls": "成功",
+    "purpose": "base prefixのD3D/DXVK関連DLLを`prefix-ge/system32`へ配置する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(241).txt lines 135-153",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "V241-11",
+    "cls": "検証専用",
+    "purpose": "配置済みD3D DLLのSHA-256を確認する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(241).txt lines 156-160",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S241-12",
+    "cls": "成功",
+    "purpose": "DXVK source/output変数を設定する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(241).txt lines 163-167",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S241-13",
+    "cls": "成功",
+    "purpose": "既存DXVK build.w64を再コンパイルしruntime出力へインストールする。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(241).txt lines 170-175",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "V241-14",
+    "cls": "検証専用",
+    "purpose": "生成されたpatched d3d11.dllのmarkerを確認する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(241).txt lines 183-192",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S241-15",
+    "cls": "成功",
+    "purpose": "旧d3d11.dllをbackupし、patched d3d11.dllを`prefix-ge`へ配置する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(241).txt lines 196-214",
+    "adopt": "内容を修正してからREPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "V241-16",
+    "cls": "検証専用",
+    "purpose": "patched d3d11.dllとactive DLLのSHA・byte一致を確認する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(241).txt lines 217-227",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S241-17",
+    "cls": "成功",
+    "purpose": "DXVK config path変数を設定する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(241).txt lines 231-232",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "V241-18",
+    "cls": "検証専用",
+    "purpose": "`prefix-ge`でAviUtl2を起動しformat 69 workaround到達を確認する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(241).txt lines 235-254",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V242-01",
+    "cls": "検証専用",
+    "purpose": "歴史的な最初の成功環境のlauncher、prefix、vkd3d DLLの存在を確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(242).txt lines 2-25",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V242-02",
+    "cls": "検証専用",
+    "purpose": "旧`~/projects/aviutl2-linux`の最初の成功launcherを再実行し、原初成功ログを保存する。",
+    "cwd": "~/Games/aviutl2/prefix-ge/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(242).txt lines 35-43",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S242-03",
+    "cls": "成功",
+    "purpose": "正規repositoryへカレントディレクトリを戻す。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(242).txt lines 823-823",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S242-04",
+    "cls": "成功",
+    "purpose": "`prefix-ge`へD3D DLL overrideを登録する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(242).txt lines 826-854",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "V242-05",
+    "cls": "検証専用",
+    "purpose": "`prefix-ge`のDllOverridesを確認する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(242).txt lines 889-896",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V242-06",
+    "cls": "検証専用",
+    "purpose": "`prefix-ge`で最終再現起動ログを取得し、Wine/tee statusを記録する。",
+    "cwd": "~/projects/aviutl2-linux-patches",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(242).txt lines 962-997",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S243-01",
+    "cls": "成功",
+    "purpose": "current prefix clone用のroot/runner変数を設定する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 6978-6994",
+    "adopt": "内容を修正してからREPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S243-02",
+    "cls": "成功",
+    "purpose": "base `prefix-ge`のWineプロセスを停止・待機する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 6997-7009",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S243-03",
+    "cls": "成功",
+    "purpose": "既存NV prefixをtimestamp付きbackupへ退避する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7012-7021",
+    "adopt": "内容を修正してからREPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S243-04",
+    "cls": "成功",
+    "purpose": "確認済み`prefix-ge`を`prefix-ge-nvdec-test`へreflink cloneする。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7024-7029",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "V243-05",
+    "cls": "検証専用",
+    "purpose": "clone後のregistry、AviUtl2本体、D3D DLLをbyte比較する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7032-7053",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V243-06",
+    "cls": "検証専用",
+    "purpose": "clone直後のNV prefixでAviUtl2を起動しformat 69到達を確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7064-7078",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S243-07",
+    "cls": "成功",
+    "purpose": "NV prefixとknown-good runner変数を再設定する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7087-7103",
+    "adopt": "内容を修正してからREPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S243-08",
+    "cls": "成功",
+    "purpose": "NV prefixのWineプロセスを停止・待機する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7106-7118",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S243-09",
+    "cls": "成功",
+    "purpose": "NVIDIA DLL overrideをnativeへ登録する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7121-7137",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "V243-10",
+    "cls": "検証専用",
+    "purpose": "NVIDIA DLL override値を確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7169-7193",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V243-11",
+    "cls": "検証専用",
+    "purpose": "NVIDIA overrideを含む構成でAviUtl2を短時間起動する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7234-7245",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S243-12",
+    "cls": "成功",
+    "purpose": "known-good backupのフォントを復旧するための変数を設定する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7254-7279",
+    "adopt": "内容を修正してからREPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "V243-13",
+    "cls": "検証専用",
+    "purpose": "4つのknown-good fontファイルの存在を確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7282-7296",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S243-14",
+    "cls": "成功",
+    "purpose": "base/NV prefix双方のWineプロセスを停止する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7303-7326",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S243-15",
+    "cls": "成功",
+    "purpose": "Noto CJK TTCとTahoma-compatible OTFをbase/NV prefix双方へ配置する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7329-7367",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S243-16",
+    "cls": "成功",
+    "purpose": "Fonts/FontSubstitutes registry key変数を設定する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7370-7374",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S243-17",
+    "cls": "成功",
+    "purpose": "Noto Sans CJK JPとTahoma-compatible fontのFonts registry entriesを登録する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7377-7418",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S243-18",
+    "cls": "成功",
+    "purpose": "旧Tahoma FontSubstituteを削除する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7482-7495",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S243-19",
+    "cls": "成功",
+    "purpose": "MS Shell Dlg系をTahomaへ、日本語font aliasesをNoto Sans CJK JPへ登録する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7541-7584",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S243-20",
+    "cls": "成功",
+    "purpose": "フォント設定反映のため両prefixで`wineboot -u`し終了待ちする。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7696-7713",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S243-21",
+    "cls": "成功",
+    "purpose": "フォント反映確認のため両prefixで`wineboot -u`を再実行する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7766-7783",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "V243-22",
+    "cls": "検証専用",
+    "purpose": "Tahoma/Noto font登録とFontSubstitutesをqueryする。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7836-7864",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S243-23",
+    "cls": "成功",
+    "purpose": "フォント復旧後のNV prefixでAviUtl2を起動する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7911-7922",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S243-24",
+    "cls": "成功",
+    "purpose": "L-SMASH導入前にWineプロセスを完全停止する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7931-7945",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S243-25",
+    "cls": "成功",
+    "purpose": "L-SMASH導入前のprefix checkpointを作成する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7948-7962",
+    "adopt": "内容を修正してからREPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "V243-26",
+    "cls": "検証専用",
+    "purpose": "repro-03 artifactとINIの存在、plugin SHAを確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7967-7984",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V243-27",
+    "cls": "検証専用",
+    "purpose": "r1284、av1_cuvid、FFmpeg configure markerを確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 7988-8003",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S243-28",
+    "cls": "成功",
+    "purpose": "active Plugin directoryとファイル変数を設定しdirectoryを確保する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 8010-8022",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S243-29",
+    "cls": "成功",
+    "purpose": "既存lwinput.aui2/lsmash.iniをtimestamp付きbackupする。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 8025-8042",
+    "adopt": "内容を修正してからREPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S243-30",
+    "cls": "成功",
+    "purpose": "repro-03 lwinput.aui2をactive pluginへ配置しbyte一致を確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 8045-8060",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S243-31",
+    "cls": "成功",
+    "purpose": "repro-03 lsmash.iniをactive pluginへ配置する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 8063-8070",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S243-32",
+    "cls": "成功",
+    "purpose": "active lsmash.iniをNVDEC設定へ書き換える。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 8073-8086",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "V243-33",
+    "cls": "検証専用",
+    "purpose": "active plugin SHAとlsmash.iniの必須3値を確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 8089-8094",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S243-34",
+    "cls": "成功",
+    "purpose": "custom r1284導入後のAviUtl2を起動する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(243).txt lines 8101-8112",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S244-01",
+    "cls": "成功",
+    "purpose": "Mozc/DWrite検証用のroot、prefix、runner変数を設定する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(244).txt lines 2-19",
+    "adopt": "内容を修正してからREPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "V244-02",
+    "cls": "検証専用",
+    "purpose": "ホストのXMODIFIERSとFcitx5/Mozcプロセスを確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(244).txt lines 21-29",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S244-03",
+    "cls": "成功",
+    "purpose": "AviUtl2専用`InputStyle=overthespot`を登録する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(244).txt lines 31-42",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "V244-04",
+    "cls": "検証専用",
+    "purpose": "InputStyle値をqueryする。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(244).txt lines 68-76",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S244-05",
+    "cls": "成功",
+    "purpose": "テキスト検証前にWineプロセスを停止・待機する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(244).txt lines 90-104",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S244-06",
+    "cls": "成功",
+    "purpose": "テキスト検証ログを初期化しAviUtl2ディレクトリへ移動する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(244).txt lines 107-117",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "V244-07",
+    "cls": "検証専用",
+    "purpose": "Fcitx XIMとDWrite traceを有効にしてAviUtl2を起動し実操作する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(244).txt lines 120-130",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V244-08",
+    "cls": "検証専用",
+    "purpose": "DWrite HitTestPoint/HitTestTextRange呼び出しを抽出する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(244).txt lines 133-138",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V244-09",
+    "cls": "検証専用",
+    "purpose": "stub、E_NOTIMPL、未処理例外を検出する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(244).txt lines 150-156",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V244-10",
+    "cls": "検証専用",
+    "purpose": "XIM style選択を確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(244).txt lines 161-168",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S245-01",
+    "cls": "成功",
+    "purpose": "Catalog 0.3.3導入用のroot、prefix、runner、repository、cache、log変数を設定する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 2-33",
+    "adopt": "内容を修正してからREPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "V245-02",
+    "cls": "検証専用",
+    "purpose": "必要コマンドの存在を確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 36-50",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V245-03",
+    "cls": "検証専用",
+    "purpose": "AviUtl2、Wine、wineserver、patched dwriteの必要pathを確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 52-65",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S245-04",
+    "cls": "成功",
+    "purpose": "Catalog導入前にWineプロセスを停止・待機する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 67-81",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S245-05",
+    "cls": "成功",
+    "purpose": "Catalog導入前checkpointを作成する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 84-95",
+    "adopt": "内容を修正してからREPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S245-06",
+    "cls": "成功",
+    "purpose": "Catalog cache/log directoryを作成する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 99-103",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S245-07",
+    "cls": "成功",
+    "purpose": "Catalog 0.3.3 release metadataを取得しtagを解決する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 106-136",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S245-08",
+    "cls": "成功",
+    "purpose": "release JSONから唯一のx64 setup asset名を解決する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 138-163",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S245-09",
+    "cls": "成功",
+    "purpose": "Catalog installerをdownloadし形式とSHAを確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 166-189",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S245-10",
+    "cls": "成功",
+    "purpose": "既存prefix内でCatalog installerを実行する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 194-211",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "V245-11",
+    "cls": "検証専用",
+    "purpose": "インストールされたCatalog executableを検索・一意確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 215-239",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S245-12",
+    "cls": "成功",
+    "purpose": "Catalogを初回起動しUIでAviUtl2 root/portable mode/プラグイン導入を行う。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 244-253",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S245-13",
+    "cls": "成功",
+    "purpose": "Catalog終了後にWineプロセスを完全停止する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 256-270",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "V245-14",
+    "cls": "検証専用",
+    "purpose": "overlay用repro-03 artifact pathとactive plugin pathを設定・存在確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 273-287",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V245-15",
+    "cls": "検証専用",
+    "purpose": "overlay前artifact SHAを確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 290-291",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S245-16",
+    "cls": "成功",
+    "purpose": "install helperでCatalog packageをpauseしcustom r1284を最後にoverlayする。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 295-301",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "V245-17",
+    "cls": "検証専用",
+    "purpose": "artifactとactive pluginのSHA・byte一致を確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 321-335",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V245-18",
+    "cls": "検証専用",
+    "purpose": "active pluginのr1284/CUVID markerを確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 340-355",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V245-19",
+    "cls": "検証専用",
+    "purpose": "active lsmash.iniの必須3値を確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 361-368",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V245-20",
+    "cls": "検証専用",
+    "purpose": "Catalog settings.jsonを一意に検索する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 374-395",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V245-21",
+    "cls": "検証専用",
+    "purpose": "settings.jsonのJSON妥当性を確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 400-407",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V245-22",
+    "cls": "検証専用",
+    "purpose": "`Mr-Ojii.L-SMASH-Works`がpause listに含まれるか確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 411-436",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V245-23",
+    "cls": "検証専用",
+    "purpose": "Catalog再起動前のactive r1284 SHAを保存する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 442-447",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S245-24",
+    "cls": "成功",
+    "purpose": "overlay後にCatalogを再起動して通常表示を確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 451-460",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "V245-25",
+    "cls": "検証専用",
+    "purpose": "Catalog再起動前後のplugin SHAを比較する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "貼り付けられたテキスト（1 点）(245).txt lines 463-487",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S-E01",
+    "cls": "検証専用",
+    "purpose": "known-good prefix内のNVIDIA wrapper symlinkとtargetを検証する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "current conversation command block + subsequent user output",
+    "adopt": "内容を修正してから検証手順として採用"
+  },
+  {
+    "id": "S-E02",
+    "cls": "成功",
+    "purpose": "NVIDIA wrapper復元前backup directoryを作成する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "current conversation command block + subsequent user output",
+    "adopt": "内容を修正してからREPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "S-E03",
+    "cls": "成功",
+    "purpose": "known-good prefixのNVIDIA Wine wrapper symlinkをcurrent NV prefixへ復元する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "current conversation command block + subsequent user output",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "V-E04",
+    "cls": "検証専用",
+    "purpose": "復元されたNVIDIA wrapper symlinkとtargetを確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "current conversation command block + subsequent user output",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S-E05",
+    "cls": "成功",
+    "purpose": "NVIDIA wrapper DLLのnative overrideを再登録する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "current conversation command block + subsequent user output",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "V-E06",
+    "cls": "検証専用",
+    "purpose": "NVIDIA wrapper override値をqueryする。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "current conversation command block + subsequent user output",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "S-E07",
+    "cls": "成功",
+    "purpose": "NVIDIA wrapper復元後のNVDEC再試験ログを初期化する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "current conversation command block + subsequent user output",
+    "adopt": "REPRODUCTION.mdへ採用"
+  },
+  {
+    "id": "V-E08",
+    "cls": "検証専用",
+    "purpose": "wrapper復元後にAV1素材を読み込み、NVDEC DLL/load traceを採取する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "current conversation command block + subsequent user output",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V-E09",
+    "cls": "検証専用",
+    "purpose": "NVDEC成功・失敗markerを最終ログから抽出する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "current conversation command block + subsequent user output",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "C-E10",
+    "cls": "失敗・旧手順",
+    "purpose": "NVIDIA wrapper復元前のprefixでAV1/NVDEC traceを採取する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "current conversation command block + subsequent user output",
+    "adopt": "失敗例として掲載"
+  },
+  {
+    "id": "V-E11",
+    "cls": "検証専用",
+    "purpose": "初回NVDECログからCUVID contextと致命的エラーを抽出する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "current conversation command block + subsequent user output",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "V-E12",
+    "cls": "検証専用",
+    "purpose": "初回NVDECログのcontext行とfatal errorを分けて確認する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "current conversation command block + subsequent user output",
+    "adopt": "検証手順として採用"
+  },
+  {
+    "id": "D-E13",
+    "cls": "実行確認不能",
+    "purpose": "Catalog統合後の完全成功prefixを最終checkpointとして複製する。",
+    "cwd": "~/Games/aviutl2/prefix-ge-nvdec-test/drive_c/AviUtl2",
+    "shell": "fish",
+    "source": "current conversation command block + subsequent user output",
+    "adopt": "要追加確認"
+  }
+]
