@@ -81,13 +81,16 @@ end
 
 set -l wineserver "$ge_proton_root/files/bin/wineserver"
 set -l ge_libs "$ge_proton_root/files/lib/x86_64-linux-gnu:$ge_proton_root/files/lib/i386-linux-gnu"
-set -l ge_winedllpath "$ge_proton_root/files/lib/vkd3d"
+set -l ge_vkd3d_dir "$ge_proton_root/files/lib/vkd3d"
+set -l ge_wine_dll_dir "$ge_proton_root/files/lib/wine"
+set -l ge_winedllpath "$ge_vkd3d_dir:$ge_wine_dll_dir"
 
 require_path "$wine"
 require_path "$wineserver"
 require_path "$ge_proton_root/files/lib/x86_64-linux-gnu"
 require_path "$ge_proton_root/files/lib/i386-linux-gnu"
-require_path "$ge_winedllpath"
+require_path "$ge_vkd3d_dir"
+require_path "$ge_wine_dll_dir"
 
 if prefix_is_complete "$prefix"
     echo "Prefix is already initialized: $prefix"
