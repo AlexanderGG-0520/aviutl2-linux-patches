@@ -41,6 +41,7 @@ jobs:
             flex \
             gettext \
             git \
+            libx11-dev \
             mingw-w64 \
             patch \
             pkg-config \
