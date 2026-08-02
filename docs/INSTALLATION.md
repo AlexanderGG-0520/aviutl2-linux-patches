@@ -464,7 +464,7 @@ set BUILT_DWRITE \
     "$WINE_BUILD/dlls/dwrite/x86_64-windows/dwrite.dll"
 
 set GE_LIBS \
-    "$GE_PROTON_ROOT/files/lib64:$GE_PROTON_ROOT/files/lib:$GE_PROTON_ROOT/files/lib/wine/x86_64-unix:$GE_PROTON_ROOT/files/lib/wine/i386-unix"
+    "$GE_PROTON_ROOT/files/lib/x86_64-linux-gnu:$GE_PROTON_ROOT/files/lib/i386-linux-gnu"
 ```
 
 pathとDLLの同一性を検証する:
@@ -827,49 +827,58 @@ set GE_DWRITE \
 stock runnerの誤指定と、build済みDLLとの差異を診断起動前に拒否する:
 
 ```fish
-if test "$GE_PROTON_ROOT" = "$GE_BASE/GE-Proton11-1"
-    echo "ERROR: stock GE-Proton11-1 must never be used for AviUtl2" >&2
-    return 1
-end
-
-if not test "$GE_PROTON_ROOT" = "$GE_BASE/GE-Proton11-1-aviutl2"
-    echo "ERROR: unexpected GE_PROTON_ROOT: $GE_PROTON_ROOT" >&2
-    return 1
-end
-
-for path in \
-    "$BUILT_DWRITE" \
-    "$GE_DWRITE" \
-    "$REPO/scripts/diagnose-aviutl2-launch.fish"
-
-    test -e "$path"
-    or begin
-        echo "ERROR: missing Section 13 prerequisite: $path" >&2
+function validate_section13_patched_runner
+    if test "$GE_PROTON_ROOT" = "$GE_BASE/GE-Proton11-1"
+        echo "ERROR: stock GE-Proton11-1 must never be used for AviUtl2" >&2
         return 1
     end
-end
 
-cmp \
-    --silent \
-    "$BUILT_DWRITE" \
-    "$GE_DWRITE"
-or begin
-    echo "ERROR: selected runtime runner does not contain the built patched dwrite.dll" >&2
+    if not test "$GE_PROTON_ROOT" = "$GE_BASE/GE-Proton11-1-aviutl2"
+        echo "ERROR: unexpected GE_PROTON_ROOT: $GE_PROTON_ROOT" >&2
+        return 1
+    end
+
+    for path in \
+        "$BUILT_DWRITE" \
+        "$GE_DWRITE" \
+        "$REPO/scripts/diagnose-aviutl2-launch.fish"
+
+        test -e "$path"
+        or begin
+            echo "ERROR: missing Section 13 prerequisite: $path" >&2
+            return 1
+        end
+    end
+
+    cmp \
+        --silent \
+        "$BUILT_DWRITE" \
+        "$GE_DWRITE"
+    or begin
+        echo "ERROR: selected runtime runner does not contain the built patched dwrite.dll" >&2
+        sha256sum \
+            "$BUILT_DWRITE" \
+            "$GE_DWRITE"
+        return 1
+    end
+
+    printf '%s\n' \
+        "GE_PROTON_ROOT=$GE_PROTON_ROOT" \
+        "BUILT_DWRITE=$BUILT_DWRITE" \
+        "GE_DWRITE=$GE_DWRITE"
+
     sha256sum \
         "$BUILT_DWRITE" \
         "$GE_DWRITE"
-    return 1
 end
 
-printf '%s\n' \
-    "GE_PROTON_ROOT=$GE_PROTON_ROOT" \
-    "BUILT_DWRITE=$BUILT_DWRITE" \
-    "GE_DWRITE=$GE_DWRITE"
+validate_section13_patched_runner
+set SECTION13_RUNNER_STATUS $status
 
-sha256sum \
-    "$BUILT_DWRITE" \
-    "$GE_DWRITE"
+test $SECTION13_RUNNER_STATUS -eq 0
 ```
+
+`SECTION13_RUNNER_STATUS`が0以外の場合は、以降の診断起動commandを実行せずSection 3.2へ戻る。
 
 出力の`GE_PROTON_ROOT`が必ず次と一致し、二つのSHA-256が一致していることを確認する:
 
