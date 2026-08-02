@@ -86,6 +86,9 @@ end
 
 set -l wineserver "$ge_proton_root/files/bin/wineserver"
 set -l dwrite "$ge_proton_root/files/lib/wine/x86_64-windows/dwrite.dll"
+set -l ge_lib64 "$ge_proton_root/files/lib/x86_64-linux-gnu"
+set -l ge_lib32 "$ge_proton_root/files/lib/i386-linux-gnu"
+set -l ge_winedllpath "$ge_proton_root/files/lib/vkd3d"
 set -l dxvk_artifact_dir "$artifact_root/dxvk-2.7.1-aviutl2/x64"
 set -l font_source_dir "$artifact_root/fonts"
 set -l nvidia_wrapper_dir "$artifact_root/nvidia-libs-v1.0.2/x64"
@@ -97,6 +100,8 @@ printf '  root=%s\n' "$root"
 printf '  ge_proton_root=%s\n' "$ge_proton_root"
 printf '  wine=%s\n' "$wine"
 printf '  wineserver=%s\n' "$wineserver"
+printf '  ld_library_path=%s:%s\n' "$ge_lib64" "$ge_lib32"
+printf '  winedllpath=%s\n' "$ge_winedllpath"
 printf '  aviutl2_source_dir=%s\n' "$aviutl2_source_dir"
 printf '  lsmash_artifact_dir=%s\n' "$lsmash_artifact_dir"
 
@@ -104,6 +109,12 @@ for path in \
     "$wine" \
     "$wineserver" \
     "$dwrite" \
+    "$ge_lib64" \
+    "$ge_lib32" \
+    "$ge_winedllpath" \
+    "$ge_winedllpath/libvkd3d-1.dll" \
+    "$ge_winedllpath/libvkd3d-shader-1.dll" \
+    "$ge_winedllpath/libvkd3d-utils-1.dll" \
     "$aviutl2_source_dir/aviutl2.exe" \
     "$dxvk_artifact_dir/d3d11.dll" \
     "$dxvk_artifact_dir/dxgi.dll" \
