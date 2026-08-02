@@ -21,6 +21,13 @@ Lutris Linux Runner
 AviUtl2 Catalogも同じ考え方で、固定wrapperから
 `scripts/manage-aviutl2-catalog-lutris.sh`を起動する。
 
+検証状態:
+
+- Nanashi環境でSection 13診断起動、日本語入力、変換、確定まで成功済み
+- `$ROOT/prefix`を推測して固定した旧wrapperは`prefix not found`で失敗
+- 本文では成功した診断ログの`AVIUTL2_EXE`から実際のprefixを復元する
+- Lutris登録後はwrapper単体とLutris経由の両方で同じGUI検証を行う
+
 ## 前提
 
 先にSection 13を完了し、少なくとも次を確認していること。
@@ -328,31 +335,31 @@ begin
     echo
 
     printf 'export AVIUTL2_ROOT=%s\n' \
-        (string escape --style=var -- "$ROOT")
+        (string escape -- "$ROOT")
 
     printf 'export AVIUTL2_PREFIX=%s\n' \
-        (string escape --style=var -- "$PREFIX")
+        (string escape -- "$PREFIX")
 
     printf 'export GE_PROTON_ROOT=%s\n' \
-        (string escape --style=var -- "$GE_PROTON_ROOT")
+        (string escape -- "$GE_PROTON_ROOT")
 
     printf 'export GE_WINE=%s\n' \
-        (string escape --style=var -- "$GE_WINE")
+        (string escape -- "$GE_WINE")
 
     printf 'export GE_WINESERVER=%s\n' \
-        (string escape --style=var -- "$GE_WINESERVER")
+        (string escape -- "$GE_WINESERVER")
 
     printf 'export GE_LIBS=%s\n' \
-        (string escape --style=var -- "$GE_LIBS")
+        (string escape -- "$GE_LIBS")
 
     printf 'export DXVK_CONFIG_FILE=%s\n' \
-        (string escape --style=var -- "$DXVK_CONFIG_FILE")
+        (string escape -- "$DXVK_CONFIG_FILE")
 
     echo "export WINEDLLOVERRIDES_VALUE='nvcuda,nvcuvid,nvencodeapi64=n;d3d11,dxgi,d3d10core=n,b;d3dcompiler_47=n,b;dwrite=b'"
     echo
 
     printf 'exec %s "$@"\n' \
-        (string escape --style=var -- "$REPO/scripts/manage-aviutl2-catalog-lutris.sh")
+        (string escape -- "$REPO/scripts/manage-aviutl2-catalog-lutris.sh")
 end > "$CATALOG_LUTRIS_WRAPPER"
 
 chmod +x \
