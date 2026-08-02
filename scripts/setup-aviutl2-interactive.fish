@@ -35,6 +35,7 @@ for module in \
     20-deploy.fish \
     30-verify.fish \
     45-catalog-doc-flow.fish \
+    46-catalog-registration-gate.fish \
     90-main.fish
 
     set -l module_path "$MODULE_DIR/$module"
