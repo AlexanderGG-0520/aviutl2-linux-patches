@@ -44,6 +44,12 @@ for module in \
         exit 66
     end
 
+    fish -n "$module_path"
+    or begin
+        echo "ERROR: invalid Fish syntax in setup module: $module_path" >&2
+        exit 2
+    end
+
     source "$module_path"
     or begin
         echo "ERROR: failed to source setup module: $module_path" >&2
