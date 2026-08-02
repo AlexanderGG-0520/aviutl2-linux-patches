@@ -16,18 +16,7 @@ function setup_catalog
     validate_gui_verification_marker
     or die 'Catalog setup requires current Section 13 GUI / text / Mozc verification evidence'
 
-    if test "$SKIP_DEPENDENCIES" -eq 1
-        note 'Catalog/Lutris dependency installation is disabled by --skip-dependencies'
-    else if ask_yes_no 'LUTRIS-CATALOG.md記載のpackageを導入しますか？' yes
-        sudo pacman -S --needed \
-            lutris \
-            fish \
-            python \
-            xdg-utils \
-            desktop-file-utils \
-            github-cli
-        or die 'Catalog/Lutris dependency installation failed'
-    end
+    install_catalog_dependencies
 
     require_command gh
     require_command lutris
