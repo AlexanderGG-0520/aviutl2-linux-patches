@@ -30,10 +30,12 @@ set -l MODULE_DIR "$SCRIPT_DIR/lib/setup-aviutl2-interactive"
 
 for module in \
     00-core.fish \
+    05-repository-validation.fish \
     10-artifacts.fish \
     20-deploy.fish \
     30-verify.fish \
     40-catalog.fish \
+    45-catalog-doc-flow.fish \
     90-main.fish
 
     set -l module_path "$MODULE_DIR/$module"
