@@ -21,21 +21,38 @@
 | [`STATUS.md`](STATUS.md) | 元環境と別環境の進捗、確認済み・未確認の一覧 |
 | [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) | 実際に発生したエラーと切り分け方法 |
 | [`TECHNICAL-NOTES.md`](TECHNICAL-NOTES.md) | DXVK、Wine DWrite、L-SMASH Works の修正理由 |
-| [`LUTRIS-CATALOG.md`](LUTRIS-CATALOG.md) | 固定ランチャー、Lutris、AviUtl2 Catalog の運用 |
+| [`LUTRIS-CATALOG.md`](LUTRIS-CATALOG.md) | 検証済みprefixを固定したLutris登録とAviUtl2 Catalogの運用 |
 
 ## 正本
 
-実行時の GE-Proton パスと環境変数については、次の管理スクリプトを正本とする。
+patched DWriteのclean build:
+
+```text
+scripts/build-dwrite-clean.fish
+docs/DWRITE-CLEAN-BUILD.md
+```
+
+AviUtl2起動時の環境構築:
+
+```text
+scripts/launch-aviutl2.fish
+```
+
+AviUtl2 Catalogの取得、起動、更新、backup:
 
 ```text
 scripts/manage-aviutl2-catalog-lutris.sh
 ```
 
-特に、実際に使用した Wine バイナリは次である。
+LutrisにはWine Runnerを登録しない。
+`docs/LUTRIS-CATALOG.md`の手順で、Section 13の成功ログから実際のprefixを復元し、
+検証済みprefix、patched GE-Proton、DXVK設定の絶対pathを固定したローカルwrapperをLinux Runnerへ登録する。
+
+runnerのdirectory名だけではpatched DWriteの導入済み判定を行わない。
+clean build成果物と次のPE DLLが`cmp`で一致したrunnerだけを使用する。
 
 ```text
-GE_WINE=$GE_PROTON_ROOT/files/lib/wine/x86_64-unix/wine
-GE_WINESERVER=$GE_PROTON_ROOT/files/bin/wineserver
+$GE_PROTON_ROOT/files/lib/wine/x86_64-windows/dwrite.dll
 ```
 
-`files/bin/wine` を使用する別手順と混在させない。
+`files/lib/wine/x86_64-unix/dwrite.so`は置換しない。
