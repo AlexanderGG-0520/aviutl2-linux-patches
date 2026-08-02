@@ -1,8 +1,30 @@
 --- a/dlls/dwrite/layout.c
 +++ b/dlls/dwrite/layout.c
-@@ -4000,10 +4000,20 @@
+@@ -3965,6 +3965,23 @@
+ static HRESULT WINAPI dwritetextlayout_HitTestTextPosition(IDWriteTextLayout4 *iface,
+         UINT32 position, BOOL is_trailinghit, FLOAT *point_x, FLOAT *point_y,
+         DWRITE_HIT_TEST_METRICS *metrics);
++
++static struct layout_effective_run *layout_get_erun_for_position(
++        const struct dwrite_textlayout *layout, UINT32 position)
++{
++    struct layout_effective_run *run;
++    UINT32 start;
++
++    LIST_FOR_EACH_ENTRY(run, &layout->eruns, struct layout_effective_run, entry)
++    {
++        start = run->run->start_position + run->start;
++
++        if (start <= position && position < start + run->length)
++            return run;
++    }
++
++    return NULL;
++}
  
-         memset(&current, 0, sizeof(current));
+ static HRESULT WINAPI dwritetextlayout_HitTestPoint(IDWriteTextLayout4 *iface,
+         FLOAT point_x, FLOAT point_y, BOOL *is_trailinghit, BOOL *is_inside,
+@@ -4004,6 +4021,16 @@
  
          hr = dwritetextlayout_HitTestTextPosition(iface, position, FALSE,
                  &current_x, &current_y, &current);
@@ -19,11 +41,7 @@
          if (FAILED(hr))
              return hr;
  
-         left = current.left;
-         right = current.left + current.width;
-@@ -4050,11 +4060,20 @@
- 
-         position = min(next, layout->len);
+@@ -4054,7 +4081,16 @@
      }
  
      if (!found)
@@ -41,5 +59,131 @@
  
      *metrics = best;
  
-     if (best.width > 0.0f)
-     {
+@@ -4072,13 +4108,123 @@
+ }
+ 
+ static HRESULT WINAPI dwritetextlayout_HitTestTextPosition(IDWriteTextLayout4 *iface,
+-        UINT32 textPosition, BOOL is_trailinghit, FLOAT *pointX, FLOAT *pointY, DWRITE_HIT_TEST_METRICS *metrics)
++        UINT32 position, BOOL is_trailinghit, FLOAT *point_x, FLOAT *point_y,
++        DWRITE_HIT_TEST_METRICS *metrics)
+ {
+-    FIXME("%p, %u, %d, %p, %p, %p): stub\n", iface, textPosition, is_trailinghit, pointX, pointY, metrics);
+-
+-    return E_NOTIMPL;
++    struct dwrite_textlayout *layout = impl_from_IDWriteTextLayout4(iface);
++    const DWRITE_CLUSTER_METRICS *cluster_metrics = NULL;
++    struct layout_effective_run *run;
++    UINT32 cluster_start = 0;
++    UINT32 run_start, run_end;
++    FLOAT offset = 0.0f;
++    UINT32 i;
++    HRESULT hr;
++
++    TRACE("%p, %u, %d, %p, %p, %p.\n",
++            iface, position, is_trailinghit, point_x, point_y, metrics);
++
++    if (!point_x || !point_y || !metrics)
++        return E_INVALIDARG;
++
++    *point_x = 0.0f;
++    *point_y = 0.0f;
++    memset(metrics, 0, sizeof(*metrics));
++
++    if (FAILED(hr = layout_compute_effective_runs(layout)))
++        return hr;
++
++    position = min(position, layout->len);
++
++    if (!layout->len || !layout->cluster_count || list_empty(&layout->eruns))
++    {
++        metrics->textPosition = position;
++        metrics->length = 0;
++        metrics->height = layout->metrics.height;
++        metrics->isText = TRUE;
++        return S_OK;
++    }
++
++    if (position == layout->len)
++    {
++        run = layout_get_prev_erun(layout, NULL);
++        if (!run)
++            return E_FAIL;
++
++        metrics->textPosition = position;
++        metrics->length = 0;
++        metrics->top = run->origin.y - layout->lines[run->line].metrics.baseline;
++        metrics->width = 0.0f;
++        metrics->height = layout->lines[run->line].metrics.height;
++        metrics->bidiLevel = run->run->u.regular.run.bidiLevel;
++        metrics->isText = TRUE;
++        metrics->isTrimmed = FALSE;
++
++        if (is_run_rtl(run))
++            metrics->left = run->origin.x + run->align_dx - run->width;
++        else
++            metrics->left = run->origin.x + run->align_dx + run->width;
++
++        *point_x = metrics->left;
++        *point_y = metrics->top;
++        return S_OK;
++    }
++
++    if (!(run = layout_get_erun_for_position(layout, position)))
++        return E_FAIL;
++
++    run_start = run->run->start_position + run->start;
++    run_end = run_start + run->length;
++
++    for (i = 0; i < layout->cluster_count; ++i)
++    {
++        UINT32 current_start;
++
++        if (layout->clusters[i].run != run->run)
++            continue;
++
++        current_start = layout->clusters[i].run->start_position +
++                layout->clusters[i].position;
++
++        if (current_start < run_start || current_start >= run_end)
++            continue;
++
++        if (current_start <= position &&
++                position < current_start + layout->clustermetrics[i].length)
++        {
++            cluster_start = current_start;
++            cluster_metrics = &layout->clustermetrics[i];
++            break;
++        }
++
++        offset += layout->clustermetrics[i].width;
++    }
++
++    if (!cluster_metrics)
++        return E_FAIL;
++
++    metrics->textPosition = cluster_start;
++    metrics->length = cluster_metrics->length;
++    metrics->top = run->origin.y - layout->lines[run->line].metrics.baseline;
++    metrics->width = cluster_metrics->width;
++    metrics->height = layout->lines[run->line].metrics.height;
++    metrics->bidiLevel = run->run->u.regular.run.bidiLevel;
++    metrics->isText = TRUE;
++    metrics->isTrimmed = FALSE;
++
++    if (is_run_rtl(run))
++    {
++        metrics->left = run->origin.x + run->align_dx - offset - metrics->width;
++        *point_x = metrics->left + (is_trailinghit ? 0.0f : metrics->width);
++    }
++    else
++    {
++        metrics->left = run->origin.x + run->align_dx + offset;
++        *point_x = metrics->left + (is_trailinghit ? metrics->width : 0.0f);
++    }
++
++    *point_y = metrics->top;
++    return S_OK;
+ }
+ 
+ static HRESULT WINAPI dwritetextlayout_HitTestTextRange(IDWriteTextLayout4 *iface,
+         UINT32 textPosition, UINT32 textLength, FLOAT originX, FLOAT originY,
