@@ -2,27 +2,30 @@
 
 最終更新: 2026-08-02
 
-この文書は、AviUtl2 2.1.3をCachyOS / Arch Linux上の新しいWine prefixへ導入するための手順である。
-既存prefixや日時付きbackupからの復旧は`REPRODUCTION.md`へ分離する。
+この文書は、CachyOS / Arch Linux上でAviUtl2 2.1.3を新しいWine prefixへ導入する手順である。
+コマンドはFish 4.8.1を前提とする。
+
+重要:
+
+- `GE_PROTON_ROOT`は各利用者の`$HOME`配下にあるpatched GE-Proton runnerを指す。
+- `/home/alex`など、別利用者の絶対pathを流用しない。
+- `GE_WINE`、`GE_WINESERVER`、`GE_LIBS`は`GE_PROTON_ROOT`から毎回再計算する。
+- Section 13は起動・UI・text編集・IMEの確認だけを扱う。NVDEC/NVENC検証はSection 14へ分離する。
 
 検証基準:
 
 | 項目 | 値 |
 | --- | --- |
-| shell | fish 4.8.1 |
-| GE-Proton | 11-1 |
+| shell | Fish 4.8.1 |
+| GE-Proton | 11-1 patched runner |
 | Wine | wine-staging 11.0 |
 | DXVK | 2.7.1 |
-| AviUtl2 | 2.1.2 |
+| AviUtl2 | 2.1.3 |
 | IME | Fcitx5 + Mozc |
 | Catalog | 0.3.3 |
 | GPU | NVIDIA |
 
-未検証のversionへ読み替えず、最初はこの組み合わせで導入する。
-
 ## 1. 依存関係
-
-実行・取得・検証用:
 
 ```fish
 sudo pacman -S --needed \
@@ -34,7 +37,6 @@ sudo pacman -S --needed \
     python \
     python-fonttools \
     noto-fonts-cjk \
-    github-cli \
     file \
     binutils \
     coreutils \
@@ -50,7 +52,7 @@ sudo pacman -S --needed \
     vulkan-tools
 ```
 
-DXVK、Wine DWrite、L-SMASH Worksをsource buildする場合:
+source buildも行う場合:
 
 ```fish
 sudo pacman -S --needed \
@@ -70,83 +72,134 @@ sudo pacman -S --needed \
     mingw-w64-winpthreads
 ```
 
-LutrisへLinux Runnerとして登録する場合:
+## 2. repositoryと環境変数
+
+repository:
 
 ```fish
-sudo pacman -S --needed \
-    lutris
-```
-
-## 2. repositoryと標準path
-
-```fish
-set ROOT \
-    "$HOME/Games/aviutl2"
-
 set REPO \
     "$HOME/projects/aviutl2-linux-patches"
 
-set PREFIX \
-    "$ROOT/prefix"
-
-set ARTIFACT_ROOT \
-    "$ROOT/artifacts"
-
-set AVIUTL2_SOURCE_DIR \
-    "$ARTIFACT_ROOT/AviUtl2-2.1.2"
-
-set DXVK_ARTIFACT_DIR \
-    "$ARTIFACT_ROOT/dxvk-2.7.1-aviutl2/x64"
-
-set FONT_SOURCE_DIR \
-    "$ARTIFACT_ROOT/fonts"
-
-set NVIDIA_WRAPPER_DIR \
-    "$ARTIFACT_ROOT/nvidia-libs-v1.0.2/x64"
-
-set LSMASH_ARTIFACT_DIR \
-    "$ROOT/build/l-smash-works-nvdec-repro-03/output"
-
-set GE_PROTON_ROOT \
-    "$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1-aviutl2-test"
-
-set GE_WINE \
-    "$GE_PROTON_ROOT/files/lib/wine/x86_64-unix/wine"
-
-set GE_WINESERVER \
-    "$GE_PROTON_ROOT/files/bin/wineserver"
-
-set GE_LIBS \
-    "$GE_PROTON_ROOT/files/lib64:$GE_PROTON_ROOT/files/lib:$GE_PROTON_ROOT/files/lib/wine/x86_64-unix:$GE_PROTON_ROOT/files/lib/wine/i386-unix"
-
-set DXVK_CONFIG_FILE \
-    "$ROOT/nvidia-dxvk.conf"
-
-set DLL_OVERRIDES \
-    'nvcuda,nvcuvid,nvencodeapi64=n;d3d11,dxgi,d3d10core=n,b;d3dcompiler_47=n,b;dwrite=b'
-```
-
-repositoryを取得する。
-
-```fish
-mkdir -p \
-    "$HOME/projects" \
-    "$ROOT" \
-    "$ARTIFACT_ROOT"
-
 if not test -d "$REPO/.git"
+    mkdir -p "$HOME/projects"
+
     git clone \
         https://github.com/AlexanderGG-0520/aviutl2-linux-patches.git \
         "$REPO"
 end
 
 cd "$REPO"
-git status --short --branch
+git pull --ff-only
 ```
 
-## 3. GE-Proton 11-1を取得する
+patched runner候補を確認する:
 
-`latest`ではなく固定releaseを使用する。
+```fish
+find \
+    "$HOME/.local/share/Steam/compatibilitytools.d" \
+    -mindepth 1 \
+    -maxdepth 1 \
+    -type d \
+    -name 'GE-Proton11-1*' \
+    -print
+```
+
+Nanashi環境のpatched runnerは次である:
+
+```text
+$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1-aviutl2-test
+```
+
+現在のFish sessionに古い`/home/alex`由来の変数が残らないよう、標準pathを一括で再設定する:
+
+```fish
+function set_aviutl2_install_env --argument-names ge_proton_root
+    set -g ROOT \
+        "$HOME/Games/aviutl2"
+
+    set -g REPO \
+        "$HOME/projects/aviutl2-linux-patches"
+
+    set -g PREFIX \
+        "$ROOT/prefix"
+
+    set -g ARTIFACT_ROOT \
+        "$ROOT/artifacts"
+
+    set -g AVIUTL2_SOURCE_DIR \
+        "$ARTIFACT_ROOT/AviUtl2-2.1.3"
+
+    set -g DXVK_ARTIFACT_DIR \
+        "$ARTIFACT_ROOT/dxvk-2.7.1-aviutl2/x64"
+
+    set -g FONT_SOURCE_DIR \
+        "$ARTIFACT_ROOT/fonts"
+
+    set -g NVIDIA_WRAPPER_DIR \
+        "$ARTIFACT_ROOT/nvidia-libs-v1.0.2/x64"
+
+    set -g LSMASH_WORK \
+        "$ROOT/build/l-smash-works-nvdec-repro-03"
+
+    set -g LSMASH_ARTIFACT_DIR \
+        "$LSMASH_WORK/output"
+
+    set -g GE_PROTON_ROOT \
+        (string replace -r '/+$' '' -- "$ge_proton_root")
+
+    set -g GE_WINE \
+        "$GE_PROTON_ROOT/files/bin/wine"
+
+    if not test -x "$GE_WINE"
+        set -g GE_WINE \
+            "$GE_PROTON_ROOT/files/lib/wine/x86_64-unix/wine"
+    end
+
+    set -g GE_WINESERVER \
+        "$GE_PROTON_ROOT/files/bin/wineserver"
+
+    set -g GE_LIBS \
+        "$GE_PROTON_ROOT/files/lib64:$GE_PROTON_ROOT/files/lib:$GE_PROTON_ROOT/files/lib/wine/x86_64-unix:$GE_PROTON_ROOT/files/lib/wine/i386-unix"
+
+    set -g DXVK_CONFIG_FILE \
+        "$ROOT/nvidia-dxvk.conf"
+
+    set -g DLL_OVERRIDES \
+        'nvcuda,nvcuvid,nvencodeapi64=n;d3d11,dxgi,d3d10core=n,b;d3dcompiler_47=n,b;dwrite=b'
+
+    for path in \
+        "$GE_PROTON_ROOT" \
+        "$GE_WINE" \
+        "$GE_WINESERVER"
+
+        if not test -e "$path"
+            echo "ERROR: missing runner path: $path" >&2
+            return 1
+        end
+    end
+end
+
+set_aviutl2_install_env \
+    "$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1-aviutl2-test"
+```
+
+確認:
+
+```fish
+printf '%s\n' \
+    "HOME=$HOME" \
+    "ROOT=$ROOT" \
+    "PREFIX=$PREFIX" \
+    "GE_PROTON_ROOT=$GE_PROTON_ROOT" \
+    "GE_WINE=$GE_WINE" \
+    "GE_WINESERVER=$GE_WINESERVER"
+```
+
+Nanashi環境で`/home/alex`が1件でも表示された場合は、そのまま進めず、このSection 2を同じFish sessionで再実行する。
+
+## 3. GE-Proton 11-1
+
+stock GE-Proton 11-1の取得:
 
 ```fish
 set GE_DOWNLOAD_DIR \
@@ -191,12 +244,10 @@ if not test -d "$GE_BASE/GE-Proton11-1"
 end
 ```
 
-stock runnerからpatched runnerを完成させるWine DWrite buildは`REPRODUCTION.md`のWine / DWrite節を使用する。
-`GE_PROTON_ROOT`は完成したpatched runnerのpathへ固定する。
+AviUtl2のtext編集にはpatched Wine DWriteが必要である。
+patched runnerの作成経路は`docs/REPRODUCTION.md`のWine / DWrite節を使用し、完成先を`GE_PROTON_ROOT`へ設定する。
 
 ## 4. AviUtl2 2.1.3を取得する
-
-AviUtl2本体はrepositoryへ再配布せず、公式ZIPを直接取得する。
 
 ```fish
 function prepare_aviutl2_213
@@ -204,7 +255,10 @@ function prepare_aviutl2_213
     set -l archive "$download_dir/aviutl2_v2.1.3.zip"
     set -l extract_dir "$ROOT/build/aviutl2-v2.1.3-extract"
 
-    mkdir -p "$download_dir" "$ROOT/build" "$ARTIFACT_ROOT"
+    mkdir -p \
+        "$download_dir" \
+        "$ROOT/build" \
+        "$ARTIFACT_ROOT"
     or return 1
 
     curl \
@@ -215,11 +269,18 @@ function prepare_aviutl2_213
         "https://spring-fragrance.mints.ne.jp/aviutl/aviutl2_v2.1.3.zip"
     or return 1
 
-    rm -rf "$extract_dir" "$AVIUTL2_SOURCE_DIR"
-    mkdir -p "$extract_dir" "$AVIUTL2_SOURCE_DIR"
+    rm -rf \
+        "$extract_dir" \
+        "$AVIUTL2_SOURCE_DIR"
+
+    mkdir -p \
+        "$extract_dir" \
+        "$AVIUTL2_SOURCE_DIR"
     or return 1
 
-    bsdtar -xf "$archive" -C "$extract_dir"
+    bsdtar \
+        -xf "$archive" \
+        -C "$extract_dir"
     or return 1
 
     set -l aviutl2_exe \
@@ -245,25 +306,6 @@ prepare_aviutl2_213
 
 ## 5. patched DXVK 2.7.1をbuildする
 
-実在するbuild scriptを使用する。
-
-```text
-scripts/build-dxvk-aviutl2.sh
-```
-
-このscriptはDXVKをcommit `c3dd74be6baec53786d4e064a572185b70347a17`へ固定し、
-`patches/dxvk/0001-aviutl2-format-support.patch`を適用して次を生成する。
-
-```text
-d3d11.dll
-dxgi.dll
-d3d10core.dll
-SHA256SUMS
-BUILD-METADATA
-```
-
-`d3dcompiler_47.dll`はDXVK artifactではない。GE-Proton / Wineがprefixへ配置するものを使用する。
-
 ```fish
 set DXVK_WORK \
     "$ROOT/build/dxvk-2.7.1-aviutl2-source"
@@ -278,7 +320,7 @@ bash \
     --output-dir "$DXVK_ARTIFACT_DIR"
 ```
 
-work/output pathは新規でなければならない。既存pathがある場合は別名を指定する。
+work/output directoryは新規pathでなければならない。
 
 ```fish
 pushd "$DXVK_ARTIFACT_DIR"
@@ -287,9 +329,7 @@ file d3d11.dll dxgi.dll d3d10core.dll
 popd
 ```
 
-## 6. 日本語fontを取得・生成する
-
-`noto-fonts-cjk`のTTCから、Wine DirectWriteがTahomaとして解決できるlocal compatibility OTFを生成する。
+## 6. 日本語fontを生成する
 
 ```fish
 python3 \
@@ -297,48 +337,25 @@ python3 \
     --output-dir "$FONT_SOURCE_DIR"
 ```
 
-生成物:
-
-```text
-NotoSansCJK-Regular.ttc
-NotoSansCJK-Bold.ttc
-Tahoma-Noto-Regular.otf
-Tahoma-Noto-Bold.otf
-SHA256SUMS
-```
-
 ```fish
 pushd "$FONT_SOURCE_DIR"
 sha256sum -c SHA256SUMS
+
 file \
     NotoSansCJK-Regular.ttc \
     NotoSansCJK-Bold.ttc \
     Tahoma-Noto-Regular.otf \
     Tahoma-Noto-Bold.otf
+
 popd
 ```
 
-生成した`Tahoma-Noto-*.otf`はlocal compatibility用途であり、MicrosoftのTahoma本体ではない。
-repositoryへcommitしない。
-
 ## 7. NVIDIA Wine wrapperを取得する
-
-SveSop/nvidia-libs `v1.0.2`の通常archiveをGitHub Releases APIから取得する。
 
 ```fish
 fish \
     "$REPO/scripts/prepare-nvidia-libs.fish" \
     --output-dir "$NVIDIA_WRAPPER_DIR"
-```
-
-生成物:
-
-```text
-nvcuda.dll
-nvcuvid.dll
-nvencodeapi64.dll
-SHA256SUMS
-SHA256SUMS.expected
 ```
 
 ```fish
@@ -348,25 +365,13 @@ file nvcuda.dll nvcuvid.dll nvencodeapi64.dll
 popd
 ```
 
-## 8. custom L-SMASH Works r1284を完全buildする
+## 8. custom L-SMASH Works r1284をbuildする
 
 ```fish
-set LSMASH_WORK \
-    "$ROOT/build/l-smash-works-nvdec-repro-03"
-
 fish \
     "$REPO/scripts/build-l-smash-works-nvdec.fish" \
     --work-dir "$LSMASH_WORK" \
     --jobs (nproc)
-```
-
-成功時:
-
-```text
-$LSMASH_ARTIFACT_DIR/lwinput.aui2
-$LSMASH_ARTIFACT_DIR/lsmash.ini
-$LSMASH_ARTIFACT_DIR/PROVENANCE.txt
-$LSMASH_ARTIFACT_DIR/SHA256SUMS
 ```
 
 ```fish
@@ -375,56 +380,44 @@ sha256sum -c SHA256SUMS
 popd
 ```
 
-## 9. artifact preflight
-
-固定名の`av1-main10-test.mp4`は要求しない。
-NVDEC検証時は、利用者が正当に用意した任意のAV1 Main 10-bit素材をGUIから選択する。
-NVENC出力検証はAviUtl2の内部生成objectで行えるため、外部動画fileは不要である。
+## 9. DXVK設定fileを作成する
 
 ```fish
-function require_path
-    set path "$argv[1]"
+printf '%s\n' \
+    'dxgi.hideNvidiaGpu = False' \
+    > "$DXVK_CONFIG_FILE"
 
-    if not test -e "$path"
-        echo "ERROR: missing path: $path" >&2
-        return 1
-    end
-
-    echo "OK: $path"
-end
-
-function preflight_installation_artifacts
-    for path in \
-        "$GE_WINE" \
-        "$GE_WINESERVER" \
-        "$GE_PROTON_ROOT/files/lib/wine/x86_64-windows/dwrite.dll" \
-        "$AVIUTL2_SOURCE_DIR/aviutl2.exe" \
-        "$DXVK_ARTIFACT_DIR/d3d11.dll" \
-        "$DXVK_ARTIFACT_DIR/dxgi.dll" \
-        "$DXVK_ARTIFACT_DIR/d3d10core.dll" \
-        "$FONT_SOURCE_DIR/NotoSansCJK-Regular.ttc" \
-        "$FONT_SOURCE_DIR/NotoSansCJK-Bold.ttc" \
-        "$FONT_SOURCE_DIR/Tahoma-Noto-Regular.otf" \
-        "$FONT_SOURCE_DIR/Tahoma-Noto-Bold.otf" \
-        "$NVIDIA_WRAPPER_DIR/nvcuda.dll" \
-        "$NVIDIA_WRAPPER_DIR/nvcuvid.dll" \
-        "$NVIDIA_WRAPPER_DIR/nvencodeapi64.dll" \
-        "$LSMASH_ARTIFACT_DIR/lwinput.aui2" \
-        "$LSMASH_ARTIFACT_DIR/lsmash.ini" \
-        "$DXVK_CONFIG_FILE"
-
-        require_path "$path"
-        or return 1
-    end
-end
-
-preflight_installation_artifacts
+cat "$DXVK_CONFIG_FILE"
 ```
 
-## 10. 新規prefixとAviUtl2配置
+期待値:
 
-空prefixのbootstrapはrunner・host差異の影響を受けるため、Nanashi環境ではIssueへ実行commandと結果を記録する。
-作成済みprefixに最低限次が存在することを確認する。
+```text
+dxgi.hideNvidiaGpu = False
+```
+
+## 10. artifact preflight
+
+session内の`GE_WINE`を直接検査せず、patched runner rootを明示指定する:
+
+```fish
+fish \
+    "$REPO/scripts/preflight-aviutl2-installation.fish" \
+    --root "$ROOT" \
+    --ge-proton-root "$GE_PROTON_ROOT" \
+    --aviutl2-source-dir "$AVIUTL2_SOURCE_DIR" \
+    --lsmash-artifact-dir "$LSMASH_ARTIFACT_DIR"
+```
+
+出力の先頭で次を確認する:
+
+```text
+HOME=/home/nanashi
+root=/home/nanashi/Games/aviutl2
+ge_proton_root=/home/nanashi/.local/share/Steam/compatibilitytools.d/GE-Proton11-1-aviutl2-test
+```
+
+## 11. 新規prefixとAviUtl2本体を配置する
 
 ```fish
 fish \
@@ -432,20 +425,6 @@ fish \
     --prefix "$PREFIX" \
     --ge-proton-root "$GE_PROTON_ROOT"
 ```
-
-```fish
-for path in \
-    "$PREFIX/user.reg" \
-    "$PREFIX/system.reg" \
-    "$PREFIX/userdef.reg" \
-    "$PREFIX/drive_c/windows/system32"
-
-    require_path "$path"
-    or return 1
-end
-```
-
-AviUtl2本体とProgramDataを配置する。
 
 ```fish
 mkdir -p \
@@ -457,15 +436,17 @@ cp -a \
     "$PREFIX/drive_c/AviUtl2/"
 ```
 
-## 11. DXVK・font・NVIDIA wrapperをprefixへ導入する
+## 12. DXVK、font、NVIDIA wrapper、L-SMASH Worksを配置する
 
-Wineを停止する。
+Wineを停止する。既に停止している場合のnonzero終了は無視する:
 
 ```fish
 env \
     WINEPREFIX="$PREFIX" \
     LD_LIBRARY_PATH="$GE_LIBS" \
-    "$GE_WINESERVER" -k 2>/dev/null
+    "$GE_WINESERVER" \
+    -k \
+    2>/dev/null
 
 or true
 ```
@@ -474,7 +455,8 @@ DXVK:
 
 ```fish
 for dll in d3d11 dxgi d3d10core
-    install -m 0644 \
+    install \
+        -m 0644 \
         "$DXVK_ARTIFACT_DIR/$dll.dll" \
         "$PREFIX/drive_c/windows/system32/$dll.dll"
 end
@@ -494,7 +476,8 @@ for font_file in \
     Tahoma-Noto-Regular.otf \
     Tahoma-Noto-Bold.otf
 
-    install -m 0644 \
+    install \
+        -m 0644 \
         "$FONT_SOURCE_DIR/$font_file" \
         "$DEST_FONTS/$font_file"
 end
@@ -513,99 +496,108 @@ for dll in nvcuda nvcuvid nvencodeapi64
 end
 ```
 
-## 12. L-SMASH Worksを配置する
+L-SMASH Works:
 
 ```fish
 set PLUGIN_DIR \
     "$PREFIX/drive_c/ProgramData/aviutl2/Plugin"
 
-install -m 0644 \
+install \
+    -m 0644 \
     "$LSMASH_ARTIFACT_DIR/lwinput.aui2" \
     "$PLUGIN_DIR/lwinput.aui2"
 
-install -m 0644 \
+install \
+    -m 0644 \
     "$LSMASH_ARTIFACT_DIR/lsmash.ini" \
     "$PLUGIN_DIR/lsmash.ini"
 ```
 
-`lsmash.ini`の必須値:
+設定確認:
 
-```ini
-libavsmash_disabled=1
-libav_disabled=0
-preferred_decoders=av1_cuvid
+```fish
+grep -nE \
+    '^(libavsmash_disabled|libav_disabled|preferred_decoders)=' \
+    "$PLUGIN_DIR/lsmash.ini"
 ```
-
-Catalog導入後は、`scripts/install-l-smash-works-nvdec.fish`を使用してcustom r1284を最後にoverlayし、
-`Mr-Ojii.L-SMASH-Works`を更新停止する。
 
 ## 13. registry、IME、起動
 
-必要なfont registry、DLL override、`InputStyle=overthespot`の詳細は`REPRODUCTION.md`の確認済みcommandを使用する。
-起動時の固定値:
+font registry、font substitute、DLL override、AviUtl2専用`InputStyle=overthespot`を設定する:
 
 ```fish
-cd "$PREFIX/drive_c/AviUtl2"
-
-env \
-    XMODIFIERS='@im=fcitx' \
-    WINEPREFIX="$PREFIX" \
-    LD_LIBRARY_PATH="$GE_LIBS" \
-    WINEDLLOVERRIDES="$DLL_OVERRIDES" \
-    DXVK_CONFIG_FILE="$DXVK_CONFIG_FILE" \
-    DXVK_LOG_LEVEL=warn \
-    WINEDEBUG=-all \
-    "$GE_WINE" \
-    ./aviutl2.exe
+fish \
+    "$REPO/scripts/configure-aviutl2-prefix.fish" \
+    --prefix "$PREFIX" \
+    --ge-proton-root "$GE_PROTON_ROOT"
 ```
 
-成功条件:
+通常起動:
+
+```fish
+fish \
+    "$REPO/scripts/launch-aviutl2.fish" \
+    --prefix "$PREFIX" \
+    --ge-proton-root "$GE_PROTON_ROOT" \
+    --dxvk-config "$DXVK_CONFIG_FILE"
+```
+
+このSectionの成功条件:
 
 ```text
 AviUtl2メインウィンドウが表示される
 日本語UIを読める
 format 69 error dialogが出ない
+L-SMASH Works r1284が認識される
+text objectを追加できる
 text選択・caret移動・再編集ができる
 Mozcで日本語入力・変換・Enter確定できる
-AV1 Main 10-bit素材を読み込み、再生・seekできる
-複数のactive av1_cuvid contextがある
-nvcuvid/CUDA/hardware-frame-transfer failureがない
 ```
 
-## 14. CatalogとNVENC分岐
+NVDEC、NVENC、特定codecの成功条件はこのSectionへ含めない。
 
-Catalog 0.3.3を同じprefixへ導入し、次を設定する。
+## 14. GPU別のmedia検証とCatalog
+
+Nanashi環境はGeForce RTX 2070 SUPERである。
+
+```text
+HEVC Main10:
+  NVDEC/NVENC検証対象
+
+AV1:
+  hardware decode/encodeの合格条件にしない
+  input再生時はdav1d software decodeを想定する
+  active av1_cuvid contextを要求しない
+```
+
+RTX 4060 TiなどAV1対応GPUでは、AV1 NVDEC/NVENCを別途検証できる。
+
+NVEnc output plugin導入後は、推測ではなく次の実測結果でcodecを選ぶ:
+
+```text
+NVEncC64.exe --check-features
+```
+
+RTX 2070 SUPERではHEVC Main10を選び、AviUtl2内部生成objectで5〜10秒のtimelineを作成して出力する。
+外部入力動画は不要である。
+
+Catalog 0.3.3では次を設定する:
 
 ```text
 AviUtl2 root: C:\AviUtl2
 Portable mode: disabled
 ```
 
-NVEnc output plugin導入後、`NVEncC64.exe --check-features`を実行して分岐する。
-
-```text
-AV1 Encode supported:
-  AV1 NVENC / 10-bit
-
-AV1 unsupported, HEVC supported:
-  HEVC NVENC
-  Main10 supportedなら10-bit
-  Main10 unsupportedなら8-bit
-```
-
-固定の入力動画は不要である。AviUtl2内部生成objectで5〜10秒のtimelineを作り、選択codecで出力する。
-GPU型番だけで判断せず、`--check-features`の実測結果を保存する。
-
-Catalog導入後はcustom r1284を最後にoverlayし、Catalog再起動前後で`lwinput.aui2`のSHA-256が変わらないことを確認する。
+Catalog導入後はcustom r1284を最後にoverlayし、`Mr-Ojii.L-SMASH-Works`を更新停止する。
 
 ## 15. 関連文書
 
 ```text
 docs/REPRODUCTION.md
-  source build、registry、runtime log、成功環境の詳細
+  patched Wine DWrite、runtime log、成功環境の詳細
 
 docs/L-SMASH-WORKS-NVDEC.md
-  custom r1284とNVDECの詳細
+  custom r1284とmedia decodeの詳細
 
 docs/TROUBLESHOOTING.md
   既知障害と切り分け
