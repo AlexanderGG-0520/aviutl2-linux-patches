@@ -34,7 +34,6 @@ for module in \
     10-artifacts.fish \
     20-deploy.fish \
     30-verify.fish \
-    40-catalog.fish \
     45-catalog-doc-flow.fish \
     90-main.fish
 
