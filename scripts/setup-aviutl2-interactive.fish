@@ -33,9 +33,11 @@ for module in \
     00-core.fish \
     05-repository-validation.fish \
     06-package-managers.fish \
+    07-dwrite-provenance.fish \
     10-artifacts.fish \
     20-deploy.fish \
     30-verify.fish \
+    31-gui-reedit-gate.fish \
     45-catalog-doc-flow.fish \
     46-catalog-registration-gate.fish \
     90-main.fish
