@@ -98,4 +98,4 @@ env \
     DXVK_LOG_LEVEL=warn \
     WINEDEBUG=-all \
     "$wine" \
-    ./aviutl2.exe
+    "$aviutl2_exe"
