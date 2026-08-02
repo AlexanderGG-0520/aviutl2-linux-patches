@@ -8,6 +8,12 @@ on:
       - "scripts/build-dwrite-clean.fish"
       - "patches/wine/0001-implement-dwrite-hit-testing.patch"
       - "patches/wine/0002-harden-dwrite-hittestpoint.patch"
+  pull_request:
+    paths:
+      - ".github/workflows/dwrite-clean-build.yml"
+      - "scripts/build-dwrite-clean.fish"
+      - "patches/wine/0001-implement-dwrite-hit-testing.patch"
+      - "patches/wine/0002-harden-dwrite-hittestpoint.patch"
 
 permissions:
   contents: read
