@@ -116,6 +116,9 @@ set -l log_dir \
 set -l launch_log \
     "$log_dir/aviutl2-section13-"(date +%Y%m%d-%H%M%S)".log"
 
+set -l dwrite_stub_pattern \
+    'fixme:dwrite:dwritetextlayout_HitTest(Point|TextPosition|TextRange).*stub'
+
 for path in \
     "$configure_script" \
     "$ge_proton_root" \
@@ -146,11 +149,26 @@ or die "Wine is not executable: $wine"
 test -x "$wineserver"
 or die "wineserver is not executable: $wineserver"
 
+set -l dwrite_hash_line \
+    (sha256sum "$dwrite")
+
+set -l dwrite_hash_status $status
+
+test $dwrite_hash_status -eq 0
+or die "failed to calculate dwrite.dll SHA-256: $dwrite"
+
+set -l dwrite_sha256 \
+    (string split -f1 ' ' -- "$dwrite_hash_line")
+
+test -n "$dwrite_sha256"
+or die "empty dwrite.dll SHA-256: $dwrite"
+
 printf '%s\n' \
     "GE_PROTON_ROOT=$ge_proton_root" \
     "GE_WINE=$wine" \
     "GE_WINESERVER=$wineserver" \
     "GE_DWRITE=$dwrite" \
+    "GE_DWRITE_SHA256=$dwrite_sha256" \
     "GE_LD_LIBRARY_PATH=$ge_libs" \
     "GE_WINEDLLPATH=$ge_winedllpath" \
     "AVIUTL2_EXE=$aviutl2_exe"
@@ -208,7 +226,7 @@ env \
     WINEDLLOVERRIDES="$dll_overrides" \
     DXVK_CONFIG_FILE="$dxvk_config" \
     DXVK_LOG_LEVEL=warn \
-    WINEDEBUG='+timestamp,+pid,+tid,+loaddll,+seh' \
+    WINEDEBUG='+timestamp,+pid,+tid,+loaddll,+seh,+dwrite' \
     "$wine" \
     "$aviutl2_exe" \
     2>&1 \
@@ -240,7 +258,7 @@ or true
 echo
 echo "=== important launch errors ==="
 grep -nEi \
-    'Application could not be started|ShellExecuteEx failed|File not found|c0000135|Unhandled exception|unhandled page fault|page fault|err:module:import_dll|failed to load|could not load' \
+    "Application could not be started|ShellExecuteEx failed|File not found|c0000135|Unhandled exception|unhandled page fault|page fault|err:module:import_dll|failed to load|could not load|$dwrite_stub_pattern|EXCEPTION_WINE_CXX_EXCEPTION" \
     "$launch_log"
 or true
 
@@ -260,6 +278,13 @@ if grep -qEi \
     "$launch_log"
 
     die "fatal launch marker was found in the diagnostic log"
+end
+
+if grep -qEi \
+    "$dwrite_stub_pattern" \
+    "$launch_log"
+
+    die "the selected runner still contains an unpatched DWrite hit-test stub"
 end
 
 echo "Diagnostic launch completed without an automatic failure marker."
