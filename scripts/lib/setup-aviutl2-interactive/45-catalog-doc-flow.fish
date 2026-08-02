@@ -192,20 +192,17 @@ function setup_catalog
         or die 'AviUtl2 Catalog installation failed'
 
         echo
-        echo 'Catalog初期設定:'
+        echo '次の初期設定をCatalog GUIで行う:'
         echo '  AviUtl2: インストール済み'
         echo '  AviUtl2 root: C:\AviUtl2'
         echo '  Portable mode: 無効'
         echo
 
-        ask_yes_no 'Catalog初期設定を完了し、AviUtl2とCatalogを閉じましたか？' no
-        or die 'Catalog initial setup was not confirmed'
-
         "$CATALOG_LUTRIS_WRAPPER" launch
         or die 'Catalog fixed wrapper exited with a failure status'
 
-        ask_yes_no '固定wrapper経由でAviUtl2 Catalogが正常起動しましたか？' no
-        or die 'Catalog wrapper GUI verification was not confirmed'
+        ask_yes_no '固定wrapper経由でCatalogが起動し、初期設定を完了して閉じましたか？' no
+        or die 'Catalog wrapper GUI verification and initial setup were not confirmed'
 
         fish \
             "$REPO/scripts/install-l-smash-works-nvdec.fish" \
