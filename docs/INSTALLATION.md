@@ -2,7 +2,7 @@
 
 最終更新: 2026-08-02
 
-この文書は、AviUtl2 2.1.2をCachyOS / Arch Linux上の新しいWine prefixへ導入するための手順である。
+この文書は、AviUtl2 2.1.3をCachyOS / Arch Linux上の新しいWine prefixへ導入するための手順である。
 既存prefixや日時付きbackupからの復旧は`REPRODUCTION.md`へ分離する。
 
 検証基準:
@@ -199,10 +199,10 @@ stock runnerからpatched runnerを完成させるWine DWrite buildは`REPRODUCT
 AviUtl2本体はrepositoryへ再配布せず、公式ZIPを直接取得する。
 
 ```fish
-function prepare_aviutl2_212
+function prepare_aviutl2_213
     set -l download_dir "$ROOT/downloads"
-    set -l archive "$download_dir/aviutl2_v2.1.2.zip"
-    set -l extract_dir "$ROOT/build/aviutl2-v2.1.2-extract"
+    set -l archive "$download_dir/aviutl2_v2.1.3.zip"
+    set -l extract_dir "$ROOT/build/aviutl2-v2.1.3-extract"
 
     mkdir -p "$download_dir" "$ROOT/build" "$ARTIFACT_ROOT"
     or return 1
@@ -212,7 +212,7 @@ function prepare_aviutl2_212
         --location \
         --retry 3 \
         --output "$archive" \
-        "https://spring-fragrance.mints.ne.jp/aviutl/aviutl2_v2.1.2.zip"
+        "https://spring-fragrance.mints.ne.jp/aviutl/aviutl2_v2.1.3.zip"
     or return 1
 
     rm -rf "$extract_dir" "$AVIUTL2_SOURCE_DIR"
@@ -240,7 +240,7 @@ function prepare_aviutl2_212
     sha256sum "$archive"
 end
 
-prepare_aviutl2_212
+prepare_aviutl2_213
 ```
 
 ## 5. patched DXVK 2.7.1をbuildする
