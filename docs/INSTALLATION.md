@@ -796,7 +796,7 @@ install \
 
 install \
     -m 0644 \
-    "$LSMASH_ARTIFACT_DIR/lsmash.ini" \
+        "$LSMASH_ARTIFACT_DIR/lsmash.ini" \
     "$PLUGIN_DIR/lsmash.ini"
 ```
 
@@ -810,31 +810,42 @@ grep -nE \
 
 ## 13. registry、IME、診断起動、通常起動
 
-Fishを再起動した場合やSection 13だけを実行した場合は、runtimeで実際に使用するrunnerを明示的に再設定する。
-ここでもdirectory名を合否条件にせず、runner内の`dwrite.dll`をbuild成果物と比較する。
+Section 13では、clean buildしたpatched `dwrite.dll`を導入したGE-Proton runnerを使用して、AviUtl2を診断起動する。
 
-新規構築でSection 3.2の別名runnerを使用する場合:
+Nanashi環境では、次のrunnerへpatched `dwrite.dll`を直接導入した状態で、AviUtl2がクラッシュせず起動した。
 
-```fish
-set GE_PROTON_ROOT \
-    "$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1-aviutl2"
+```text
+$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1
 ```
 
-既存の`GE-Proton11-1`へpatched DLLを直接導入したrunnerを使用する場合:
+runnerのdirectory名は動作条件ではない。実在するrunnerを指定し、clean build成果物とrunner内の`dwrite.dll`がbyte単位で一致することを確認する。
+
+Fishを再起動した場合やSection 13だけを実行する場合は、必要な変数を再設定する。
 
 ```fish
-set GE_PROTON_ROOT \
-    "$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1"
-```
+set ROOT \
+    "$HOME/Games/aviutl2"
 
-上の二つを両方実行しない。実際に使用するrunnerの一方だけを設定する。
+set REPO \
+    "$HOME/projects/aviutl2-linux-patches"
 
-```fish
+set PREFIX \
+    "$ROOT/prefix"
+
+set DXVK_CONFIG_FILE \
+    "$ROOT/nvidia-dxvk.conf"
+
+set DWRITE_CLEAN_WORK \
+    "$ROOT/build/dwrite-clean"
+
 set WINE_BUILD \
-    "$ROOT/build/wine-ge11-1-dwrite"
+    "$DWRITE_CLEAN_WORK/build"
 
 set BUILT_DWRITE \
     "$WINE_BUILD/dlls/dwrite/x86_64-windows/dwrite.dll"
+
+set GE_PROTON_ROOT \
+    "$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1"
 
 set GE_WINE \
     "$GE_PROTON_ROOT/files/bin/wine"
@@ -849,22 +860,25 @@ set GE_WINESERVER \
 
 set GE_DWRITE \
     "$GE_PROTON_ROOT/files/lib/wine/x86_64-windows/dwrite.dll"
+
+set STOCK_DWRITE_SHA256 \
+    "6d92b541c36f2157be264e5803497ab8f17777c1f575e6704fe3450d00f00e32"
 ```
 
-使用runnerの実体と、build済みDLLとの差異を診断起動前に検証する:
+別名runnerへpatched DLLを導入した場合は、`GE_PROTON_ROOT`だけを実在するrunner pathへ変更する。
+runner名だけでpatched runnerかどうかを判定してはならない。
+
+### 13.1 使用するrunnerを検証する
 
 ```fish
-function validate_section13_patched_runner
+function validate_section13_runner
     for path in \
         "$GE_PROTON_ROOT" \
-        "$GE_WINE" \
-        "$GE_WINESERVER" \
         "$BUILT_DWRITE" \
         "$GE_DWRITE" \
         "$REPO/scripts/diagnose-aviutl2-launch.fish"
 
-        test -e "$path"
-        or begin
+        if not test -e "$path"
             echo "ERROR: missing Section 13 prerequisite: $path" >&2
             return 1
         end
@@ -884,11 +898,22 @@ function validate_section13_patched_runner
         --silent \
         "$BUILT_DWRITE" \
         "$GE_DWRITE"
+
     or begin
-        echo "ERROR: selected runtime runner does not contain the built patched dwrite.dll" >&2
+        echo "ERROR: built and installed dwrite.dll differ" >&2
+
         sha256sum \
             "$BUILT_DWRITE" \
             "$GE_DWRITE"
+
+        return 1
+    end
+
+    set GE_DWRITE_SHA256 \
+        (sha256sum "$GE_DWRITE" | string split ' ')[1]
+
+    if test "$GE_DWRITE_SHA256" = "$STOCK_DWRITE_SHA256"
+        echo "ERROR: stock DWrite is still installed" >&2
         return 1
     end
 
@@ -897,31 +922,57 @@ function validate_section13_patched_runner
         "GE_WINE=$GE_WINE" \
         "GE_WINESERVER=$GE_WINESERVER" \
         "BUILT_DWRITE=$BUILT_DWRITE" \
-        "GE_DWRITE=$GE_DWRITE"
+        "GE_DWRITE=$GE_DWRITE" \
+        "GE_DWRITE_SHA256=$GE_DWRITE_SHA256"
 
     sha256sum \
         "$BUILT_DWRITE" \
         "$GE_DWRITE"
 end
 
-validate_section13_patched_runner
-set SECTION13_RUNNER_STATUS $status
+validate_section13_runner
+set SECTION13_RUNNER_STATUS \
+    $status
 
 test $SECTION13_RUNNER_STATUS -eq 0
 ```
 
-`SECTION13_RUNNER_STATUS`が0以外の場合は、以降の診断起動commandを実行しない。
-runnerのdirectory名が`GE-Proton11-1`でも`GE-Proton11-1-aviutl2`でも、`cmp`とSHA-256が一致すればこの検証は成功する。
-不一致の場合は、Section 3.2でpatched DLLをbuild・導入し直すか、実際にpatched DLLを導入した別runnerを`GE_PROTON_ROOT`へ設定する。
+`SECTION13_RUNNER_STATUS`が0以外の場合は、診断起動へ進まない。
 
-診断scriptのsyntaxを確認する:
+合格条件は次のとおり。
+
+```text
+runner directoryが実在する
+Wineが実行可能
+wineserverが実行可能
+clean build成果物が存在する
+runner内のPE版dwrite.dllが存在する
+build成果物とrunner内dwrite.dllがcmpで一致する
+runner内dwrite.dllが既知のstock SHA-256ではない
+```
+
+置換対象は次のPE DLLである。
+
+```text
+files/lib/wine/x86_64-windows/dwrite.dll
+```
+
+次のUnix側libraryを置換してはならない。
+
+```text
+files/lib/wine/x86_64-unix/dwrite.so
+```
+
+### 13.2 診断scriptのsyntaxを確認する
 
 ```fish
 fish -n \
     "$REPO/scripts/diagnose-aviutl2-launch.fish"
 ```
 
-何も表示されなければ診断起動する:
+何も表示されず、終了statusが0であれば診断起動へ進む。
+
+### 13.3 AviUtl2を診断起動する
 
 ```fish
 fish \
@@ -932,7 +983,7 @@ fish \
     --dxvk-config "$DXVK_CONFIG_FILE"
 ```
 
-このscriptは、引数の`GE_PROTON_ROOT`から次を内部で再計算する。
+このscriptは、渡された`GE_PROTON_ROOT`から次のpathを内部で再計算する。
 
 ```text
 GE_WINE
@@ -941,22 +992,85 @@ GE_DWRITE
 GE_LIBS
 ```
 
-scriptは次を実行する。
+診断scriptは次を実行する。
 
 ```text
 runner、prefix、DXVK DLL、AviUtl2本体の存在確認
 使用runnerとdwrite.dll SHA-256のログ保存
-registry、font substitute、DLL override、InputStyleの設定
+prefixのregistry設定
+font substituteの設定
+DLL overrideの設定
+InputStyleの設定
 既存Wine processの停止
 絶対Unix pathによるaviutl2.exe起動
-WINEDEBUG=+timestamp,+pid,+tid,+loaddll,+seh
-ログ保存
-Wine本体の終了status取得
-ログサイズ、metadata、末尾、EXE load記録、重要エラーの表示
-DWrite hit-test stubとfatal markerの自動判定
+WINEDEBUGログの保存
+Wine終了statusの取得
+ログsizeとlog pathの表示
+AviUtl2 EXE load記録の確認
+DWrite hit-test stubの検出
+fatal markerの検出
 ```
 
-診断起動中にGUIで次を確認し、確認後にAviUtl2を閉じる:
+Nanashi環境では、この診断起動によってAviUtl2がクラッシュせず起動した。
+
+以前のstock DWrite環境では、次の経路でAviUtl2が終了していた。
+
+```text
+stock dwrite.dll
+↓
+dwritetextlayout_HitTestTextPosition ... stub
+↓
+EXCEPTION_WINE_CXX_EXCEPTION
+↓
+AviUtl2終了
+```
+
+patched DWrite導入後にAviUtl2のウィンドウが表示され、即座に終了しなければ、このDWrite stub crash経路は突破できている。
+
+### 13.4 診断ログを確認する
+
+最新ログを取得する。
+
+```fish
+set LATEST_LOG \
+    (find "$ROOT/logs" \
+        -maxdepth 1 \
+        -type f \
+        -name 'aviutl2-section13-*.log' \
+        -printf '%T@ %p\n' \
+        | sort -nr \
+        | head -n 1 \
+        | cut -d' ' -f2-)
+
+echo \
+    "LATEST_LOG=$LATEST_LOG"
+```
+
+重要なfailure markerを確認する。
+
+```fish
+grep -nEi \
+    'dwrite:.*stub|EXCEPTION_WINE_CXX_EXCEPTION|Unhandled exception|unhandled page fault|c0000135|Application could not be started|ShellExecuteEx failed|File not found|failed to load|could not load' \
+    "$LATEST_LOG" \
+    | tail -n 200
+```
+
+次のDWrite stubまたは例外が出ている場合は失敗である。
+
+```text
+fixme:dwrite:dwritetextlayout_HitTestPoint ... stub
+fixme:dwrite:dwritetextlayout_HitTestTextPosition ... stub
+fixme:dwrite:dwritetextlayout_HitTestTextRange ... stub
+EXCEPTION_WINE_CXX_EXCEPTION
+Unhandled exception
+unhandled page fault
+```
+
+AviUtl2のウィンドウが表示され、操作中にクラッシュせず、上記のDWrite stub crash markerが出ていなければ、patched DWriteによる起動確認は成功とする。
+
+### 13.5 GUIの回帰確認
+
+AviUtl2がクラッシュせず起動した後、必要に応じて次を順次確認する。
 
 ```text
 AviUtl2メインウィンドウが表示される
@@ -964,36 +1078,18 @@ AviUtl2メインウィンドウが表示される
 format 69 error dialogが出ない
 L-SMASH Works r1284が認識される
 text objectを追加できる
-text選択・caret移動・再編集ができる
+text選択ができる
+caretを移動できる
+textを再編集できる
 Mozcで日本語入力・変換・Enter確定できる
+「プラグインを信頼する」を押しても落ちない
 ```
 
-次のいずれかに該当した場合、Section 13は失敗である:
+これらは起動後の回帰確認項目である。今回Nanashi環境で確認済みなのは、patched DWrite導入後の診断起動でAviUtl2がクラッシュせず起動したことである。
 
-```text
-build済みdwrite.dllとrunner内dwrite.dllが一致しない
-configure_exit_statusが0以外
-aviutl2_exit_statusが0以外
-ログが0 byte
-aviutl2.exeのload記録がない
-Application could not be started
-ShellExecuteEx failed
-File not found
-c0000135
-Unhandled exception
-unhandled page fault
-fixme:dwrite:dwritetextlayout_HitTestPoint ... stub
-fixme:dwrite:dwritetextlayout_HitTestTextPosition ... stub
-fixme:dwrite:dwritetextlayout_HitTestTextRange ... stub
-EXCEPTION_WINE_CXX_EXCEPTION
-ウィンドウが出ず即終了する
-UI、text編集、Mozc確認のいずれかに失敗する
-```
+### 13.6 通常起動
 
-Section 13が失敗した場合はSection 14へ進まない。
-診断ログ先頭の`GE_PROTON_ROOT`、`GE_DWRITE`、`GE_DWRITE_SHA256`と、`aviutl2_exit_status`、`aviutl2_log_size`、`aviutl2_log_path`、ログ末尾、重要エラーを保存して原因を切り分ける。
-
-診断起動とGUI確認の両方に成功した後だけ、通常launcherを使用する:
+診断起動でAviUtl2がクラッシュせず起動した後は、通常launcherを使用できる。
 
 ```fish
 fish \
@@ -1003,7 +1099,7 @@ fish \
     --dxvk-config "$DXVK_CONFIG_FILE"
 ```
 
-通常launcherにも、Section 13で内容を検証した同じ`$GE_PROTON_ROOT`を渡す。
+通常launcherにも、診断起動で使用したものと同じ`GE_PROTON_ROOT`を渡す。
 
 ## 14. GPU別のmedia検証とCatalog
 
