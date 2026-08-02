@@ -67,8 +67,14 @@ end
 set -l ge_libs \
     "$ge_proton_root/files/lib/x86_64-linux-gnu:$ge_proton_root/files/lib/i386-linux-gnu"
 
-set -l ge_winedllpath \
+set -l ge_vkd3d_dir \
     "$ge_proton_root/files/lib/vkd3d"
+
+set -l ge_wine_dll_dir \
+    "$ge_proton_root/files/lib/wine"
+
+set -l ge_winedllpath \
+    "$ge_vkd3d_dir:$ge_wine_dll_dir"
 
 set -l aviutl2_dir \
     "$prefix/drive_c/AviUtl2"
@@ -83,10 +89,8 @@ for path in \
     "$wine" \
     "$ge_proton_root/files/lib/x86_64-linux-gnu" \
     "$ge_proton_root/files/lib/i386-linux-gnu" \
-    "$ge_winedllpath" \
-    "$ge_winedllpath/libvkd3d-1.dll" \
-    "$ge_winedllpath/libvkd3d-shader-1.dll" \
-    "$ge_winedllpath/libvkd3d-utils-1.dll" \
+    "$ge_vkd3d_dir" \
+    "$ge_wine_dll_dir" \
     "$prefix/user.reg" \
     "$aviutl2_exe" \
     "$dxvk_config"
