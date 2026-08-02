@@ -1,6 +1,6 @@
 --- a/dlls/dwrite/layout.c
 +++ b/dlls/dwrite/layout.c
-@@ -3965,6 +3965,23 @@
+@@ -3965,6 +3965,83 @@
  static HRESULT WINAPI dwritetextlayout_HitTestTextPosition(IDWriteTextLayout4 *iface,
          UINT32 position, BOOL is_trailinghit, FLOAT *point_x, FLOAT *point_y,
          DWRITE_HIT_TEST_METRICS *metrics);
@@ -21,10 +21,70 @@
 +
 +    return NULL;
 +}
++
++static struct layout_effective_run *layout_get_nearest_erun(
++        const struct dwrite_textlayout *layout, UINT32 position, BOOL *use_end)
++{
++    struct layout_effective_run *run, *previous = NULL;
++    UINT32 start;
++
++    LIST_FOR_EACH_ENTRY(run, &layout->eruns, struct layout_effective_run, entry)
++    {
++        start = run->run->start_position + run->start;
++
++        if (start > position)
++        {
++            if (previous)
++            {
++                *use_end = TRUE;
++                return previous;
++            }
++
++            *use_end = FALSE;
++            return run;
++        }
++
++        previous = run;
++    }
++
++    if (previous)
++    {
++        *use_end = TRUE;
++        return previous;
++    }
++
++    return NULL;
++}
++
++static HRESULT layout_set_synthetic_caret(const struct dwrite_textlayout *layout,
++        struct layout_effective_run *run, UINT32 position, FLOAT offset,
++        FLOAT *point_x, FLOAT *point_y, DWRITE_HIT_TEST_METRICS *metrics)
++{
++    metrics->textPosition = position;
++    metrics->length = 0;
++    metrics->top = run->origin.y - layout->lines[run->line].metrics.baseline;
++    metrics->width = 0.0f;
++    metrics->height = layout->lines[run->line].metrics.height;
++    metrics->bidiLevel = run->run->u.regular.run.bidiLevel;
++    metrics->isText = TRUE;
++    metrics->isTrimmed = FALSE;
++
++    if (is_run_rtl(run))
++        metrics->left = run->origin.x + run->align_dx - offset;
++    else
++        metrics->left = run->origin.x + run->align_dx + offset;
++
++    *point_x = metrics->left;
++    *point_y = metrics->top;
++
++    TRACE("Using synthetic caret for text position %u at %.8e, %.8e.\n",
++            position, *point_x, *point_y);
++    return S_OK;
++}
  
  static HRESULT WINAPI dwritetextlayout_HitTestPoint(IDWriteTextLayout4 *iface,
          FLOAT point_x, FLOAT point_y, BOOL *is_trailinghit, BOOL *is_inside,
-@@ -4004,6 +4021,16 @@
+@@ -4004,6 +4081,16 @@
  
          hr = dwritetextlayout_HitTestTextPosition(iface, position, FALSE,
                  &current_x, &current_y, &current);
@@ -41,7 +101,7 @@
          if (FAILED(hr))
              return hr;
  
-@@ -4054,7 +4081,16 @@
+@@ -4054,7 +4141,16 @@
      }
  
      if (!found)
@@ -59,7 +119,7 @@
  
      *metrics = best;
  
-@@ -4072,12 +4108,123 @@
+@@ -4072,12 +4168,133 @@
  }
  
  static HRESULT WINAPI dwritetextlayout_HitTestTextPosition(IDWriteTextLayout4 *iface,
@@ -107,29 +167,35 @@
 +    {
 +        run = layout_get_prev_erun(layout, NULL);
 +        if (!run)
-+            return E_FAIL;
++        {
++            metrics->textPosition = position;
++            metrics->length = 0;
++            metrics->height = layout->metrics.height;
++            metrics->isText = TRUE;
++            return S_OK;
++        }
 +
-+        metrics->textPosition = position;
-+        metrics->length = 0;
-+        metrics->top = run->origin.y - layout->lines[run->line].metrics.baseline;
-+        metrics->width = 0.0f;
-+        metrics->height = layout->lines[run->line].metrics.height;
-+        metrics->bidiLevel = run->run->u.regular.run.bidiLevel;
-+        metrics->isText = TRUE;
-+        metrics->isTrimmed = FALSE;
-+
-+        if (is_run_rtl(run))
-+            metrics->left = run->origin.x + run->align_dx - run->width;
-+        else
-+            metrics->left = run->origin.x + run->align_dx + run->width;
-+
-+        *point_x = metrics->left;
-+        *point_y = metrics->top;
-+        return S_OK;
++        return layout_set_synthetic_caret(layout, run, position, run->width,
++                point_x, point_y, metrics);
 +    }
 +
 +    if (!(run = layout_get_erun_for_position(layout, position)))
-+        return E_FAIL;
++    {
++        BOOL use_end;
++
++        run = layout_get_nearest_erun(layout, position, &use_end);
++        if (!run)
++        {
++            metrics->textPosition = position;
++            metrics->length = 0;
++            metrics->height = layout->metrics.height;
++            metrics->isText = TRUE;
++            return S_OK;
++        }
++
++        return layout_set_synthetic_caret(layout, run, position,
++                use_end ? run->width : 0.0f, point_x, point_y, metrics);
++    }
 +
 +    run_start = run->run->start_position + run->start;
 +    run_end = run_start + run->length;
@@ -147,6 +213,9 @@
 +        if (current_start < run_start || current_start >= run_end)
 +            continue;
 +
++        if (current_start > position)
++            break;
++
 +        if (current_start <= position &&
 +                position < current_start + layout->clustermetrics[i].length)
 +        {
@@ -159,7 +228,8 @@
 +    }
 +
 +    if (!cluster_metrics)
-+        return E_FAIL;
++        return layout_set_synthetic_caret(layout, run, position, offset,
++                point_x, point_y, metrics);
 +
 +    metrics->textPosition = cluster_start;
 +    metrics->length = cluster_metrics->length;
