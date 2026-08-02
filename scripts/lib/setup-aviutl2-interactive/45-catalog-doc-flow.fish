@@ -1,5 +1,4 @@
-# This file is sourced after 40-catalog.fish and replaces its setup_catalog
-# implementation with the fixed-wrapper flow documented in
+# This file implements the fixed-wrapper Catalog and Lutris flow documented in
 # docs/LUTRIS-CATALOG.md.
 
 function write_aviutl2_lutris_wrapper
@@ -121,6 +120,57 @@ os.chmod(path, 0o755)
     success "Catalog Lutris wrapper: $CATALOG_LUTRIS_WRAPPER"
 end
 
+function register_fixed_catalog_url_handler
+    set -l applications_dir \
+        "$HOME/.local/share/applications"
+
+    if set -q XDG_DATA_HOME; and test -n "$XDG_DATA_HOME"
+        set applications_dir "$XDG_DATA_HOME/applications"
+    end
+
+    set -l desktop_file \
+        "$applications_dir/aviutl2-catalog-wine.desktop"
+
+    require_command xdg-mime
+    mkdir -p "$applications_dir"
+    or die 'failed to create applications directory'
+
+    python3 -c '
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+wrapper = sys.argv[2].replace("\\", "\\\\").replace("\"", "\\\"")
+path.write_text(
+    "[Desktop Entry]\n"
+    "Type=Application\n"
+    "Name=AviUtl2 Catalog (Wine)\n"
+    f"Exec=\"{wrapper}\" open-url %u\n"
+    "NoDisplay=true\n"
+    "Terminal=false\n"
+    "MimeType=x-scheme-handler/aviutl2-catalog;\n"
+    "Categories=AudioVideo;\n",
+    encoding="utf-8",
+)
+' "$desktop_file" "$CATALOG_LUTRIS_WRAPPER"
+    or die 'failed to write fixed Catalog URL handler'
+
+    chmod 0644 "$desktop_file"
+    or die 'failed to chmod Catalog URL handler'
+
+    if command -q update-desktop-database
+        update-desktop-database "$applications_dir"
+        or die 'failed to update desktop database'
+    end
+
+    xdg-mime default \
+        (basename "$desktop_file") \
+        x-scheme-handler/aviutl2-catalog
+    or die 'failed to register Catalog URL handler'
+
+    success "Catalog URL handler uses fixed wrapper: $desktop_file"
+end
+
 function print_lutris_registration
     note 'Lutrisへ固定wrapperを登録する'
 
@@ -172,9 +222,11 @@ function setup_catalog
     require_command gh
     require_command lutris
     require_command python3
+    require_command xdg-mime
 
     write_aviutl2_lutris_wrapper
     write_catalog_lutris_wrapper
+    register_fixed_catalog_url_handler
 
     note 'AviUtl2 wrapperを単体検証する'
     "$AVIUTL2_LUTRIS_WRAPPER"
@@ -190,6 +242,10 @@ function setup_catalog
     if ask_yes_no '固定wrapperからAviUtl2 Catalogを導入しますか？' yes
         "$CATALOG_LUTRIS_WRAPPER" install-only
         or die 'AviUtl2 Catalog installation failed'
+
+        # install-only registers the manager path by default. Replace it with
+        # the fixed wrapper before any deep link is used.
+        register_fixed_catalog_url_handler
 
         echo
         echo '次の初期設定をCatalog GUIで行う:'
