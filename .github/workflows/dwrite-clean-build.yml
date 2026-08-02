@@ -1,0 +1,65 @@
+name: DWrite clean-room build
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/dwrite-clean-build.yml"
+      - "scripts/build-dwrite-clean.fish"
+      - "patches/wine/0001-implement-dwrite-hit-testing.patch"
+      - "patches/wine/0002-harden-dwrite-hittestpoint.patch"
+
+permissions:
+  contents: read
+
+jobs:
+  build-dwrite:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            autoconf \
+            bison \
+            build-essential \
+            curl \
+            file \
+            fish \
+            flex \
+            gettext \
+            mingw-w64 \
+            patch \
+            pkg-config
+
+      - name: Check Fish syntax
+        run: fish -n scripts/build-dwrite-clean.fish
+
+      - name: Build DWrite from an empty work directory
+        run: |
+          fish scripts/build-dwrite-clean.fish \
+            "$RUNNER_TEMP/dwrite-clean" \
+            2
+
+      - name: Show provenance
+        run: |
+          cat "$RUNNER_TEMP/dwrite-clean/PROVENANCE.txt"
+          cat "$RUNNER_TEMP/dwrite-clean/SHA256SUMS"
+          file "$RUNNER_TEMP/dwrite-clean/build/dlls/dwrite/x86_64-windows/dwrite.dll"
+
+      - name: Upload DWrite artifact and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dwrite-clean-room-${{ github.sha }}
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/dwrite-clean/PROVENANCE.txt
+            ${{ runner.temp }}/dwrite-clean/SHA256SUMS
+            ${{ runner.temp }}/dwrite-clean/build/dlls/dwrite/x86_64-windows/dwrite.dll
+            ${{ runner.temp }}/dwrite-clean/logs/
