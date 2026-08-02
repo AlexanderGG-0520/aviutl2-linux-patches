@@ -87,7 +87,10 @@ set -l dwrite \
     "$ge_proton_root/files/lib/wine/x86_64-windows/dwrite.dll"
 
 set -l ge_libs \
-    "$ge_proton_root/files/lib64:$ge_proton_root/files/lib:$ge_proton_root/files/lib/wine/x86_64-unix:$ge_proton_root/files/lib/wine/i386-unix"
+    "$ge_proton_root/files/lib/x86_64-linux-gnu:$ge_proton_root/files/lib/i386-linux-gnu"
+
+set -l ge_winedllpath \
+    "$ge_proton_root/files/lib/vkd3d"
 
 set -l dll_overrides \
     'nvcuda,nvcuvid,nvencodeapi64=n;d3d11,dxgi,d3d10core=n,b;d3dcompiler_47=n,b;dwrite=b'
@@ -113,6 +116,12 @@ for path in \
     "$wine" \
     "$wineserver" \
     "$dwrite" \
+    "$ge_proton_root/files/lib/x86_64-linux-gnu" \
+    "$ge_proton_root/files/lib/i386-linux-gnu" \
+    "$ge_winedllpath" \
+    "$ge_winedllpath/libvkd3d-1.dll" \
+    "$ge_winedllpath/libvkd3d-shader-1.dll" \
+    "$ge_winedllpath/libvkd3d-utils-1.dll" \
     "$prefix/user.reg" \
     "$prefix/system.reg" \
     "$prefix/userdef.reg" \
@@ -138,6 +147,8 @@ printf '%s\n' \
     "GE_WINE=$wine" \
     "GE_WINESERVER=$wineserver" \
     "GE_DWRITE=$dwrite" \
+    "GE_LD_LIBRARY_PATH=$ge_libs" \
+    "GE_WINEDLLPATH=$ge_winedllpath" \
     "AVIUTL2_EXE=$aviutl2_exe"
 
 fish \
@@ -164,6 +175,7 @@ or die "failed to reset diagnostic log: $launch_log"
 env \
     WINEPREFIX="$prefix" \
     LD_LIBRARY_PATH="$ge_libs" \
+    WINEDLLPATH="$ge_winedllpath" \
     "$wineserver" \
     -k \
     2>/dev/null
@@ -172,6 +184,7 @@ or true
 env \
     WINEPREFIX="$prefix" \
     LD_LIBRARY_PATH="$ge_libs" \
+    WINEDLLPATH="$ge_winedllpath" \
     "$wineserver" \
     -w \
     2>/dev/null
@@ -187,6 +200,7 @@ env \
     XMODIFIERS='@im=fcitx' \
     WINEPREFIX="$prefix" \
     LD_LIBRARY_PATH="$ge_libs" \
+    WINEDLLPATH="$ge_winedllpath" \
     WINEDLLOVERRIDES="$dll_overrides" \
     DXVK_CONFIG_FILE="$dxvk_config" \
     DXVK_LOG_LEVEL=warn \
