@@ -77,7 +77,7 @@ end
 
 set -l script_path (status filename)
 set -l script_dir (cd (dirname "$script_path"); and pwd -P)
-set -l repo_root (cd "$script_dir/../.."; and pwd -P)
+set -l repo_root (cd "$script_dir/.."; and pwd -P)
 
 set -l work_dir "$HOME/Games/aviutl2/build/l-smash-works-nvdec-repro"
 if set -q _flag_work_dir
