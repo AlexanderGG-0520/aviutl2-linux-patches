@@ -65,22 +65,28 @@ if not test -x "$wine"
 end
 
 set -l wineserver "$ge_proton_root/files/bin/wineserver"
-set -l ge_libs "$ge_proton_root/files/lib64:$ge_proton_root/files/lib:$ge_proton_root/files/lib/wine/x86_64-unix:$ge_proton_root/files/lib/wine/i386-unix"
+set -l ge_libs "$ge_proton_root/files/lib/x86_64-linux-gnu:$ge_proton_root/files/lib/i386-linux-gnu"
+set -l ge_winedllpath "$ge_proton_root/files/lib/vkd3d"
 
 function run_wine \
     --inherit-variable prefix \
     --inherit-variable ge_libs \
+    --inherit-variable ge_winedllpath \
     --inherit-variable wine
 
     env \
         WINEPREFIX="$prefix" \
         LD_LIBRARY_PATH="$ge_libs" \
+        WINEDLLPATH="$ge_winedllpath" \
         "$wine" \
         $argv
 end
 
 require_path "$wine"
 require_path "$wineserver"
+require_path "$ge_proton_root/files/lib/x86_64-linux-gnu"
+require_path "$ge_proton_root/files/lib/i386-linux-gnu"
+require_path "$ge_winedllpath"
 require_path "$prefix/user.reg"
 require_path "$prefix/system.reg"
 require_path "$prefix/userdef.reg"
@@ -110,6 +116,7 @@ set -l reg_x11 \
 env \
     WINEPREFIX="$prefix" \
     LD_LIBRARY_PATH="$ge_libs" \
+    WINEDLLPATH="$ge_winedllpath" \
     "$wineserver" \
     -k \
     2>/dev/null
@@ -222,6 +229,7 @@ or die "wineboot update failed"
 env \
     WINEPREFIX="$prefix" \
     LD_LIBRARY_PATH="$ge_libs" \
+    WINEDLLPATH="$ge_winedllpath" \
     "$wineserver" \
     -w
 or die "wineserver wait failed"
