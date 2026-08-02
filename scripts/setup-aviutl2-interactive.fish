@@ -1,9 +1,10 @@
 #!/usr/bin/env fish
 #
-# Interactive AviUtl2 2.1.3 setup for CachyOS / Arch Linux.
+# Interactive AviUtl2 2.1.3 setup for x86_64 Linux.
 #
 # Sources of truth:
 #   docs/INSTALLATION.md
+#   docs/PACKAGE-MANAGERS.md
 #   docs/LUTRIS-CATALOG.md (separate Catalog / Lutris continuation)
 #
 
@@ -31,6 +32,7 @@ set -l MODULE_DIR "$SCRIPT_DIR/lib/setup-aviutl2-interactive"
 for module in \
     00-core.fish \
     05-repository-validation.fish \
+    06-package-managers.fish \
     10-artifacts.fish \
     20-deploy.fish \
     30-verify.fish \
