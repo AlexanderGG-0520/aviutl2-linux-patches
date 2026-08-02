@@ -8,6 +8,7 @@ function validate_installation_repository
 
     for path in \
         "$REPO/docs/INSTALLATION.md" \
+        "$REPO/docs/PACKAGE-MANAGERS.md" \
         "$REPO/scripts/build-dwrite-clean.fish" \
         "$REPO/scripts/install-dwrite.fish" \
         "$REPO/scripts/build-dxvk-aviutl2.sh" \
