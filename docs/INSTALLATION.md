@@ -7,10 +7,12 @@
 
 重要:
 
-- `GE_PROTON_ROOT`は各利用者の`$HOME`配下にあるpatched GE-Proton runnerを指す。
-- `/home/alex`など、別利用者の絶対pathを流用しない。
-- `GE_WINE`、`GE_WINESERVER`、`GE_LIBS`は`GE_PROTON_ROOT`から毎回再計算する。
-- Section 13は起動・UI・text編集・IMEの確認だけを扱う。NVDEC/NVENC検証はSection 14へ分離する。
+- `GE_PROTON_ROOT`を固定名で決め打ちしない。
+- `compatibilitytools.d`内から実在するrunnerを探し、Wine、wineserver、patched `dwrite.dll`がすべて存在するものを選ぶ。
+- directory名だけ存在する途中生成runner、空directory、切れたsymlinkは使用しない。
+- `GE_WINE`、`GE_WINESERVER`、`GE_LIBS`は、選択した`GE_PROTON_ROOT`から毎回再計算する。
+- 完成したpatched runnerが見つからない場合は、prefix作成、preflight、Section 13へ進まない。
+- Section 13は起動、UI、text編集、IMEの確認だけを扱う。NVDEC/NVENC検証はSection 14へ分離する。
 
 検証基準:
 
@@ -72,14 +74,49 @@ sudo pacman -S --needed \
     mingw-w64-winpthreads
 ```
 
-## 2. repositoryと環境変数
-
-repository:
+## 2. repositoryと基本path
 
 ```fish
+set ROOT \
+    "$HOME/Games/aviutl2"
+
 set REPO \
     "$HOME/projects/aviutl2-linux-patches"
 
+set PREFIX \
+    "$ROOT/prefix"
+
+set ARTIFACT_ROOT \
+    "$ROOT/artifacts"
+
+set AVIUTL2_SOURCE_DIR \
+    "$ARTIFACT_ROOT/AviUtl2-2.1.3"
+
+set DXVK_ARTIFACT_DIR \
+    "$ARTIFACT_ROOT/dxvk-2.7.1-aviutl2/x64"
+
+set FONT_SOURCE_DIR \
+    "$ARTIFACT_ROOT/fonts"
+
+set NVIDIA_WRAPPER_DIR \
+    "$ARTIFACT_ROOT/nvidia-libs-v1.0.2/x64"
+
+set LSMASH_WORK \
+    "$ROOT/build/l-smash-works-nvdec-repro-03"
+
+set LSMASH_ARTIFACT_DIR \
+    "$LSMASH_WORK/output"
+
+set DXVK_CONFIG_FILE \
+    "$ROOT/nvidia-dxvk.conf"
+
+set DLL_OVERRIDES \
+    'nvcuda,nvcuvid,nvencodeapi64=n;d3d11,dxgi,d3d10core=n,b;d3dcompiler_47=n,b;dwrite=b'
+```
+
+repositoryを取得・更新する:
+
+```fish
 if not test -d "$REPO/.git"
     mkdir -p "$HOME/projects"
 
@@ -92,114 +129,9 @@ cd "$REPO"
 git pull --ff-only
 ```
 
-patched runner候補を確認する:
+## 3. GE-Proton 11-1とpatched runnerを確認する
 
-```fish
-find \
-    "$HOME/.local/share/Steam/compatibilitytools.d" \
-    -mindepth 1 \
-    -maxdepth 1 \
-    -type d \
-    -name 'GE-Proton11-1*' \
-    -print
-```
-
-Nanashi環境のpatched runnerは次である:
-
-```text
-$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1-aviutl2-test
-```
-
-現在のFish sessionに古い`/home/alex`由来の変数が残らないよう、標準pathを一括で再設定する:
-
-```fish
-function set_aviutl2_install_env --argument-names ge_proton_root
-    set -g ROOT \
-        "$HOME/Games/aviutl2"
-
-    set -g REPO \
-        "$HOME/projects/aviutl2-linux-patches"
-
-    set -g PREFIX \
-        "$ROOT/prefix"
-
-    set -g ARTIFACT_ROOT \
-        "$ROOT/artifacts"
-
-    set -g AVIUTL2_SOURCE_DIR \
-        "$ARTIFACT_ROOT/AviUtl2-2.1.3"
-
-    set -g DXVK_ARTIFACT_DIR \
-        "$ARTIFACT_ROOT/dxvk-2.7.1-aviutl2/x64"
-
-    set -g FONT_SOURCE_DIR \
-        "$ARTIFACT_ROOT/fonts"
-
-    set -g NVIDIA_WRAPPER_DIR \
-        "$ARTIFACT_ROOT/nvidia-libs-v1.0.2/x64"
-
-    set -g LSMASH_WORK \
-        "$ROOT/build/l-smash-works-nvdec-repro-03"
-
-    set -g LSMASH_ARTIFACT_DIR \
-        "$LSMASH_WORK/output"
-
-    set -g GE_PROTON_ROOT \
-        (string replace -r '/+$' '' -- "$ge_proton_root")
-
-    set -g GE_WINE \
-        "$GE_PROTON_ROOT/files/bin/wine"
-
-    if not test -x "$GE_WINE"
-        set -g GE_WINE \
-            "$GE_PROTON_ROOT/files/lib/wine/x86_64-unix/wine"
-    end
-
-    set -g GE_WINESERVER \
-        "$GE_PROTON_ROOT/files/bin/wineserver"
-
-    set -g GE_LIBS \
-        "$GE_PROTON_ROOT/files/lib64:$GE_PROTON_ROOT/files/lib:$GE_PROTON_ROOT/files/lib/wine/x86_64-unix:$GE_PROTON_ROOT/files/lib/wine/i386-unix"
-
-    set -g DXVK_CONFIG_FILE \
-        "$ROOT/nvidia-dxvk.conf"
-
-    set -g DLL_OVERRIDES \
-        'nvcuda,nvcuvid,nvencodeapi64=n;d3d11,dxgi,d3d10core=n,b;d3dcompiler_47=n,b;dwrite=b'
-
-    for path in \
-        "$GE_PROTON_ROOT" \
-        "$GE_WINE" \
-        "$GE_WINESERVER"
-
-        if not test -e "$path"
-            echo "ERROR: missing runner path: $path" >&2
-            return 1
-        end
-    end
-end
-
-set_aviutl2_install_env \
-    "$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1-aviutl2-test"
-```
-
-確認:
-
-```fish
-printf '%s\n' \
-    "HOME=$HOME" \
-    "ROOT=$ROOT" \
-    "PREFIX=$PREFIX" \
-    "GE_PROTON_ROOT=$GE_PROTON_ROOT" \
-    "GE_WINE=$GE_WINE" \
-    "GE_WINESERVER=$GE_WINESERVER"
-```
-
-Nanashi環境で`/home/alex`が1件でも表示された場合は、そのまま進めず、このSection 2を同じFish sessionで再実行する。
-
-## 3. GE-Proton 11-1
-
-stock GE-Proton 11-1の取得:
+### 3.1 stock GE-Proton 11-1を取得する
 
 ```fish
 set GE_DOWNLOAD_DIR \
@@ -245,7 +177,171 @@ end
 ```
 
 AviUtl2のtext編集にはpatched Wine DWriteが必要である。
-patched runnerの作成経路は`docs/REPRODUCTION.md`のWine / DWrite節を使用し、完成先を`GE_PROTON_ROOT`へ設定する。
+patched runnerの作成経路は`docs/REPRODUCTION.md`のWine / DWrite節を使用する。
+
+### 3.2 runner候補を列挙する
+
+```fish
+set COMPAT_TOOLS \
+    "$HOME/.local/share/Steam/compatibilitytools.d"
+
+set RUNNER_CANDIDATES \
+    (find \
+        "$COMPAT_TOOLS" \
+        -mindepth 1 \
+        -maxdepth 1 \
+        \( -type d -o -type l \) \
+        -name 'GE-Proton11-1*' \
+        -print \
+        | sort)
+
+if test (count $RUNNER_CANDIDATES) -eq 0
+    echo "ERROR: no GE-Proton11-1 runner candidates were found" >&2
+    return 1
+end
+
+printf '%s\n' \
+    $RUNNER_CANDIDATES
+```
+
+### 3.3 各runnerの完成状態を検査する
+
+```fish
+function inspect_ge_runner --argument-names runner
+    set -l resolved \
+        (readlink -f "$runner" 2>/dev/null)
+
+    if test -z "$resolved"
+        echo "BROKEN: $runner"
+        return 1
+    end
+
+    set -l wine \
+        "$resolved/files/bin/wine"
+
+    if not test -x "$wine"
+        set wine \
+            "$resolved/files/lib/wine/x86_64-unix/wine"
+    end
+
+    set -l wineserver \
+        "$resolved/files/bin/wineserver"
+
+    set -l dwrite \
+        "$resolved/files/lib/wine/x86_64-windows/dwrite.dll"
+
+    if test -x "$wine" \
+        && test -x "$wineserver" \
+        && test -f "$dwrite"
+
+        echo "COMPLETE: $runner"
+        echo "  resolved=$resolved"
+        echo "  wine=$wine"
+        echo "  wineserver=$wineserver"
+        echo "  dwrite=$dwrite"
+        return 0
+    end
+
+    echo "INCOMPLETE: $runner"
+
+    for path in \
+        "$wine" \
+        "$wineserver" \
+        "$dwrite"
+
+        if test -e "$path"
+            echo "  OK: $path"
+        else
+            echo "  MISSING: $path"
+        end
+    end
+
+    return 1
+end
+
+for runner in $RUNNER_CANDIDATES
+    inspect_ge_runner "$runner"
+    or true
+end
+```
+
+`COMPLETE:`と表示されたrunnerだけが使用候補である。
+`INCOMPLETE:`、`BROKEN:`と表示されたpathを`GE_PROTON_ROOT`へ設定してはならない。
+
+複数の`COMPLETE:`候補がある場合は、patched DWriteを実際に検証したrunnerまたはそのbackupを選ぶ。
+自動で最初の候補を選ばない。
+
+### 3.4 使用するrunnerを明示的に選ぶ
+
+`COMPLETE:`行に表示されたpathを入力する:
+
+```fish
+read \
+    -P 'GE_PROTON_ROOT: ' \
+    GE_PROTON_ROOT
+
+set GE_PROTON_ROOT \
+    (string replace -r '/+$' '' -- "$GE_PROTON_ROOT")
+```
+
+runner内の実pathを再計算する:
+
+```fish
+set GE_WINE \
+    "$GE_PROTON_ROOT/files/bin/wine"
+
+if not test -x "$GE_WINE"
+    set GE_WINE \
+        "$GE_PROTON_ROOT/files/lib/wine/x86_64-unix/wine"
+end
+
+set GE_WINESERVER \
+    "$GE_PROTON_ROOT/files/bin/wineserver"
+
+set GE_DWRITE \
+    "$GE_PROTON_ROOT/files/lib/wine/x86_64-windows/dwrite.dll"
+
+set GE_LIBS \
+    "$GE_PROTON_ROOT/files/lib64:$GE_PROTON_ROOT/files/lib:$GE_PROTON_ROOT/files/lib/wine/x86_64-unix:$GE_PROTON_ROOT/files/lib/wine/i386-unix"
+```
+
+選択結果を検証する:
+
+```fish
+function validate_selected_ge_runner
+    for path in \
+        "$GE_PROTON_ROOT" \
+        "$GE_WINE" \
+        "$GE_WINESERVER" \
+        "$GE_DWRITE"
+
+        if not test -e "$path"
+            echo "ERROR: selected runner is incomplete: $path" >&2
+            return 1
+        end
+    end
+
+    if not test -x "$GE_WINE"
+        echo "ERROR: Wine is not executable: $GE_WINE" >&2
+        return 1
+    end
+
+    if not test -x "$GE_WINESERVER"
+        echo "ERROR: wineserver is not executable: $GE_WINESERVER" >&2
+        return 1
+    end
+
+    printf '%s\n' \
+        "GE_PROTON_ROOT=$GE_PROTON_ROOT" \
+        "GE_WINE=$GE_WINE" \
+        "GE_WINESERVER=$GE_WINESERVER" \
+        "GE_DWRITE=$GE_DWRITE"
+end
+
+validate_selected_ge_runner
+```
+
+この検証が成功するまでSection 4以降へ進まない。
 
 ## 4. AviUtl2 2.1.3を取得する
 
@@ -398,7 +494,7 @@ dxgi.hideNvidiaGpu = False
 
 ## 10. artifact preflight
 
-session内の`GE_WINE`を直接検査せず、patched runner rootを明示指定する:
+選択・検証済みのrunner rootを明示指定する:
 
 ```fish
 fish \
@@ -409,13 +505,8 @@ fish \
     --lsmash-artifact-dir "$LSMASH_ARTIFACT_DIR"
 ```
 
-出力の先頭で次を確認する:
-
-```text
-HOME=/home/nanashi
-root=/home/nanashi/Games/aviutl2
-ge_proton_root=/home/nanashi/.local/share/Steam/compatibilitytools.d/GE-Proton11-1-aviutl2-test
-```
+preflightの出力に表示された`ge_proton_root`、`wine`、`wineserver`がSection 3で選択したrunnerと一致することを確認する。
+`missing path`が1件でも出た場合は、そのままprefix作成へ進まない。
 
 ## 11. 新規prefixとAviUtl2本体を配置する
 
@@ -523,6 +614,12 @@ grep -nE \
 
 ## 13. registry、IME、起動
 
+Section 3で選択したrunnerを再確認する:
+
+```fish
+validate_selected_ge_runner
+```
+
 font registry、font substitute、DLL override、AviUtl2専用`InputStyle=overthespot`を設定する:
 
 ```fish
@@ -558,28 +655,17 @@ NVDEC、NVENC、特定codecの成功条件はこのSectionへ含めない。
 
 ## 14. GPU別のmedia検証とCatalog
 
-Nanashi環境はGeForce RTX 2070 SUPERである。
+GPU型番だけで対応codecを決めず、driverとpluginの実測結果で判断する。
 
-```text
-HEVC Main10:
-  NVDEC/NVENC検証対象
-
-AV1:
-  hardware decode/encodeの合格条件にしない
-  input再生時はdav1d software decodeを想定する
-  active av1_cuvid contextを要求しない
-```
-
-RTX 4060 TiなどAV1対応GPUでは、AV1 NVDEC/NVENCを別途検証できる。
-
-NVEnc output plugin導入後は、推測ではなく次の実測結果でcodecを選ぶ:
+NVEnc output plugin導入後:
 
 ```text
 NVEncC64.exe --check-features
 ```
 
-RTX 2070 SUPERではHEVC Main10を選び、AviUtl2内部生成objectで5〜10秒のtimelineを作成して出力する。
-外部入力動画は不要である。
+AV1非対応GPUでは、AV1 hardware decode/encodeやactive `av1_cuvid` contextを合格条件にしない。
+HEVC Main10対応環境ではHEVC NVDEC/NVENCを検証対象にできる。
+AV1対応GPUではAV1 NVDEC/NVENCを別途検証できる。
 
 Catalog 0.3.3では次を設定する:
 
