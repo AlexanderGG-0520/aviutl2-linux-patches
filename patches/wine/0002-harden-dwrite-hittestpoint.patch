@@ -59,7 +59,7 @@
  
      *metrics = best;
  
-@@ -4072,13 +4108,123 @@
+@@ -4072,12 +4108,123 @@
  }
  
  static HRESULT WINAPI dwritetextlayout_HitTestTextPosition(IDWriteTextLayout4 *iface,
