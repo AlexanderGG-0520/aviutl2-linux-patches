@@ -79,7 +79,7 @@ done
 [[ "$OUTPUT_DIR" != "/" ]] || fail "refusing to use / as output directory"
 [[ "$JOBS" =~ ^[1-9][0-9]*$ ]] || fail "--jobs must be a positive integer"
 
-for command in git patch autoconf make sha256sum file; do
+for command in git autoconf make sha256sum file; do
     command -v "$command" >/dev/null 2>&1 || fail "missing command: $command"
 done
 
@@ -111,11 +111,18 @@ ACTUAL_COMMIT="$(git -C "$SOURCE_DIR" rev-parse HEAD)"
 grep -Fq 'stable release Wine 11.0' "$SOURCE_DIR/ANNOUNCE.md" \
     || fail "source tree is not the expected Wine 11.0 tree"
 
-printf '==> Validating and applying repository patches\n'
+printf '==> Validating and applying repository patches without fuzz\n'
 for patch_file in "$PATCH_1" "$PATCH_2"; do
-    patch --directory="$SOURCE_DIR" --strip=1 --dry-run < "$patch_file"
-    patch --directory="$SOURCE_DIR" --strip=1 < "$patch_file"
+    printf '    checking %s\n' "$(basename -- "$patch_file")"
+    git -C "$SOURCE_DIR" apply --check --whitespace=error-all "$patch_file" \
+        || fail "patch does not apply exactly: $patch_file"
+
+    git -C "$SOURCE_DIR" apply --whitespace=error-all "$patch_file" \
+        || fail "patch application failed: $patch_file"
 done
+
+git -C "$SOURCE_DIR" diff --check \
+    || fail "patched Wine source contains whitespace errors"
 
 if find "$SOURCE_DIR" -type f \( -name '*.rej' -o -name '*.orig' \) -print -quit | grep -q .; then
     find "$SOURCE_DIR" -type f \( -name '*.rej' -o -name '*.orig' \) -print >&2
