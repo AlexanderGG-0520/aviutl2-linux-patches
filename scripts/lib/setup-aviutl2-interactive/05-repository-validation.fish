@@ -1,5 +1,7 @@
-# This file is sourced after 00-core.fish and overrides its broad
+# This file is sourced after 00-core.fish and replaces its broad
 # validate_repository implementation with mode-specific validation.
+
+functions --erase validate_repository
 
 function validate_installation_repository
     note 'INSTALLATION.mdと導入用scriptを確認する'
