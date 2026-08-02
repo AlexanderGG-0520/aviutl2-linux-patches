@@ -63,6 +63,8 @@ sudo pacman -S --needed \
     autoconf \
     automake \
     libtool \
+    flex \
+    bison \
     cmake \
     meson \
     ninja \
@@ -130,7 +132,7 @@ cd "$REPO"
 git pull --ff-only
 ```
 
-## 3. GE-Proton 11-1とpatched runnerを確認する
+## 3. GE-Proton 11-1とpatched runnerを作成・確認する
 
 ### 3.1 stock GE-Proton 11-1を取得する
 
@@ -177,10 +179,249 @@ if not test -d "$GE_BASE/GE-Proton11-1"
 end
 ```
 
-AviUtl2のtext編集にはpatched Wine DWriteが必要である。
-patched runnerの作成経路は`docs/REPRODUCTION.md`のWine / DWrite節を使用する。
+### 3.2 patched `dwrite.dll`をbuildしてrunnerへ導入する
 
-### 3.2 runner候補を列挙する
+AviUtl2のtext選択、caret移動、再編集には、Wine DWriteの`HitTestPoint()`と`HitTestTextRange()`を実装・補強したDLLが必要である。
+ここでは、実機で成功したValveSoftware Wineの固定commit、二つのrepository patch、`--enable-archs=x86_64`を使用する。
+
+`make dlls/dwrite`はdirectory名と衝突して何もbuildしない場合がある。
+`make -B`はWine全体のconfigureを強制し、DWriteと無関係な依存関係で失敗するため使用しない。
+
+```fish
+set WINE_COMMIT \
+    "31af7f983b2e345d11340b120ae3a39d88c9338a"
+
+set WINE_DOWNLOAD_DIR \
+    "$ROOT/downloads/wine-ge11-1-dwrite"
+
+set WINE_ARCHIVE \
+    "$WINE_DOWNLOAD_DIR/wine-$WINE_COMMIT.tar.gz"
+
+set WINE_SRC \
+    "$ROOT/src/wine-ge11-1-dwrite"
+
+set WINE_BUILD \
+    "$ROOT/build/wine-ge11-1-dwrite"
+
+set WINE_CONFIGURE_LOG \
+    "$ROOT/logs/wine-dwrite-configure.log"
+
+set DWRITE_PATCH_1 \
+    "$REPO/patches/wine/0001-implement-dwrite-hit-testing.patch"
+
+set DWRITE_PATCH_2 \
+    "$REPO/patches/wine/0002-harden-dwrite-hittestpoint.patch"
+
+set GE_STOCK \
+    "$GE_BASE/GE-Proton11-1"
+
+set GE_PATCHED \
+    "$GE_BASE/GE-Proton11-1-aviutl2"
+```
+
+source取得、patch適用、configure、DWrite build、runner作成を一つのfunctionで実行する:
+
+```fish
+function build_patched_dwrite_runner
+    for path in \
+        "$GE_STOCK" \
+        "$DWRITE_PATCH_1" \
+        "$DWRITE_PATCH_2" \
+        "$REPO/scripts/install-dwrite.fish"
+
+        if not test -e "$path"
+            echo "ERROR: missing required path: $path" >&2
+            return 1
+        end
+    end
+
+    mkdir -p \
+        "$WINE_DOWNLOAD_DIR" \
+        (dirname "$WINE_SRC") \
+        (dirname "$WINE_BUILD") \
+        "$ROOT/logs"
+    or return 1
+
+    if not test -f "$WINE_ARCHIVE"
+        curl \
+            --fail \
+            --location \
+            --retry 3 \
+            --output "$WINE_ARCHIVE" \
+            "https://github.com/ValveSoftware/wine/archive/$WINE_COMMIT.tar.gz"
+        or return 1
+    end
+
+    rm -rf \
+        "$WINE_SRC" \
+        "$WINE_BUILD"
+
+    mkdir -p \
+        "$WINE_SRC" \
+        "$WINE_BUILD"
+    or return 1
+
+    tar \
+        --extract \
+        --file "$WINE_ARCHIVE" \
+        --directory "$WINE_SRC" \
+        --strip-components=1
+    or return 1
+
+    grep -n \
+        '^Wine version 11\.0' \
+        "$WINE_SRC/ANNOUNCE.md"
+    or begin
+        echo "ERROR: the extracted source is not the expected Wine 11.0 tree" >&2
+        return 1
+    end
+
+    patch \
+        --directory="$WINE_SRC" \
+        --strip=1 \
+        --dry-run \
+        < "$DWRITE_PATCH_1"
+    or return 1
+
+    patch \
+        --directory="$WINE_SRC" \
+        --strip=1 \
+        < "$DWRITE_PATCH_1"
+    or return 1
+
+    patch \
+        --directory="$WINE_SRC" \
+        --strip=1 \
+        --dry-run \
+        < "$DWRITE_PATCH_2"
+    or return 1
+
+    patch \
+        --directory="$WINE_SRC" \
+        --strip=1 \
+        < "$DWRITE_PATCH_2"
+    or return 1
+
+    if test -e "$WINE_SRC/dlls/dwrite/layout.c.rej"
+        echo "ERROR: DWrite patch reject exists" >&2
+        return 1
+    end
+
+    grep -nF \
+        'No effective run for text position' \
+        "$WINE_SRC/dlls/dwrite/layout.c"
+    or return 1
+
+    pushd "$WINE_SRC"
+    or return 1
+
+    ./autogen.sh
+    set AUTOGEN_STATUS $status
+
+    popd
+
+    test $AUTOGEN_STATUS -eq 0
+    or return 1
+
+    pushd "$WINE_BUILD"
+    or return 1
+
+    "$WINE_SRC/configure" \
+        --enable-archs=x86_64 \
+        2>&1 \
+        | tee "$WINE_CONFIGURE_LOG"
+
+    set CONFIGURE_STATUS $pipestatus[1]
+
+    popd
+
+    test $CONFIGURE_STATUS -eq 0
+    or begin
+        echo "ERROR: Wine configure failed; see $WINE_CONFIGURE_LOG" >&2
+        return 1
+    end
+
+    rm -f \
+        "$WINE_BUILD/dlls/dwrite/x86_64-windows/layout.o" \
+        "$WINE_BUILD/dlls/dwrite/x86_64-windows/dwrite.dll"
+
+    make \
+        -C "$WINE_BUILD" \
+        -j(nproc) \
+        dlls/dwrite/x86_64-windows/dwrite.dll
+    or return 1
+
+    set BUILT_DWRITE \
+        "$WINE_BUILD/dlls/dwrite/x86_64-windows/dwrite.dll"
+
+    test -f "$BUILT_DWRITE"
+    or begin
+        echo "ERROR: patched dwrite.dll was not generated" >&2
+        return 1
+    end
+
+    file "$BUILT_DWRITE"
+    or return 1
+
+    if test -e "$GE_PATCHED"
+        set STAMP \
+            (date +%Y%m%d-%H%M%S)
+
+        mv \
+            "$GE_PATCHED" \
+            "$GE_PATCHED.before-dwrite-$STAMP"
+        or return 1
+    end
+
+    cp -a \
+        --reflink=auto \
+        "$GE_STOCK" \
+        "$GE_PATCHED"
+    or return 1
+
+    fish \
+        "$REPO/scripts/install-dwrite.fish" \
+        "$WINE_BUILD" \
+        "$GE_PATCHED"
+    or return 1
+
+    set INSTALLED_DWRITE \
+        "$GE_PATCHED/files/lib/wine/x86_64-windows/dwrite.dll"
+
+    cmp \
+        --silent \
+        "$BUILT_DWRITE" \
+        "$INSTALLED_DWRITE"
+    or begin
+        echo "ERROR: built and installed dwrite.dll differ" >&2
+        return 1
+    end
+
+    for path in \
+        "$GE_PATCHED/files/bin/wineserver" \
+        "$INSTALLED_DWRITE"
+
+        test -e "$path"
+        or begin
+            echo "ERROR: patched runner is incomplete: $path" >&2
+            return 1
+        end
+    end
+
+    sha256sum \
+        "$BUILT_DWRITE" \
+        "$INSTALLED_DWRITE"
+
+    echo "PATCHED_RUNNER=$GE_PATCHED"
+end
+
+build_patched_dwrite_runner
+```
+
+`build_patched_dwrite_runner`がstatus 0で終了し、二つのSHA-256が一致した場合だけ次へ進む。
+この工程が置換するのはrunner内のPE DLLである`files/lib/wine/x86_64-windows/dwrite.dll`だけであり、`dwrite.so`を別buildのものへ置換してはならない。
+
+### 3.3 runner候補を列挙する
 
 ```fish
 set COMPAT_TOOLS \
@@ -205,7 +446,7 @@ printf '%s\n' \
     $RUNNER_CANDIDATES
 ```
 
-### 3.3 各runnerの完成状態を検査する
+### 3.4 各runnerの完成状態を検査する
 
 ```fish
 function inspect_ge_runner --argument-names runner
@@ -269,10 +510,10 @@ end
 `COMPLETE:`と表示されたrunnerだけが使用候補である。
 `INCOMPLETE:`、`BROKEN:`と表示されたpathを`GE_PROTON_ROOT`へ設定してはならない。
 
-複数の`COMPLETE:`候補がある場合は、patched DWriteを実際に検証したrunnerまたはそのbackupを選ぶ。
+複数の`COMPLETE:`候補がある場合は、Section 3.2で作成した`$GE_PATCHED`またはその検証済みbackupを選ぶ。
 自動で最初の候補を選ばない。
 
-### 3.4 使用するrunnerを明示的に選ぶ
+### 3.5 使用するrunnerを明示的に選ぶ
 
 `COMPLETE:`行に表示されたpathを入力する:
 
