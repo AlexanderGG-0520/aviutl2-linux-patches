@@ -7,12 +7,12 @@
 
 重要:
 
-- stock `GE-Proton11-1`はpatched runnerを作るための複製元にしか使用しない。AviUtl2のprefix作成、preflight、診断起動、通常起動へ渡してはならない。
-- runtimeで使用するrunnerはSection 3.2が生成する`GE-Proton11-1-aviutl2`だけである。
-- `GE_PROTON_ROOT`は必ず`$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1-aviutl2`へ設定する。runner候補の自動選択や手入力は行わない。
-- Section 3.2でbuildした`dwrite.dll`とrunner内の`dwrite.dll`が`cmp`で一致しない場合は、prefix作成、preflight、Section 13へ進まない。
-- Fishを再起動した場合でも、Section 13の直前にpatched runnerのpathと`dwrite.dll`を再検証する。
-- `GE_WINE`、`GE_WINESERVER`、`GE_DWRITE`、`GE_LIBS`は、固定した`GE_PROTON_ROOT`から毎回再計算する。
+- runnerの有効性をdirectory名で判定しない。`GE-Proton11-1`という名前でも、必要なpatched `dwrite.dll`が導入されていれば使用できる。
+- 新規構築では、元runnerを保持するため`GE-Proton11-1-aviutl2`という別名copyを作る手順を推奨する。ただし、この名前自体は動作条件ではない。
+- runtimeで使用するrunnerは、Section 3.2でbuildした`dwrite.dll`とrunner内の`dwrite.dll`が`cmp`でbyte単位に一致するものだけである。
+- directory名、更新日時、backup fileの有無、runner候補の並び順だけではpatched runnerと判定しない。
+- Fishを再起動した場合でも、Section 13の直前に使用するrunner pathと`dwrite.dll`の一致を再検証する。
+- `GE_WINE`、`GE_WINESERVER`、`GE_DWRITE`、`GE_LIBS`は、選択した`GE_PROTON_ROOT`から毎回再計算する。
 - Section 13は診断起動、UI、text編集、IMEの確認を扱う。Section 13が完了するまでSection 14へ進まない。
 - NVDEC/NVENC検証はSection 14へ分離する。
 
@@ -21,7 +21,7 @@
 | 項目 | 値 |
 | --- | --- |
 | shell | Fish 4.8.1 |
-| GE-Proton | 11-1 patched runner |
+| GE-Proton | 11-1 + verified patched `dwrite.dll` |
 | Wine | wine-staging 11.0 |
 | DXVK | 2.7.1 |
 | AviUtl2 | 2.1.3 |
@@ -133,11 +133,13 @@ cd "$REPO"
 git pull --ff-only
 ```
 
-## 3. GE-Proton 11-1とpatched runnerを作成・固定する
+## 3. GE-Proton 11-1とpatched DWriteを作成・検証する
 
-### 3.1 stock GE-Proton 11-1を取得する
+### 3.1 GE-Proton 11-1を取得する
 
-stock runnerはSection 3.2でpatched runnerを作るための複製元である。これを`GE_PROTON_ROOT`へ設定してAviUtl2を起動してはならない。
+ここで取得するrunnerは、まだrepositoryのDWrite patchを含まない複製元である。
+このdirectoryへpatched `dwrite.dll`を直接導入する方式と、Section 3.2のように別名copyへ導入する方式のどちらでもよい。
+最終的な有効性はdirectory名ではなく、build成果物との`cmp`で判定する。
 
 ```fish
 set GE_DOWNLOAD_DIR \
@@ -221,6 +223,9 @@ set GE_STOCK \
 set GE_PATCHED \
     "$GE_BASE/GE-Proton11-1-aviutl2"
 ```
+
+新規構築では、元runnerを保持するため`$GE_PATCHED`へcopyして導入する。
+既存環境で`GE-Proton11-1`へpatched DLLを直接導入済みの場合でも、Section 3.3の内容検証に合格すればruntime runnerとして使用できる。
 
 source取得、patch適用、configure、DWrite build、runner作成を一つのfunctionで実行する:
 
@@ -435,17 +440,26 @@ build_patched_dwrite_runner
 `build_patched_dwrite_runner`がstatus 0で終了し、二つのSHA-256が一致した場合だけ次へ進む。
 この工程が置換するのはrunner内のPE DLLである`files/lib/wine/x86_64-windows/dwrite.dll`だけであり、`dwrite.so`を別buildのものへ置換してはならない。
 
-### 3.3 patched runnerをruntime用として固定・検証する
+### 3.3 runtimeで使用するrunnerを内容で検証する
 
-runner候補の列挙や手入力は行わない。Section 3.2で生成した`$GE_PATCHED`を、そのまま唯一のruntime runnerとして固定する。
+新規構築では、直前に作成したrunnerを初期値にする:
 
 ```fish
 set GE_PROTON_ROOT \
     "$GE_PATCHED"
+```
 
-set EXPECTED_GE_PROTON_ROOT \
-    "$GE_BASE/GE-Proton11-1-aviutl2"
+既存環境で別のrunnerへpatched `dwrite.dll`を直接導入済みの場合は、実際に使用するpathへ変更する。
+例えば、Alex環境のように`GE-Proton11-1`自体へ導入したrunnerも指定できる:
 
+```fish
+set GE_PROTON_ROOT \
+    "$GE_BASE/GE-Proton11-1"
+```
+
+runner内の実pathを、選択した`GE_PROTON_ROOT`から計算する:
+
+```fish
 set GE_WINE \
     "$GE_PROTON_ROOT/files/bin/wine"
 
@@ -467,22 +481,10 @@ set GE_LIBS \
     "$GE_PROTON_ROOT/files/lib/x86_64-linux-gnu:$GE_PROTON_ROOT/files/lib/i386-linux-gnu"
 ```
 
-pathとDLLの同一性を検証する:
+pathの存在とDLLの同一性を検証する:
 
 ```fish
 function validate_patched_ge_runner
-    if test "$GE_PROTON_ROOT" != "$EXPECTED_GE_PROTON_ROOT"
-        echo "ERROR: GE_PROTON_ROOT is not the patched runner" >&2
-        echo "EXPECTED: $EXPECTED_GE_PROTON_ROOT" >&2
-        echo "ACTUAL:   $GE_PROTON_ROOT" >&2
-        return 1
-    end
-
-    if test "$GE_PROTON_ROOT" = "$GE_BASE/GE-Proton11-1"
-        echo "ERROR: stock GE-Proton11-1 must never be used at runtime" >&2
-        return 1
-    end
-
     for path in \
         "$GE_PROTON_ROOT" \
         "$GE_WINE" \
@@ -491,7 +493,7 @@ function validate_patched_ge_runner
         "$BUILT_DWRITE"
 
         if not test -e "$path"
-            echo "ERROR: patched runner prerequisite is missing: $path" >&2
+            echo "ERROR: runner prerequisite is missing: $path" >&2
             return 1
         end
     end
@@ -511,7 +513,10 @@ function validate_patched_ge_runner
         "$BUILT_DWRITE" \
         "$GE_DWRITE"
     or begin
-        echo "ERROR: runtime runner does not contain the built patched dwrite.dll" >&2
+        echo "ERROR: selected runner does not contain the built patched dwrite.dll" >&2
+        sha256sum \
+            "$BUILT_DWRITE" \
+            "$GE_DWRITE"
         return 1
     end
 
@@ -531,7 +536,7 @@ validate_patched_ge_runner
 ```
 
 この検証がstatus 0で終了し、二つのSHA-256が一致するまでSection 4以降へ進まない。
-出力中の`GE_PROTON_ROOT`が`.../GE-Proton11-1`で終わっている場合は失敗である。必ず`.../GE-Proton11-1-aviutl2`で終わらなければならない。
+`GE_PROTON_ROOT`のbasenameが`GE-Proton11-1`か`GE-Proton11-1-aviutl2`かは合否に関係しない。
 
 ## 4. AviUtl2 2.1.3を取得する
 
@@ -684,7 +689,7 @@ dxgi.hideNvidiaGpu = False
 
 ## 10. artifact preflight
 
-Section 3で固定・検証したpatched runner rootだけを明示指定する:
+Section 3で内容を検証したrunner rootを明示指定する:
 
 ```fish
 fish \
@@ -695,8 +700,9 @@ fish \
     --lsmash-artifact-dir "$LSMASH_ARTIFACT_DIR"
 ```
 
-preflightの出力に表示された`ge_proton_root`が`$GE_BASE/GE-Proton11-1-aviutl2`と一致し、`wine`、`wineserver`、`dwrite.dll`が同じrunner配下にあることを確認する。
-`ge_proton_root`がstock版`.../GE-Proton11-1`を指している場合や、`missing path`が1件でも出た場合はprefix作成へ進まない。
+preflightの出力に表示された`ge_proton_root`、`wine`、`wineserver`、`dwrite.dll`が、Section 3.3で検証した同じrunner配下にあることを確認する。
+runnerのdirectory名は合否条件にしない。
+`missing path`が1件でも出た場合や、使用runnerを変更した場合は、Section 3.3の`cmp`を再実行してからprefix作成へ進む。
 
 ## 11. 新規prefixとAviUtl2本体を配置する
 
@@ -804,41 +810,55 @@ grep -nE \
 
 ## 13. registry、IME、診断起動、通常起動
 
-Fishを再起動した場合やSection 13だけを実行した場合でも、古い`GE_PROTON_ROOT`を引き継がないよう、runtime runnerをここで再定義する。
-この再定義を省略してはならない。
+Fishを再起動した場合やSection 13だけを実行した場合は、runtimeで実際に使用するrunnerを明示的に再設定する。
+ここでもdirectory名を合否条件にせず、runner内の`dwrite.dll`をbuild成果物と比較する。
+
+新規構築でSection 3.2の別名runnerを使用する場合:
 
 ```fish
-set GE_BASE \
-    "$HOME/.local/share/Steam/compatibilitytools.d"
-
 set GE_PROTON_ROOT \
-    "$GE_BASE/GE-Proton11-1-aviutl2"
+    "$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1-aviutl2"
+```
 
+既存の`GE-Proton11-1`へpatched DLLを直接導入したrunnerを使用する場合:
+
+```fish
+set GE_PROTON_ROOT \
+    "$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1"
+```
+
+上の二つを両方実行しない。実際に使用するrunnerの一方だけを設定する。
+
+```fish
 set WINE_BUILD \
     "$ROOT/build/wine-ge11-1-dwrite"
 
 set BUILT_DWRITE \
     "$WINE_BUILD/dlls/dwrite/x86_64-windows/dwrite.dll"
 
+set GE_WINE \
+    "$GE_PROTON_ROOT/files/bin/wine"
+
+if not test -x "$GE_WINE"
+    set GE_WINE \
+        "$GE_PROTON_ROOT/files/lib/wine/x86_64-unix/wine"
+end
+
+set GE_WINESERVER \
+    "$GE_PROTON_ROOT/files/bin/wineserver"
+
 set GE_DWRITE \
     "$GE_PROTON_ROOT/files/lib/wine/x86_64-windows/dwrite.dll"
 ```
 
-stock runnerの誤指定と、build済みDLLとの差異を診断起動前に拒否する:
+使用runnerの実体と、build済みDLLとの差異を診断起動前に検証する:
 
 ```fish
 function validate_section13_patched_runner
-    if test "$GE_PROTON_ROOT" = "$GE_BASE/GE-Proton11-1"
-        echo "ERROR: stock GE-Proton11-1 must never be used for AviUtl2" >&2
-        return 1
-    end
-
-    if not test "$GE_PROTON_ROOT" = "$GE_BASE/GE-Proton11-1-aviutl2"
-        echo "ERROR: unexpected GE_PROTON_ROOT: $GE_PROTON_ROOT" >&2
-        return 1
-    end
-
     for path in \
+        "$GE_PROTON_ROOT" \
+        "$GE_WINE" \
+        "$GE_WINESERVER" \
         "$BUILT_DWRITE" \
         "$GE_DWRITE" \
         "$REPO/scripts/diagnose-aviutl2-launch.fish"
@@ -848,6 +868,16 @@ function validate_section13_patched_runner
             echo "ERROR: missing Section 13 prerequisite: $path" >&2
             return 1
         end
+    end
+
+    if not test -x "$GE_WINE"
+        echo "ERROR: Wine is not executable: $GE_WINE" >&2
+        return 1
+    end
+
+    if not test -x "$GE_WINESERVER"
+        echo "ERROR: wineserver is not executable: $GE_WINESERVER" >&2
+        return 1
     end
 
     cmp \
@@ -864,6 +894,8 @@ function validate_section13_patched_runner
 
     printf '%s\n' \
         "GE_PROTON_ROOT=$GE_PROTON_ROOT" \
+        "GE_WINE=$GE_WINE" \
+        "GE_WINESERVER=$GE_WINESERVER" \
         "BUILT_DWRITE=$BUILT_DWRITE" \
         "GE_DWRITE=$GE_DWRITE"
 
@@ -878,19 +910,9 @@ set SECTION13_RUNNER_STATUS $status
 test $SECTION13_RUNNER_STATUS -eq 0
 ```
 
-`SECTION13_RUNNER_STATUS`が0以外の場合は、以降の診断起動commandを実行せずSection 3.2へ戻る。
-
-出力の`GE_PROTON_ROOT`が必ず次と一致し、二つのSHA-256が一致していることを確認する:
-
-```text
-/home/<user>/.local/share/Steam/compatibilitytools.d/GE-Proton11-1-aviutl2
-```
-
-次のようにstock版を指している場合は、診断起動せずSection 3.2へ戻る:
-
-```text
-/home/<user>/.local/share/Steam/compatibilitytools.d/GE-Proton11-1
-```
+`SECTION13_RUNNER_STATUS`が0以外の場合は、以降の診断起動commandを実行しない。
+runnerのdirectory名が`GE-Proton11-1`でも`GE-Proton11-1-aviutl2`でも、`cmp`とSHA-256が一致すればこの検証は成功する。
+不一致の場合は、Section 3.2でpatched DLLをbuild・導入し直すか、実際にpatched DLLを導入した別runnerを`GE_PROTON_ROOT`へ設定する。
 
 診断scriptのsyntaxを確認する:
 
@@ -949,7 +971,6 @@ Mozcで日本語入力・変換・Enter確定できる
 次のいずれかに該当した場合、Section 13は失敗である:
 
 ```text
-GE_PROTON_ROOTがGE-Proton11-1-aviutl2ではない
 build済みdwrite.dllとrunner内dwrite.dllが一致しない
 configure_exit_statusが0以外
 aviutl2_exit_statusが0以外
@@ -982,7 +1003,7 @@ fish \
     --dxvk-config "$DXVK_CONFIG_FILE"
 ```
 
-通常launcherにも同じ`$GE_PROTON_ROOT`を渡す。stock版runnerへ差し替えてはならない。
+通常launcherにも、Section 13で内容を検証した同じ`$GE_PROTON_ROOT`を渡す。
 
 ## 14. GPU別のmedia検証とCatalog
 
