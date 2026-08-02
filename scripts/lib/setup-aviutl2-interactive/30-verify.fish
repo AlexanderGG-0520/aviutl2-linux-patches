@@ -260,9 +260,31 @@ function diagnostic_launch
 
     echo "LATEST_LOG=$latest_log"
 
+    set -l caught_cpp_matches \
+        (grep -nEi \
+            'EXCEPTION_WINE_CXX_EXCEPTION' \
+            "$latest_log")
+    set -l caught_cpp_scan_status $status
+
+    switch $caught_cpp_scan_status
+        case 0
+            echo
+            echo 'Caught C++ exception records (informational):'
+            printf '%s\n' $caught_cpp_matches | tail -n 200
+            set -l display_statuses $pipestatus
+
+            for display_status in $display_statuses
+                test $display_status -eq 0
+                or die 'failed to display caught C++ exception records'
+            end
+        case 1
+        case '*'
+            die "failed to scan caught C++ exception records; grep status: $caught_cpp_scan_status"
+    end
+
     set -l fatal_matches \
         (grep -nEi \
-            'dwrite:.*stub|EXCEPTION_WINE_CXX_EXCEPTION|Unhandled exception|unhandled page fault|c0000135|Application could not be started|ShellExecuteEx failed|File not found|failed to load|could not load' \
+            'dwrite:.*stub|Unhandled exception|unhandled page fault|c0000135|Application could not be started|ShellExecuteEx failed|File not found|failed to load|could not load' \
             "$latest_log")
     set -l fatal_scan_status $status
 
