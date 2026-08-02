@@ -12,7 +12,8 @@
 - directory名だけ存在する途中生成runner、空directory、切れたsymlinkは使用しない。
 - `GE_WINE`、`GE_WINESERVER`、`GE_LIBS`は、選択した`GE_PROTON_ROOT`から毎回再計算する。
 - 完成したpatched runnerが見つからない場合は、prefix作成、preflight、Section 13へ進まない。
-- Section 13は起動、UI、text編集、IMEの確認だけを扱う。NVDEC/NVENC検証はSection 14へ分離する。
+- Section 13は診断起動、UI、text編集、IMEの確認を扱う。Section 13が完了するまでSection 14へ進まない。
+- NVDEC/NVENC検証はSection 14へ分離する。
 
 検証基準:
 
@@ -612,34 +613,178 @@ grep -nE \
     "$PLUGIN_DIR/lsmash.ini"
 ```
 
-## 13. registry、IME、起動
+## 13. registry、IME、診断起動、通常起動
 
-Section 3で選択したrunnerを再確認する:
+現行launcherは通常利用向けに`WINEDEBUG=-all`を使用する。
+そのため、新規prefixで最初から通常launcherを実行すると、起動失敗時の原因を記録できない。
+最初の1回は、このSectionの診断起動を必ず使用する。
 
-```fish
-validate_selected_ge_runner
-```
-
-font registry、font substitute、DLL override、AviUtl2専用`InputStyle=overthespot`を設定する:
+診断処理をfunctionとして定義する:
 
 ```fish
-fish \
-    "$REPO/scripts/configure-aviutl2-prefix.fish" \
-    --prefix "$PREFIX" \
-    --ge-proton-root "$GE_PROTON_ROOT"
+function diagnose_aviutl2_launch
+    validate_selected_ge_runner
+    or return 1
+
+    fish \
+        "$REPO/scripts/configure-aviutl2-prefix.fish" \
+        --prefix "$PREFIX" \
+        --ge-proton-root "$GE_PROTON_ROOT"
+
+    set -l configure_status $status
+
+    echo "configure_exit_status=$configure_status"
+
+    if test $configure_status -ne 0
+        echo "ERROR: prefix registry/IME configuration failed" >&2
+        return 1
+    end
+
+    set -l aviutl2_dir \
+        "$PREFIX/drive_c/AviUtl2"
+
+    set -l aviutl2_exe \
+        "$aviutl2_dir/aviutl2.exe"
+
+    set -l log_dir \
+        "$ROOT/logs"
+
+    set -l launch_log \
+        "$log_dir/aviutl2-section13-"(date +%Y%m%d-%H%M%S)".log"
+
+    for path in \
+        "$GE_WINE" \
+        "$GE_WINESERVER" \
+        "$GE_DWRITE" \
+        "$PREFIX/user.reg" \
+        "$PREFIX/system.reg" \
+        "$PREFIX/userdef.reg" \
+        "$PREFIX/drive_c/windows/system32" \
+        "$PREFIX/drive_c/windows/system32/d3d11.dll" \
+        "$PREFIX/drive_c/windows/system32/dxgi.dll" \
+        "$PREFIX/drive_c/windows/system32/d3d10core.dll" \
+        "$aviutl2_dir" \
+        "$aviutl2_exe" \
+        "$DXVK_CONFIG_FILE"
+
+        if not test -e "$path"
+            echo "ERROR: missing launch prerequisite: $path" >&2
+            return 1
+        end
+
+        echo "OK: $path"
+    end
+
+    file "$aviutl2_exe"
+    or return 1
+
+    mkdir -p "$log_dir"
+    or return 1
+
+    rm -f "$launch_log"
+    or return 1
+
+    env \
+        WINEPREFIX="$PREFIX" \
+        LD_LIBRARY_PATH="$GE_LIBS" \
+        "$GE_WINESERVER" \
+        -k \
+        2>/dev/null
+
+    or true
+
+    env \
+        WINEPREFIX="$PREFIX" \
+        LD_LIBRARY_PATH="$GE_LIBS" \
+        "$GE_WINESERVER" \
+        -w \
+        2>/dev/null
+
+    or true
+
+    cd "$aviutl2_dir"
+    or return 1
+
+    echo "diagnostic_log=$launch_log"
+    echo "diagnostic_executable=$aviutl2_exe"
+
+    env \
+        XMODIFIERS='@im=fcitx' \
+        WINEPREFIX="$PREFIX" \
+        LD_LIBRARY_PATH="$GE_LIBS" \
+        WINEDLLOVERRIDES="$DLL_OVERRIDES" \
+        DXVK_CONFIG_FILE="$DXVK_CONFIG_FILE" \
+        DXVK_LOG_LEVEL=warn \
+        WINEDEBUG='+timestamp,+pid,+tid,+loaddll,+seh' \
+        "$GE_WINE" \
+        "$aviutl2_exe" \
+        2>&1 \
+        | tee "$launch_log"
+
+    set -l aviutl2_exit_status $pipestatus[1]
+    set -l log_size \
+        (stat -c '%s' "$launch_log" 2>/dev/null)
+
+    if test -z "$log_size"
+        set log_size 0
+    end
+
+    echo "aviutl2_exit_status=$aviutl2_exit_status"
+    echo "aviutl2_log_size=$log_size"
+    echo "aviutl2_log_path=$launch_log"
+
+    echo
+    echo "=== log tail ==="
+    tail -n 100 "$launch_log"
+
+    echo
+    echo "=== executable load records ==="
+    grep -nEi \
+        'trace:loaddll:build_module Loaded .*aviutl2\.exe|Loaded L".*aviutl2\.exe"' \
+        "$launch_log"
+    or true
+
+    echo
+    echo "=== important launch errors ==="
+    grep -nEi \
+        'Application could not be started|ShellExecuteEx failed|File not found|c0000135|Unhandled exception|unhandled page fault|page fault|err:module:import_dll|failed to load|could not load' \
+        "$launch_log"
+    or true
+
+    if test $aviutl2_exit_status -ne 0
+        echo "ERROR: AviUtl2 exited with status $aviutl2_exit_status" >&2
+        return 1
+    end
+
+    if test $log_size -eq 0
+        echo "ERROR: diagnostic log is empty" >&2
+        return 1
+    end
+
+    if not grep -qEi \
+        'trace:loaddll:build_module Loaded .*aviutl2\.exe|Loaded L".*aviutl2\.exe"' \
+        "$launch_log"
+
+        echo "ERROR: no aviutl2.exe load record was found" >&2
+        return 1
+    end
+
+    if grep -qEi \
+        'Application could not be started|ShellExecuteEx failed: File not found|c0000135|Unhandled exception|unhandled page fault' \
+        "$launch_log"
+
+        echo "ERROR: fatal launch marker was found in the diagnostic log" >&2
+        return 1
+    end
+
+    echo "Diagnostic launch completed without an automatic failure marker."
+    echo "Confirm the GUI checks below before using the normal launcher."
+end
+
+diagnose_aviutl2_launch
 ```
 
-通常起動:
-
-```fish
-fish \
-    "$REPO/scripts/launch-aviutl2.fish" \
-    --prefix "$PREFIX" \
-    --ge-proton-root "$GE_PROTON_ROOT" \
-    --dxvk-config "$DXVK_CONFIG_FILE"
-```
-
-このSectionの成功条件:
+診断起動中にGUIで次を確認し、確認後にAviUtl2を閉じる:
 
 ```text
 AviUtl2メインウィンドウが表示される
@@ -651,9 +796,41 @@ text選択・caret移動・再編集ができる
 Mozcで日本語入力・変換・Enter確定できる
 ```
 
-NVDEC、NVENC、特定codecの成功条件はこのSectionへ含めない。
+次のいずれかに該当した場合、Section 13は失敗である:
+
+```text
+configure_exit_statusが0以外
+aviutl2_exit_statusが0以外
+ログが0 byte
+aviutl2.exeのload記録がない
+Application could not be started
+ShellExecuteEx failed
+File not found
+c0000135
+Unhandled exception
+unhandled page fault
+ウィンドウが出ず即終了する
+UI、text編集、Mozc確認のいずれかに失敗する
+```
+
+Section 13が失敗した場合はSection 14へ進まない。
+`aviutl2_exit_status`、`aviutl2_log_size`、`aviutl2_log_path`と、ログ末尾・重要エラーを保存して原因を切り分ける。
+
+診断起動とGUI確認の両方に成功した後だけ、通常launcherを使用する:
+
+```fish
+fish \
+    "$REPO/scripts/launch-aviutl2.fish" \
+    --prefix "$PREFIX" \
+    --ge-proton-root "$GE_PROTON_ROOT" \
+    --dxvk-config "$DXVK_CONFIG_FILE"
+```
+
+通常launcherも`aviutl2.exe`の絶対Unix pathをWineへ渡す。
 
 ## 14. GPU別のmedia検証とCatalog
+
+Section 13の診断起動、GUI、text編集、Mozc確認がすべて成功した場合だけ、このSectionへ進む。
 
 GPU型番だけで対応codecを決めず、driverとpluginの実測結果で判断する。
 
