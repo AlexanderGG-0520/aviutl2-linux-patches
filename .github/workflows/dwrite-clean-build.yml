@@ -32,6 +32,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends \
             autoconf \
+            binutils \
             bison \
             build-essential \
             curl \
@@ -39,9 +40,13 @@ jobs:
             fish \
             flex \
             gettext \
+            git \
+            libfreetype-dev \
+            libx11-dev \
             mingw-w64 \
             patch \
-            pkg-config
+            pkg-config \
+            tar
 
       - name: Check Fish syntax
         run: fish -n scripts/build-dwrite-clean.fish

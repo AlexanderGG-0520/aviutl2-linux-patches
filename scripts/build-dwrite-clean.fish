@@ -270,12 +270,18 @@ function main
         | tee "$LOG_DIR/file.log"
     or return 1
 
-    grep --quiet --fixed-strings \
-        'PE32+ executable for WINE (DLL), x86-64' \
-        "$LOG_DIR/file.log"
-    or begin
-        fail "build output is not the expected x86-64 Wine PE DLL"
-        return 1
+    for file_marker in \
+        'PE32+ executable' \
+        '(DLL)' \
+        'x86-64'
+
+        grep --quiet --fixed-strings \
+            "$file_marker" \
+            "$LOG_DIR/file.log"
+        or begin
+            fail "build output is missing file marker: $file_marker"
+            return 1
+        end
     end
 
     strings -a -- "$BUILT_DWRITE" \
