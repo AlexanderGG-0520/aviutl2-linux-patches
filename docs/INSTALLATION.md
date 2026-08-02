@@ -268,8 +268,8 @@ function build_patched_dwrite_runner
         --strip-components=1
     or return 1
 
-    grep -n \
-        '^Wine version 11\.0' \
+    grep -nF \
+        'stable release Wine 11.0' \
         "$WINE_SRC/ANNOUNCE.md"
     or begin
         echo "ERROR: the extracted source is not the expected Wine 11.0 tree" >&2
