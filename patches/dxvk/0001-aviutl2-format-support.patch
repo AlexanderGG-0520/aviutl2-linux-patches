@@ -9,7 +9,7 @@ diff --git a/src/d3d11/d3d11_device.cpp b/src/d3d11/d3d11_device.cpp
  #include "../util/util_shared_res.h"
  
  namespace dxvk {
-@@ -1547,7 +1548,24 @@ namespace dxvk {
+@@ -1547,5 +1548,22 @@ namespace dxvk {
    HRESULT STDMETHODCALLTYPE D3D11Device::CheckFormatSupport(
            DXGI_FORMAT Format,
            UINT*       pFormatSupport) {
@@ -33,5 +33,3 @@ diff --git a/src/d3d11/d3d11_device.cpp b/src/d3d11/d3d11_device.cpp
 +
 +    return result;
    }
-  
-  
