@@ -2,48 +2,88 @@
 
 最終更新: 2026-08-02
 
-この手順は、既存のWine source tree、既存のWine build tree、既存のpatched `dwrite.dll`を入力にしない。
-固定Wine sourceから新しいsource/build directoryを作成し、repositoryのDWrite patchを適用して、x86-64 PE版`dwrite.dll`を生成する。
+この文書は、既存のWine source tree、Wine build tree、過去の`dwrite.dll`に依存せず、AviUtl2用のpatched Wine DWrite PE DLLを新規生成してGE-Proton 11-1へ導入する正本手順である。
+
+build処理の正本は`./scripts/build-dwrite-clean.fish`とする。文書内へ同じ処理を別実装しない。
 
 ## 固定入力
 
-```text
-Wine repository: ValveSoftware/wine
-Wine commit: 31af7f983b2e345d11340b120ae3a39d88c9338a
-Baseline dlls/dwrite/layout.c blob:
-aefb49296b350c94372a3c793b1cafc7c2672e87
+| 項目 | 値 |
+| --- | --- |
+| Wine repository | `ValveSoftware/wine` |
+| Wine commit | `31af7f983b2e345d11340b120ae3a39d88c9338a` |
+| baseline `layout.c` Git blob | `aefb49296b350c94372a3c793b1cafc7c2672e87` |
+| patch 1 | `patches/wine/0001-implement-dwrite-hit-testing.patch` |
+| patch 2 | `patches/wine/0002-harden-dwrite-hittestpoint.patch` |
+| configure option | `--enable-archs=x86_64` |
+| build target | `dlls/dwrite/x86_64-windows/dwrite.dll` |
+| GE-Proton内の導入先 | `files/lib/wine/x86_64-windows/dwrite.dll` |
 
-Patch 1:
-patches/wine/0001-implement-dwrite-hit-testing.patch
+runner directoryのbasenameは動作条件ではない。`GE-Proton11-1`へ直接導入しても、別名copyへ導入してもよい。
 
-Patch 2:
-patches/wine/0002-harden-dwrite-hittestpoint.patch
+`dwrite.so`はこの手順の生成物ではないため置換しない。
 
-Configure option:
---enable-archs=x86_64
-
-Build target:
-dlls/dwrite/x86_64-windows/dwrite.dll
-```
-
-## 1. 依存関係
+## 1. build依存関係
 
 CachyOS / Arch Linux:
 
 ```fish
 sudo pacman -S --needed \
     base-devel \
+    fish \
+    git \
     curl \
+    tar \
+    patch \
+    file \
+    binutils \
+    coreutils \
+    grep \
+    autoconf \
     flex \
     bison \
-    mingw-w64-gcc
+    gettext \
+    pkgconf \
+    freetype2 \
+    libx11 \
+    mingw-w64-binutils \
+    mingw-w64-crt \
+    mingw-w64-gcc \
+    mingw-w64-headers \
+    mingw-w64-winpthreads
 ```
 
-`base-devel`には、この手順で必要な`autoconf`、`make`、`patch`、`pkgconf`などが含まれる。
+GitHub ActionsのUbuntu 24.04 clean environmentでは、次のpackage集合でbuildが完走することを確認している。
+
+```text
+autoconf
+binutils
+bison
+build-essential
+curl
+file
+fish
+flex
+gettext
+git
+libfreetype-dev
+libx11-dev
+mingw-w64
+patch
+pkg-config
+tar
+```
+
+`libx11-dev`がない場合、Wine configureは`X 64-bit development files not found`で失敗する。
+
+`libfreetype-dev`がない場合、Wine configureは`FreeType 64-bit development files not found`で失敗する。
 
 ## 2. repositoryを更新する
 
 ```fish
+set ROOT \
+    "$HOME/Games/aviutl2"
+
 set REPO \
     "$HOME/projects/aviutl2-linux-patches"
 
@@ -68,226 +108,198 @@ for path in \
 end
 ```
 
-## 3. clean-room buildを実行する
+## 3. 空のsource/build treeからDWriteをbuildする
 
-既存の`$HOME/Games/aviutl2/src/wine-ge11-1-dwrite`および`$HOME/Games/aviutl2/build/wine-ge11-1-dwrite`は使用しない。
-clean build専用directoryを指定する。
+buildごとに新しいwork directoryを指定する。
 
 ```fish
-set ROOT \
-    "$HOME/Games/aviutl2"
-
-set DWRITE_CLEAN_WORK \
-    "$ROOT/build/dwrite-clean"
+set DWRITE_CLEAN_ROOT \
+    "$ROOT/build/dwrite-clean-"(date +%Y%m%d-%H%M%S)
 
 fish \
     "$REPO/scripts/build-dwrite-clean.fish" \
-    "$DWRITE_CLEAN_WORK" \
+    "$DWRITE_CLEAN_ROOT" \
     (nproc)
 ```
 
-scriptは毎回、次のdirectoryを削除して新規作成する。
+scriptは次を順番に実行する。
 
-```text
-$DWRITE_CLEAN_WORK/source
-$DWRITE_CLEAN_WORK/build
-```
+1. 固定Wine commitのarchiveを取得する。
+2. `source`と`build` directoryを削除して新規作成する。
+3. 展開直後の`dlls/dwrite/layout.c`が固定baseline blobと一致することを確認する。
+4. patch 1とpatch 2をそれぞれ`patch --dry-run -p1`してから適用する。
+5. `.rej`が存在しないこととpatched source markerを確認する。
+6. source treeで`./autogen.sh`を実行する。
+7. 空のbuild treeで`configure --enable-archs=x86_64`を実行する。
+8. `layout.o`と既存`dwrite.dll`を削除する。
+9. exact target `dlls/dwrite/x86_64-windows/dwrite.dll`をbuildする。
+10. PE32+、DLL、x86-64であることと、patched markerがDLL内に存在することを確認する。
+11. SHA-256とprovenanceを保存する。
 
-download済みWine archiveだけは次にcacheする。
-
-```text
-$DWRITE_CLEAN_WORK/downloads
-```
-
-cache archiveも展開前に`tar -tzf`で検査される。
-
-## 4. build成功条件
-
-scriptがstatus `0`で終了し、最後に次を表示すること。
-
-```text
-Clean DWrite build completed.
-DWRITE_PATH=...
-DWRITE_SHA256=...
-PROVENANCE=...
-SHA256SUMS=...
-```
-
-生成物path:
+成功時の生成物:
 
 ```fish
+set WINE_BUILD \
+    "$DWRITE_CLEAN_ROOT/build"
+
 set BUILT_DWRITE \
-    "$DWRITE_CLEAN_WORK/build/dlls/dwrite/x86_64-windows/dwrite.dll"
+    "$WINE_BUILD/dlls/dwrite/x86_64-windows/dwrite.dll"
+
+file "$BUILT_DWRITE"
+sha256sum "$BUILT_DWRITE"
+cat "$DWRITE_CLEAN_ROOT/PROVENANCE.txt"
+cat "$DWRITE_CLEAN_ROOT/SHA256SUMS"
 ```
 
-確認する。
-
-```fish
-test -s "$BUILT_DWRITE"
-
-file \
-    "$BUILT_DWRITE"
-
-sha256sum \
-    "$BUILT_DWRITE"
-
-cat \
-    "$DWRITE_CLEAN_WORK/PROVENANCE.txt"
-```
-
-`file`の出力には次が必要である。
+`file`には少なくとも次の三つが含まれなければならない。
 
 ```text
-PE32+ executable for WINE (DLL), x86-64
+PE32+ executable
+(DLL)
+x86-64
 ```
 
-## 5. runnerを選択する
+## 4. 使用するGE-Proton runnerを選ぶ
 
-runnerのdirectory名は動作条件ではない。
-実在するGE-Proton 11-1 runnerを明示する。
-
-既存runnerへ直接導入する場合の例:
+既存の`GE-Proton11-1`へ直接導入する例:
 
 ```fish
 set GE_PROTON_ROOT \
     "$HOME/.local/share/Steam/compatibilitytools.d/GE-Proton11-1"
 ```
 
-元runnerを保持して別copyへ導入する場合:
+元runnerを保持して別名copyへ導入する例:
 
 ```fish
 set GE_BASE \
     "$HOME/.local/share/Steam/compatibilitytools.d"
 
-set GE_STOCK \
+set GE_SOURCE \
     "$GE_BASE/GE-Proton11-1"
 
 set GE_PROTON_ROOT \
     "$GE_BASE/GE-Proton11-1-aviutl2"
 
-if test -e "$GE_PROTON_ROOT"
-    set STAMP \
-        (date +%Y%m%d-%H%M%S)
-
-    mv \
-        "$GE_PROTON_ROOT" \
-        "$GE_PROTON_ROOT.before-dwrite-$STAMP"
-end
-
-cp -a \
-    --reflink=auto \
-    "$GE_STOCK" \
-    "$GE_PROTON_ROOT"
-```
-
-存在確認:
-
-```fish
-set GE_DWRITE \
-    "$GE_PROTON_ROOT/files/lib/wine/x86_64-windows/dwrite.dll"
-
-set GE_WINE \
-    "$GE_PROTON_ROOT/files/lib/wine/x86_64-unix/wine"
-
-set GE_WINESERVER \
-    "$GE_PROTON_ROOT/files/bin/wineserver"
-
-for path in \
-    "$GE_PROTON_ROOT" \
-    "$GE_DWRITE" \
-    "$GE_WINE" \
-    "$GE_WINESERVER"
-
-    test -e "$path"
-    or begin
-        echo "ERROR: runner prerequisite is missing: $path" >&2
-        return 1
-    end
+if not test -e "$GE_PROTON_ROOT"
+    cp -a \
+        --reflink=auto \
+        "$GE_SOURCE" \
+        "$GE_PROTON_ROOT"
 end
 ```
 
-存在しない`GE-Proton11-1-aviutl2`を先に検証してはならない。
-別copy方式では、必ず`cp -a`が成功した後に検証する。
+存在しない別名runnerを先に検証してはならない。別copy方式では、必ず`cp -a`が成功した後に検証する。
 
-## 6. built DLLをrunnerへ導入する
+## 5. built DWriteをrunnerへ導入する
 
 ```fish
 fish \
     "$REPO/scripts/install-dwrite.fish" \
-    "$DWRITE_CLEAN_WORK/build" \
+    "$WINE_BUILD" \
     "$GE_PROTON_ROOT"
 ```
 
-`install-dwrite.fish`は次を行う。
+`install-dwrite.fish`が置換する対象は次だけである。
 
-1. build成果物とrunner内の導入先が存在することを確認する
-2. runner内の既存`dwrite.dll`をtimestamp付きでbackupする
-3. PE版`dwrite.dll`だけを置換する
-4. `cmp`でbuild成果物と導入先のbyte一致を確認する
-5. 一致しなければbackupを復元して非0で終了する
+```text
+$GE_PROTON_ROOT/files/lib/wine/x86_64-windows/dwrite.dll
+```
 
-`files/lib/wine/x86_64-unix/dwrite.so`は置換しない。
-
-## 7. 最終検証
+## 6. build成果物とrunnerをbyte単位で検証する
 
 ```fish
+set GE_WINE \
+    "$GE_PROTON_ROOT/files/bin/wine"
+
+if not test -x "$GE_WINE"
+    set GE_WINE \
+        "$GE_PROTON_ROOT/files/lib/wine/x86_64-unix/wine"
+end
+
+set GE_WINESERVER \
+    "$GE_PROTON_ROOT/files/bin/wineserver"
+
+set GE_DWRITE \
+    "$GE_PROTON_ROOT/files/lib/wine/x86_64-windows/dwrite.dll"
+
+set GE_LIBS \
+    "$GE_PROTON_ROOT/files/lib/x86_64-linux-gnu:$GE_PROTON_ROOT/files/lib/i386-linux-gnu"
+
+for path in \
+    "$GE_PROTON_ROOT" \
+    "$GE_WINE" \
+    "$GE_WINESERVER" \
+    "$BUILT_DWRITE" \
+    "$GE_DWRITE"
+
+    test -e "$path"
+    or begin
+        echo "ERROR: missing required path: $path" >&2
+        return 1
+    end
+end
+
 cmp \
     --silent \
     "$BUILT_DWRITE" \
     "$GE_DWRITE"
+or begin
+    echo "ERROR: installed DWrite differs from the clean build" >&2
+    sha256sum \
+        "$BUILT_DWRITE" \
+        "$GE_DWRITE"
+    return 1
+end
 
-and sha256sum \
+sha256sum \
     "$BUILT_DWRITE" \
     "$GE_DWRITE"
 ```
 
-`cmp`がstatus `0`で、二つのSHA-256が一致したrunnerだけをAviUtl2起動に使用する。
+`cmp`がstatus 0で終了し、二つのSHA-256が一致した場合だけ、その`GE_PROTON_ROOT`をAviUtl2のruntime runnerとして使用する。
 
-runtime変数は選択したrunnerから再計算する。
+runner名、更新日時、backup fileの存在だけでは合格としない。
 
-```fish
-set GE_LIBS \
-    "$GE_PROTON_ROOT/files/lib64:$GE_PROTON_ROOT/files/lib:$GE_PROTON_ROOT/files/lib/wine/x86_64-unix:$GE_PROTON_ROOT/files/lib/wine/i386-unix"
+## 7. clean-room CIの検証範囲
+
+`.github/workflows/dwrite-clean-build.yml`はUbuntu 24.04の空環境で次を検証する。
+
+- build依存packageの新規導入
+- Fish syntax
+- 固定Wine sourceとbaseline blob
+- 二つのpatchのdry-runと適用
+- `autogen.sh`
+- out-of-tree configure
+- exact DWrite PE targetのcompile/link
+- PE32+ / DLL / x86-64判定
+- patched markerの埋め込み
+- provenanceとSHA-256の生成
+- DLLとlogのartifact upload
+
+2026-08-02に成功したclean CI artifactの値:
+
+```text
+WINE_COMMIT=31af7f983b2e345d11340b120ae3a39d88c9338a
+BASELINE_LAYOUT_BLOB=aefb49296b350c94372a3c793b1cafc7c2672e87
+PATCH_1_SHA256=4a30fe8c8251734f24f614f45035818d8a442d3f45f26620bda0b97fe43eff9c
+PATCH_2_SHA256=24fb566429b5394ae7a8cc0c38fb58da4c1f7b203cdb805b18e94c1ed6c60c1c
+DWRITE_SHA256=a4c8216484dfb6c185082536875c97ebed6fac00f69459c381b00a08c87ca0fc
 ```
 
-## 8. clean-roomと判定する条件
+最後の`DWRITE_SHA256`はCIのcompiler、binutils、Wine build environmentに対する値である。異なるtoolchainでbyte-identicalになることは合格条件にしない。
 
-次をすべて満たした場合だけ、このbuildをclean-room成功と扱う。
+各環境での合格条件は、その環境でclean buildした`BUILT_DWRITE`とrunnerへ導入した`GE_DWRITE`が`cmp`で一致することである。
 
-- 固定commit archiveからsourceを新規展開した
-- `layout.c`のGit blobが固定値と一致した
-- Patch 1とPatch 2がそれぞれ`patch --dry-run`に成功した
-- `.rej`が存在しない
-- `./autogen.sh`がstatus 0で終了した
-- `configure --enable-archs=x86_64`がstatus 0で終了した
-- `make -B`を使用していない
-- `make dlls/dwrite`を使用していない
-- 完全target`dlls/dwrite/x86_64-windows/dwrite.dll`をbuildした
-- 生成物がx86-64 Wine PE DLLである
-- patched source markerが生成物へ埋め込まれている
-- runner導入後にbuild成果物と`cmp`で一致した
-
-## 9. 既存成功履歴との対応
-
-2026-07-30のAlex環境では、固定Wine sourceの新規展開後に次が実行され、configureとDWrite buildが成功した。
+## 8. 失敗時に保存するもの
 
 ```fish
-cd "$WINE_SRC"
-./autogen.sh
-
-cd "$WINE_BUILD"
-
-"$WINE_SRC/configure" \
-    --enable-archs=x86_64
-
-rm -f \
-    "$WINE_BUILD/dlls/dwrite/x86_64-windows/layout.o" \
-    "$WINE_BUILD/dlls/dwrite/x86_64-windows/dwrite.dll"
-
-make \
-    -C "$WINE_BUILD" \
-    -j(nproc) \
-    dlls/dwrite/x86_64-windows/dwrite.dll
+printf '%s\n' \
+    "$DWRITE_CLEAN_ROOT/logs/autogen.log" \
+    "$DWRITE_CLEAN_ROOT/logs/configure.log" \
+    "$DWRITE_CLEAN_ROOT/logs/build.log" \
+    "$DWRITE_CLEAN_ROOT/logs/file.log" \
+    "$DWRITE_CLEAN_ROOT/PROVENANCE.txt" \
+    "$DWRITE_CLEAN_ROOT/SHA256SUMS"
 ```
 
-`build-dwrite-clean.fish`は、この成功経路へ固定source検証、patch dry-run、reject検査、ログ、provenance、artifact検査を追加したものである。
+patch失敗、configure失敗、compile失敗、生成物検証失敗を同じ「DWrite build失敗」として扱わず、最初に失敗したstageのlogを確認する。
