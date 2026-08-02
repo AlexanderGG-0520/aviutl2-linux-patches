@@ -796,7 +796,7 @@ install \
 
 install \
     -m 0644 \
-        "$LSMASH_ARTIFACT_DIR/lsmash.ini" \
+    "$LSMASH_ARTIFACT_DIR/lsmash.ini" \
     "$PLUGIN_DIR/lsmash.ini"
 ```
 
