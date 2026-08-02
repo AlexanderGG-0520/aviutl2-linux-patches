@@ -217,22 +217,35 @@ or die "failed to enter AviUtl2 directory: $aviutl2_dir"
 
 echo "diagnostic_log=$launch_log"
 echo "diagnostic_executable=$aviutl2_exe"
+echo "Wine output is being written to the diagnostic log."
 
-env \
-    XMODIFIERS='@im=fcitx' \
-    WINEPREFIX="$prefix" \
-    LD_LIBRARY_PATH="$ge_libs" \
-    WINEDLLPATH="$ge_winedllpath" \
-    WINEDLLOVERRIDES="$dll_overrides" \
-    DXVK_CONFIG_FILE="$dxvk_config" \
-    DXVK_LOG_LEVEL=warn \
-    WINEDEBUG='+timestamp,+pid,+tid,+loaddll,+seh,+dwrite' \
-    "$wine" \
-    "$aviutl2_exe" \
-    2>&1 \
-    | tee "$launch_log"
+begin
+    printf '%s\n' \
+        "GE_PROTON_ROOT=$ge_proton_root" \
+        "GE_WINE=$wine" \
+        "GE_WINESERVER=$wineserver" \
+        "GE_DWRITE=$dwrite" \
+        "GE_DWRITE_SHA256=$dwrite_sha256" \
+        "GE_LD_LIBRARY_PATH=$ge_libs" \
+        "GE_WINEDLLPATH=$ge_winedllpath" \
+        "AVIUTL2_EXE=$aviutl2_exe" \
+        "DXVK_CONFIG_FILE=$dxvk_config" \
+        "DIAGNOSTIC_STARTED_AT="(date --iso-8601=seconds)
 
-set -l aviutl2_exit_status $pipestatus[1]
+    env \
+        XMODIFIERS='@im=fcitx' \
+        WINEPREFIX="$prefix" \
+        LD_LIBRARY_PATH="$ge_libs" \
+        WINEDLLPATH="$ge_winedllpath" \
+        WINEDLLOVERRIDES="$dll_overrides" \
+        DXVK_CONFIG_FILE="$dxvk_config" \
+        DXVK_LOG_LEVEL=warn \
+        WINEDEBUG='+timestamp,+pid,+tid,+loaddll,+seh' \
+        "$wine" \
+        "$aviutl2_exe"
+end > "$launch_log" 2>&1
+
+set -l aviutl2_exit_status $status
 set -l log_size \
     (stat -c '%s' "$launch_log" 2>/dev/null)
 
@@ -243,6 +256,10 @@ end
 echo "aviutl2_exit_status=$aviutl2_exit_status"
 echo "aviutl2_log_size=$log_size"
 echo "aviutl2_log_path=$launch_log"
+
+echo
+echo "=== diagnostic metadata ==="
+head -n 10 "$launch_log"
 
 echo
 echo "=== log tail ==="
