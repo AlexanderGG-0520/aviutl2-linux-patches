@@ -65,7 +65,10 @@ if not test -x "$wine"
 end
 
 set -l ge_libs \
-    "$ge_proton_root/files/lib64:$ge_proton_root/files/lib:$ge_proton_root/files/lib/wine/x86_64-unix:$ge_proton_root/files/lib/wine/i386-unix"
+    "$ge_proton_root/files/lib/x86_64-linux-gnu:$ge_proton_root/files/lib/i386-linux-gnu"
+
+set -l ge_winedllpath \
+    "$ge_proton_root/files/lib/vkd3d"
 
 set -l aviutl2_dir \
     "$prefix/drive_c/AviUtl2"
@@ -78,6 +81,12 @@ set -l dll_overrides \
 
 for path in \
     "$wine" \
+    "$ge_proton_root/files/lib/x86_64-linux-gnu" \
+    "$ge_proton_root/files/lib/i386-linux-gnu" \
+    "$ge_winedllpath" \
+    "$ge_winedllpath/libvkd3d-1.dll" \
+    "$ge_winedllpath/libvkd3d-shader-1.dll" \
+    "$ge_winedllpath/libvkd3d-utils-1.dll" \
     "$prefix/user.reg" \
     "$aviutl2_exe" \
     "$dxvk_config"
@@ -93,6 +102,7 @@ env \
     XMODIFIERS='@im=fcitx' \
     WINEPREFIX="$prefix" \
     LD_LIBRARY_PATH="$ge_libs" \
+    WINEDLLPATH="$ge_winedllpath" \
     WINEDLLOVERRIDES="$dll_overrides" \
     DXVK_CONFIG_FILE="$dxvk_config" \
     DXVK_LOG_LEVEL=warn \
