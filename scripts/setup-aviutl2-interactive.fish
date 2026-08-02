@@ -33,6 +33,7 @@ for module in \
     00-core.fish \
     05-repository-validation.fish \
     06-package-managers.fish \
+    06a-preserve-arch-ime.fish \
     07-dwrite-provenance.fish \
     10-artifacts.fish \
     20-deploy.fish \
