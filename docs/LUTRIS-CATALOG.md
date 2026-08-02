@@ -7,8 +7,6 @@
 Section 13で動作確認したAviUtl2環境を、そのままLutrisへ登録する。
 LutrisにはWine、GE-Proton、DXVK、prefixの選択を任せない。
 
-構成は次のとおり。
-
 ```text
 Lutris Linux Runner
   -> ローカル固定wrapper
@@ -18,7 +16,7 @@ Lutris Linux Runner
       -> custom DXVK設定
 ```
 
-AviUtl2 Catalogも同じ考え方で、固定wrapperから
+AviUtl2 Catalogも固定wrapperから
 `scripts/manage-aviutl2-catalog-lutris.sh`を起動する。
 
 検証状態:
@@ -30,7 +28,7 @@ AviUtl2 Catalogも同じ考え方で、固定wrapperから
 
 ## 前提
 
-先にSection 13を完了し、少なくとも次を確認していること。
+先にSection 13を完了し、次を確認していること。
 
 - clean buildしたpatched `dwrite.dll`をrunnerへ導入した
 - 診断起動でAviUtl2が表示された
@@ -54,14 +52,14 @@ sudo pacman -S --needed \
     desktop-file-utils
 ```
 
-Catalogのrelease取得も行う場合は`github-cli`を追加する。
+Catalogのrelease取得も行う場合:
 
 ```fish
 sudo pacman -S --needed \
     github-cli
 ```
 
-## 2. 基本path
+## 2. 基本pathとpatched DWriteの検証
 
 ```fish
 set ROOT \
@@ -92,8 +90,7 @@ mkdir -p \
     "$LUTRIS_WRAPPER_DIR"
 ```
 
-`GE-Proton11-1`というdirectory名だけではpatched runnerと判定しない。
-必ずbuild成果物とのbyte一致を確認する。
+runnerのdirectory名だけではpatched DWriteの導入済み判定を行わない。
 
 ```fish
 for path in \
@@ -136,7 +133,6 @@ sha256sum \
 prefix名を推測しない。
 Section 13の診断ログには、実行に使用したAviUtl2 executableの絶対pathが
 `AVIUTL2_EXE=`として記録されている。
-最新の診断ログからprefixを復元する。
 
 ```fish
 set LATEST_LOG \
@@ -187,33 +183,33 @@ for path in \
 end
 ```
 
-`$ROOT/prefix`、`$ROOT/prefix-ge-nvdec-test`などを、実体確認なしでwrapperへ書かない。
+`$ROOT/prefix`や`$ROOT/prefix-ge-nvdec-test`を、実体確認なしでwrapperへ書かない。
 
 ## 4. AviUtl2用wrapperを生成する
 
-wrapperには、検証した絶対pathを固定して書き込む。
-Lutris起動時のshell環境や作業directoryに依存させない。
+検証した絶対pathを1行の`exec`へ固定する。
 
 ```fish
 set AVIUTL2_LUTRIS_WRAPPER \
     "$LUTRIS_WRAPPER_DIR/launch-aviutl2.fish"
 
-begin
-    echo '#!/usr/bin/env fish'
-    echo
+set LAUNCH_SCRIPT_Q \
+    (string escape -- "$REPO/scripts/launch-aviutl2.fish")
 
-    printf 'exec fish %s \\\n' \
-        (string escape -- "$REPO/scripts/launch-aviutl2.fish")
+set PREFIX_Q \
+    (string escape -- "$PREFIX")
 
-    printf '    --prefix %s \\\n' \
-        (string escape -- "$PREFIX")
+set GE_PROTON_ROOT_Q \
+    (string escape -- "$GE_PROTON_ROOT")
 
-    printf '    --ge-proton-root %s \\\n' \
-        (string escape -- "$GE_PROTON_ROOT")
+set DXVK_CONFIG_FILE_Q \
+    (string escape -- "$DXVK_CONFIG_FILE")
 
-    printf '    --dxvk-config %s\n' \
-        (string escape -- "$DXVK_CONFIG_FILE")
-end > "$AVIUTL2_LUTRIS_WRAPPER"
+printf '%s\n' \
+    '#!/usr/bin/env fish' \
+    '' \
+    "exec fish $LAUNCH_SCRIPT_Q --prefix $PREFIX_Q --ge-proton-root $GE_PROTON_ROOT_Q --dxvk-config $DXVK_CONFIG_FILE_Q" \
+    > "$AVIUTL2_LUTRIS_WRAPPER"
 
 chmod +x \
     "$AVIUTL2_LUTRIS_WRAPPER"
@@ -225,18 +221,15 @@ cat \
     "$AVIUTL2_LUTRIS_WRAPPER"
 ```
 
-生成されるwrapperは次の形式になる。
+生成されるwrapper:
 
 ```fish
 #!/usr/bin/env fish
 
-exec fish /absolute/path/to/scripts/launch-aviutl2.fish \
-    --prefix /absolute/path/to/the/verified/prefix \
-    --ge-proton-root /absolute/path/to/GE-Proton11-1 \
-    --dxvk-config /absolute/path/to/nvidia-dxvk.conf
+exec fish /absolute/path/to/scripts/launch-aviutl2.fish --prefix /absolute/path/to/the/verified/prefix --ge-proton-root /absolute/path/to/GE-Proton11-1 --dxvk-config /absolute/path/to/nvidia-dxvk.conf
 ```
 
-古い誤ったwrapperがある場合は、新しいFish wrapperの検証後に削除する。
+新しいFish wrapperの検証後、古い誤ったwrapperを削除する。
 
 ```fish
 rm -f \
@@ -245,7 +238,7 @@ rm -f \
 
 ## 5. wrapper単体を検証する
 
-Lutrisへ登録する前に、terminalから同じwrapperを実行する。
+Lutrisへ登録する前にterminalから実行する。
 
 ```fish
 "$AVIUTL2_LUTRIS_WRAPPER"
@@ -261,8 +254,6 @@ Lutrisへ登録する前に、terminalから同じwrapperを実行する。
 この検証に失敗したwrapperをLutrisへ登録しない。
 
 ## 6. AviUtl2をLutrisへ登録する
-
-Lutrisを起動する。
 
 ```fish
 lutris
@@ -280,8 +271,6 @@ Runner: Linux
 Wine Runnerは選択しない。
 
 ### Game options
-
-`Executable`には、Section 4で生成したFish wrapperの絶対pathを指定する。
 
 Nanashi環境の標準例:
 
@@ -302,14 +291,12 @@ Working directory:
 Disable Lutris Runtime: enabled
 ```
 
-wrapperとGE-Protonが必要なlibrary pathを設定するため、Lutris Runtimeによる上書きを避ける。
-
 保存後、Lutrisの`Play`から起動し、Section 5と同じGUI操作を確認する。
 
 ## 7. AviUtl2 Catalog用wrapperを生成する
 
-Catalog管理scriptには旧検証環境向けの既定値が残っているため、
-Lutrisから直接起動せず、現在のprefixとrunnerを環境変数で固定するwrapperを使用する。
+Catalog管理scriptには旧検証環境向けの既定値が残っている。
+現在のprefixとrunnerを環境変数で固定するwrapperを使用する。
 
 ```fish
 set CATALOG_LUTRIS_WRAPPER \
@@ -329,37 +316,63 @@ set GE_WINESERVER \
 set GE_LIBS \
     "$GE_PROTON_ROOT/files/lib/x86_64-linux-gnu:$GE_PROTON_ROOT/files/lib/i386-linux-gnu"
 
+set ROOT_Q \
+    (string escape -- "$ROOT")
+
+set PREFIX_Q \
+    (string escape -- "$PREFIX")
+
+set GE_PROTON_ROOT_Q \
+    (string escape -- "$GE_PROTON_ROOT")
+
+set GE_WINE_Q \
+    (string escape -- "$GE_WINE")
+
+set GE_WINESERVER_Q \
+    (string escape -- "$GE_WINESERVER")
+
+set GE_LIBS_Q \
+    (string escape -- "$GE_LIBS")
+
+set DXVK_CONFIG_FILE_Q \
+    (string escape -- "$DXVK_CONFIG_FILE")
+
+set CATALOG_MANAGER_Q \
+    (string escape -- "$REPO/scripts/manage-aviutl2-catalog-lutris.sh")
+
 begin
-    echo '#!/usr/bin/env bash'
-    echo 'set -Eeuo pipefail'
-    echo
+    printf '%s\n' \
+        '#!/usr/bin/env bash' \
+        'set -Eeuo pipefail' \
+        ''
 
     printf 'export AVIUTL2_ROOT=%s\n' \
-        (string escape -- "$ROOT")
+        "$ROOT_Q"
 
     printf 'export AVIUTL2_PREFIX=%s\n' \
-        (string escape -- "$PREFIX")
+        "$PREFIX_Q"
 
     printf 'export GE_PROTON_ROOT=%s\n' \
-        (string escape -- "$GE_PROTON_ROOT")
+        "$GE_PROTON_ROOT_Q"
 
     printf 'export GE_WINE=%s\n' \
-        (string escape -- "$GE_WINE")
+        "$GE_WINE_Q"
 
     printf 'export GE_WINESERVER=%s\n' \
-        (string escape -- "$GE_WINESERVER")
+        "$GE_WINESERVER_Q"
 
     printf 'export GE_LIBS=%s\n' \
-        (string escape -- "$GE_LIBS")
+        "$GE_LIBS_Q"
 
     printf 'export DXVK_CONFIG_FILE=%s\n' \
-        (string escape -- "$DXVK_CONFIG_FILE")
+        "$DXVK_CONFIG_FILE_Q"
 
-    echo "export WINEDLLOVERRIDES_VALUE='nvcuda,nvcuvid,nvencodeapi64=n;d3d11,dxgi,d3d10core=n,b;d3dcompiler_47=n,b;dwrite=b'"
-    echo
+    printf '%s\n' \
+        "export WINEDLLOVERRIDES_VALUE='nvcuda,nvcuvid,nvencodeapi64=n;d3d11,dxgi,d3d10core=n,b;d3dcompiler_47=n,b;dwrite=b'" \
+        ''
 
     printf 'exec %s "$@"\n' \
-        (string escape -- "$REPO/scripts/manage-aviutl2-catalog-lutris.sh")
+        "$CATALOG_MANAGER_Q"
 end > "$CATALOG_LUTRIS_WRAPPER"
 
 chmod +x \
@@ -441,7 +454,7 @@ Disable Lutris Runtime: enabled
 Catalogから通常版L-SMASH Worksを更新すると、custom buildが上書きされる可能性がある。
 
 Catalogでは`Mr-Ojii.L-SMASH-Works`の更新を停止する。
-誤って更新した場合は、custom artifactを最後に再導入する。
+誤って更新した場合はcustom artifactを最後に再導入する。
 
 ```fish
 set PLUGIN_DIR \
