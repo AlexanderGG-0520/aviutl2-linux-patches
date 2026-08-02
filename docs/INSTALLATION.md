@@ -615,173 +615,52 @@ grep -nE \
 
 ## 13. registry、IME、診断起動、通常起動
 
-現行launcherは通常利用向けに`WINEDEBUG=-all`を使用する。
-そのため、新規prefixで最初から通常launcherを実行すると、起動失敗時の原因を記録できない。
-最初の1回は、このSectionの診断起動を必ず使用する。
+以前の手順では、Section 3で定義した`validate_selected_ge_runner` functionと、そこから派生した`GE_WINE`、`GE_WINESERVER`、`GE_DWRITE`、`GE_LIBS`を同じFish process内で保持していることを暗黙に前提としていた。
+Fishを再起動した場合やSection 13だけを実行した場合、functionは未定義になり、派生変数も空または古い値のままになる。
 
-診断処理をfunctionとして定義する:
+Section 13ではinline functionを再利用せず、必要なrunner pathを引数から毎回解決する専用scriptを使用する。
+
+診断scriptのsyntaxを確認する:
 
 ```fish
-function diagnose_aviutl2_launch
-    validate_selected_ge_runner
-    or return 1
+fish -n \
+    "$REPO/scripts/diagnose-aviutl2-launch.fish"
+```
 
-    fish \
-        "$REPO/scripts/configure-aviutl2-prefix.fish" \
-        --prefix "$PREFIX" \
-        --ge-proton-root "$GE_PROTON_ROOT"
+何も表示されなければ診断起動する:
 
-    set -l configure_status $status
+```fish
+fish \
+    "$REPO/scripts/diagnose-aviutl2-launch.fish" \
+    --root "$ROOT" \
+    --prefix "$PREFIX" \
+    --ge-proton-root "$GE_PROTON_ROOT" \
+    --dxvk-config "$DXVK_CONFIG_FILE"
+```
 
-    echo "configure_exit_status=$configure_status"
+このscriptは、引数の`GE_PROTON_ROOT`から次を内部で再計算する。
 
-    if test $configure_status -ne 0
-        echo "ERROR: prefix registry/IME configuration failed" >&2
-        return 1
-    end
+```text
+GE_WINE
+GE_WINESERVER
+GE_DWRITE
+GE_LIBS
+```
 
-    set -l aviutl2_dir \
-        "$PREFIX/drive_c/AviUtl2"
+そのため、`validate_selected_ge_runner` functionや派生変数を現在のFish sessionへ事前定義する必要はない。
 
-    set -l aviutl2_exe \
-        "$aviutl2_dir/aviutl2.exe"
+scriptは次を実行する。
 
-    set -l log_dir \
-        "$ROOT/logs"
-
-    set -l launch_log \
-        "$log_dir/aviutl2-section13-"(date +%Y%m%d-%H%M%S)".log"
-
-    for path in \
-        "$GE_WINE" \
-        "$GE_WINESERVER" \
-        "$GE_DWRITE" \
-        "$PREFIX/user.reg" \
-        "$PREFIX/system.reg" \
-        "$PREFIX/userdef.reg" \
-        "$PREFIX/drive_c/windows/system32" \
-        "$PREFIX/drive_c/windows/system32/d3d11.dll" \
-        "$PREFIX/drive_c/windows/system32/dxgi.dll" \
-        "$PREFIX/drive_c/windows/system32/d3d10core.dll" \
-        "$aviutl2_dir" \
-        "$aviutl2_exe" \
-        "$DXVK_CONFIG_FILE"
-
-        if not test -e "$path"
-            echo "ERROR: missing launch prerequisite: $path" >&2
-            return 1
-        end
-
-        echo "OK: $path"
-    end
-
-    file "$aviutl2_exe"
-    or return 1
-
-    mkdir -p "$log_dir"
-    or return 1
-
-    rm -f "$launch_log"
-    or return 1
-
-    env \
-        WINEPREFIX="$PREFIX" \
-        LD_LIBRARY_PATH="$GE_LIBS" \
-        "$GE_WINESERVER" \
-        -k \
-        2>/dev/null
-
-    or true
-
-    env \
-        WINEPREFIX="$PREFIX" \
-        LD_LIBRARY_PATH="$GE_LIBS" \
-        "$GE_WINESERVER" \
-        -w \
-        2>/dev/null
-
-    or true
-
-    cd "$aviutl2_dir"
-    or return 1
-
-    echo "diagnostic_log=$launch_log"
-    echo "diagnostic_executable=$aviutl2_exe"
-
-    env \
-        XMODIFIERS='@im=fcitx' \
-        WINEPREFIX="$PREFIX" \
-        LD_LIBRARY_PATH="$GE_LIBS" \
-        WINEDLLOVERRIDES="$DLL_OVERRIDES" \
-        DXVK_CONFIG_FILE="$DXVK_CONFIG_FILE" \
-        DXVK_LOG_LEVEL=warn \
-        WINEDEBUG='+timestamp,+pid,+tid,+loaddll,+seh' \
-        "$GE_WINE" \
-        "$aviutl2_exe" \
-        2>&1 \
-        | tee "$launch_log"
-
-    set -l aviutl2_exit_status $pipestatus[1]
-    set -l log_size \
-        (stat -c '%s' "$launch_log" 2>/dev/null)
-
-    if test -z "$log_size"
-        set log_size 0
-    end
-
-    echo "aviutl2_exit_status=$aviutl2_exit_status"
-    echo "aviutl2_log_size=$log_size"
-    echo "aviutl2_log_path=$launch_log"
-
-    echo
-    echo "=== log tail ==="
-    tail -n 100 "$launch_log"
-
-    echo
-    echo "=== executable load records ==="
-    grep -nEi \
-        'trace:loaddll:build_module Loaded .*aviutl2\.exe|Loaded L".*aviutl2\.exe"' \
-        "$launch_log"
-    or true
-
-    echo
-    echo "=== important launch errors ==="
-    grep -nEi \
-        'Application could not be started|ShellExecuteEx failed|File not found|c0000135|Unhandled exception|unhandled page fault|page fault|err:module:import_dll|failed to load|could not load' \
-        "$launch_log"
-    or true
-
-    if test $aviutl2_exit_status -ne 0
-        echo "ERROR: AviUtl2 exited with status $aviutl2_exit_status" >&2
-        return 1
-    end
-
-    if test $log_size -eq 0
-        echo "ERROR: diagnostic log is empty" >&2
-        return 1
-    end
-
-    if not grep -qEi \
-        'trace:loaddll:build_module Loaded .*aviutl2\.exe|Loaded L".*aviutl2\.exe"' \
-        "$launch_log"
-
-        echo "ERROR: no aviutl2.exe load record was found" >&2
-        return 1
-    end
-
-    if grep -qEi \
-        'Application could not be started|ShellExecuteEx failed: File not found|c0000135|Unhandled exception|unhandled page fault' \
-        "$launch_log"
-
-        echo "ERROR: fatal launch marker was found in the diagnostic log" >&2
-        return 1
-    end
-
-    echo "Diagnostic launch completed without an automatic failure marker."
-    echo "Confirm the GUI checks below before using the normal launcher."
-end
-
-diagnose_aviutl2_launch
+```text
+runner、prefix、DXVK DLL、AviUtl2本体の存在確認
+registry、font substitute、DLL override、InputStyleの設定
+既存Wine processの停止
+絶対Unix pathによるaviutl2.exe起動
+WINEDEBUG=+timestamp,+pid,+tid,+loaddll,+seh
+画面表示とログ保存
+Wine本体の終了status取得
+ログサイズ、末尾、EXE load記録、重要エラーの表示
+fatal markerの自動判定
 ```
 
 診断起動中にGUIで次を確認し、確認後にAviUtl2を閉じる:
