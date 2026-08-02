@@ -38,11 +38,14 @@ for command_name in curl python3 tar find cp mkdir rmdir rm sha256sum file basen
     require_command "$command_name"
 end
 
-set -l version v1.0.2
+# `version` is a read-only special Fish variable containing the Fish version.
+# Do not reuse it for release tags.
+set -l release_tag v1.0.2
+set -l release_version (string replace -r '^v' '' -- "$release_tag")
 set -l root "$HOME/Games/aviutl2"
-set -l download_dir "$root/downloads/nvidia-libs-$version"
-set -l extract_dir "$root/build/nvidia-libs-$version-extract"
-set -l output_dir "$root/artifacts/nvidia-libs-v1.0.2/x64"
+set -l download_dir "$root/downloads/nvidia-libs-$release_tag"
+set -l extract_dir "$root/build/nvidia-libs-$release_tag-extract"
+set -l output_dir "$root/artifacts/nvidia-libs-$release_tag/x64"
 
 if set -q _flag_output_dir
     set output_dir (string trim -- "$_flag_output_dir")
@@ -68,7 +71,7 @@ rm -rf "$extract_dir"
 mkdir -p "$extract_dir" "$output_dir"
 or die "failed to create extraction/output directories"
 
-set -l api_url "https://api.github.com/repos/SveSop/nvidia-libs/releases/tags/$version"
+set -l api_url "https://api.github.com/repos/SveSop/nvidia-libs/releases/tags/$release_tag"
 
 echo "Downloading release metadata: $api_url"
 curl \
@@ -86,14 +89,14 @@ import sys
 from pathlib import Path
 
 release_path = Path(sys.argv[1])
-version = sys.argv[2].lstrip("v")
+release_version = sys.argv[2]
 data = json.loads(release_path.read_text(encoding="utf-8"))
 
 candidates = []
 for asset in data.get("assets", []):
     name = asset.get("name", "")
     lower = name.lower()
-    if not name.startswith(f"nvidia-libs-v{version}"):
+    if not name.startswith(f"nvidia-libs-v{release_version}"):
         continue
     if "fakedll" in lower:
         continue
@@ -111,7 +114,7 @@ name, url = candidates[0]
 if not url:
     raise SystemExit(f"selected asset has no browser_download_url: {name}")
 print(url)
-' "$release_json" "$version" > "$asset_url_file"
+' "$release_json" "$release_version" > "$asset_url_file"
 or die "failed to select the regular release archive"
 
 set -l asset_url (string trim < "$asset_url_file")
