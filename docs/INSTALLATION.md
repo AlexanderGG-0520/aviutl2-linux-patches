@@ -427,6 +427,13 @@ preflight_installation_artifacts
 作成済みprefixに最低限次が存在することを確認する。
 
 ```fish
+fish \
+    "$REPO/scripts/bootstrap-aviutl2-prefix.fish" \
+    --prefix "$PREFIX" \
+    --ge-proton-root "$GE_PROTON_ROOT"
+```
+
+```fish
 for path in \
     "$PREFIX/user.reg" \
     "$PREFIX/system.reg" \
