@@ -194,7 +194,7 @@ end
 stock runnerからpatched runnerを完成させるWine DWrite buildは`REPRODUCTION.md`のWine / DWrite節を使用する。
 `GE_PROTON_ROOT`は完成したpatched runnerのpathへ固定する。
 
-## 4. AviUtl2 2.1.2を取得する
+## 4. AviUtl2 2.1.3を取得する
 
 AviUtl2本体はrepositoryへ再配布せず、公式ZIPを直接取得する。
 
