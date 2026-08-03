@@ -59,7 +59,7 @@ set -l stamp (date +%Y%m%d-%H%M%S)
 set -l capture_dir "$root/logs/dxvk-rendering-$stamp"
 set -l start_marker "$root/logs/.rendering-start-$stamp-"(random)
 
-for command_name in fish find grep sort tail cut date touch rm mkdir
+for command_name in fish find grep sort head tail cut date touch rm mkdir
     command -q "$command_name"
     or die "required command not found: $command_name"
 end
@@ -108,7 +108,6 @@ set -l section_log \
         | sort -nr \
         | head -n 1 \
         | cut -d' ' -f2-)
-set -l section_log_status $pipestatus
 
 rm -f -- "$start_marker"
 or die 'failed to remove rendering diagnostic start marker'
