@@ -93,10 +93,11 @@ printf '%s\n' \
     '' \
     'AviUtl2で次の順に、短時間で再現する:' \
     '  1. 新規projectでdefaultの四角形objectを1個だけ追加する' \
-    '  2. sizeとpositionを変更し、previewに表示されるか確認する' \
-    '  3. 同じobjectを円へ変更し、previewに表示されるか確認する' \
-    '  4. 塗り色と枠線幅を一度変更する' \
-    '  5. 10秒以内を目安にAviUtl2を正常終了する' \
+    '  2. 四角形がpreviewに表示されることを確認する' \
+    '  3. 同じobjectを円へ変更する' \
+    '  4. 円だけpreviewに表示されないことを確認する' \
+    '  5. 円のsize・塗り色・枠線幅を一度変更する' \
+    '  6. 10秒以内を目安にAviUtl2を正常終了する' \
     '' \
     '動画・text・Catalogはこの診断では操作しない。' \
     "WINEDEBUG=$wine_debug"
@@ -131,22 +132,25 @@ or die 'no nonempty shape diagnostic log was found'
 echo
 echo "SHAPE_LOG=$section_log"
 echo '=== D2D shape call counts ==='
-printf '%-24s %s\n' \
+printf '%-28s %s\n' \
     'DrawGeometry' (count_pattern 'trace:d2d:d2d_device_context_DrawGeometry' "$section_log") \
     'FillGeometry' (count_pattern 'trace:d2d:d2d_device_context_FillGeometry' "$section_log") \
     'DrawRectangle' (count_pattern 'trace:d2d:d2d_device_context_DrawRectangle' "$section_log") \
     'FillRectangle' (count_pattern 'trace:d2d:d2d_device_context_FillRectangle' "$section_log") \
     'DrawEllipse' (count_pattern 'trace:d2d:d2d_device_context_DrawEllipse' "$section_log") \
     'FillEllipse' (count_pattern 'trace:d2d:d2d_device_context_FillEllipse' "$section_log") \
+    'CreateEllipseGeometry' (count_pattern 'trace:d2d:d2d_factory_CreateEllipseGeometry' "$section_log") \
+    'Created ellipse geometry' (count_pattern 'trace:d2d:.*Created ellipse geometry' "$section_log") \
+    'Ellipse init failures' (count_pattern '(warn|err):d2d:.*(Failed to initialise ellipse geometry|Failed to create geometry)' "$section_log") \
     'BeginDraw' (count_pattern 'trace:d2d:d2d_device_context_BeginDraw' "$section_log") \
     'EndDraw' (count_pattern 'trace:d2d:d2d_device_context_EndDraw' "$section_log")
 
 echo
-echo '=== Focused D2D shape trace ==='
+echo '=== Focused ellipse trace ==='
 grep -nEi \
-    'trace:d2d:d2d_device_context_(DrawGeometry|FillGeometry|DrawRectangle|FillRectangle|DrawRoundedRectangle|FillRoundedRectangle|DrawEllipse|FillEllipse|BeginDraw|EndDraw|SetTarget|SetTransform|Clear)|fixme:d2d:d2d_device_context_DrawGeometry|warn:d2d|err:d2d|Failed to create (index|vertex) buffer|d2d_device_context_set_error|stroke_width|stroke_style|tessellat|outline|fill' \
+    'trace:d2d:(d2d_device_context_(DrawGeometry|FillGeometry|DrawRectangle|FillRectangle|DrawRoundedRectangle|FillRoundedRectangle|DrawEllipse|FillEllipse|BeginDraw|EndDraw|SetTarget|SetTransform|Clear)|d2d_factory_CreateEllipseGeometry)|Created ellipse geometry|Failed to initialise ellipse geometry|Failed to create geometry|fixme:d2d:d2d_device_context_DrawGeometry|warn:d2d|err:d2d|Failed to create (index|vertex) buffer|d2d_device_context_set_error|stroke_width|stroke_style|tessellat|outline|fill' \
     "$section_log" \
-    | tail -n 1500
+    | tail -n 2000
 or true
 
 echo
