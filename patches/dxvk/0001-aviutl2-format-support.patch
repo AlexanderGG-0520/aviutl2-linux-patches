@@ -9,7 +9,7 @@ diff --git a/src/d3d11/d3d11_device.cpp b/src/d3d11/d3d11_device.cpp
  
  namespace dxvk {
 @@ -225,12 +226,40 @@
- 
+     
      HRESULT hr = D3D11CommonTexture::NormalizeTextureProperties(&desc);
  
 +    static const bool isAviUtl2
@@ -48,7 +48,7 @@ diff --git a/src/d3d11/d3d11_device.cpp b/src/d3d11/d3d11_device.cpp
 +      logAviUtl2TextureFailure("property normalization");
        return hr;
 +    }
- 
+     
      if (!ppTexture2D)
        return S_FALSE;
 @@ -241,6 +270,7 @@
