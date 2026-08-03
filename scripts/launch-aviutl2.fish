@@ -83,7 +83,7 @@ set -l aviutl2_exe \
     "$aviutl2_dir/aviutl2.exe"
 
 set -l dll_overrides \
-    'nvcuda,nvcuvid,nvencodeapi64=n;d3d11,dxgi,d3d10core=n,b;d3dcompiler_47=n,b;dwrite=b'
+    'nvcuda,nvcuvid,nvencodeapi64=n;d3d11,dxgi,d3d10core=n,b;d3dcompiler_47=n,b;dwrite,d2d1=b'
 
 for path in \
     "$wine" \
