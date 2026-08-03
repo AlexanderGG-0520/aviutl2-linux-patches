@@ -32,6 +32,7 @@ set -l MODULE_DIR "$SCRIPT_DIR/lib/setup-aviutl2-interactive"
 for module in \
     00-core.fish \
     05-repository-validation.fish \
+    05a-rendering-diagnostic-validation.fish \
     06-package-managers.fish \
     06a-preserve-arch-ime.fish \
     07-dwrite-provenance.fish \
