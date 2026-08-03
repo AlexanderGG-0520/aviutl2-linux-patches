@@ -1,0 +1,160 @@
+--- a/dlls/d2d1/geometry.c
++++ b/dlls/d2d1/geometry.c
+@@ -1,8 +1,32 @@
++static void d2d_arc_evaluate(double cx, double cy, double rx, double ry,
++        double cos_phi, double sin_phi, double angle, D2D1_POINT_2F *point, D2D1_POINT_2F *tangent)
++{
++    double cos_angle = cos(angle);
++    double sin_angle = sin(angle);
++
++    point->x = cx + rx * cos_phi * cos_angle - ry * sin_phi * sin_angle;
++    point->y = cy + rx * sin_phi * cos_angle + ry * cos_phi * sin_angle;
++
++    tangent->x = -rx * cos_phi * sin_angle - ry * sin_phi * cos_angle;
++    tangent->y = -rx * sin_phi * sin_angle + ry * cos_phi * cos_angle;
++}
++
+ static void STDMETHODCALLTYPE d2d_geometry_sink_AddArc(ID2D1GeometrySink *iface, const D2D1_ARC_SEGMENT *arc)
+ {
++    const double pi = 3.14159265358979323846;
+     struct d2d_geometry *geometry = impl_from_ID2D1GeometrySink(iface);
++    struct d2d_figure *figure;
++    D2D1_BEZIER_SEGMENT beziers[4];
++    D2D1_POINT_2F start, p0, p1, t0, t1;
++    double x1p, y1p, cxp, cyp, cx, cy;
++    double rx, ry, rx2, ry2, scale;
++    double phi, cos_phi, sin_phi;
++    double start_angle, delta, step;
++    double ux, uy, vx, vy, alpha;
++    unsigned int old_segment_count;
++    unsigned int segment_count, i;
+ 
+-    FIXME("iface %p, arc %p stub!\n", iface, arc);
++    TRACE("iface %p, arc %p.\n", iface, arc);
+ 
+     if (geometry->u.path.state != D2D_GEOMETRY_STATE_FIGURE)
+     {
+@@ -10,11 +34,119 @@
+         return;
+     }
+ 
+-    if (!d2d_figure_add_vertex(&geometry->u.path.figures[geometry->u.path.figure_count - 1], arc->point))
++    figure = &geometry->u.path.figures[geometry->u.path.figure_count - 1];
++    if (!figure->vertex_count)
+     {
+-        ERR("Failed to add vertex.\n");
++        d2d_geometry_set_error(geometry, D2DERR_WRONG_STATE);
+         return;
+     }
+ 
+-    ++geometry->u.path.segment_count;
++    start = figure->vertices[figure->vertex_count - 1];
++    rx = fabs(arc->size.width);
++    ry = fabs(arc->size.height);
++
++    if (!rx || !ry)
++    {
++        d2d_geometry_sink_AddLine(iface, arc->point);
++        return;
++    }
++
++    if (start.x == arc->point.x && start.y == arc->point.y)
++    {
++        ++geometry->u.path.segment_count;
++        return;
++    }
++
++    phi = arc->rotationAngle * pi / 180.0;
++    cos_phi = cos(phi);
++    sin_phi = sin(phi);
++
++    x1p = cos_phi * (start.x - arc->point.x) * 0.5
++            + sin_phi * (start.y - arc->point.y) * 0.5;
++    y1p = -sin_phi * (start.x - arc->point.x) * 0.5
++            + cos_phi * (start.y - arc->point.y) * 0.5;
++
++    rx2 = rx * rx;
++    ry2 = ry * ry;
++    scale = x1p * x1p / rx2 + y1p * y1p / ry2;
++    if (scale > 1.0)
++    {
++        scale = sqrt(scale);
++        rx *= scale;
++        ry *= scale;
++        rx2 = rx * rx;
++        ry2 = ry * ry;
++    }
++
++    scale = rx2 * y1p * y1p + ry2 * x1p * x1p;
++    if (!scale)
++    {
++        d2d_geometry_sink_AddLine(iface, arc->point);
++        return;
++    }
++
++    scale = (rx2 * ry2 - rx2 * y1p * y1p - ry2 * x1p * x1p) / scale;
++    if (scale < 0.0)
++        scale = 0.0;
++    scale = sqrt(scale);
++
++    if ((arc->arcSize == D2D1_ARC_SIZE_LARGE)
++            == (arc->sweepDirection == D2D1_SWEEP_DIRECTION_CLOCKWISE))
++        scale = -scale;
++
++    cxp = scale * rx * y1p / ry;
++    cyp = -scale * ry * x1p / rx;
++
++    cx = cos_phi * cxp - sin_phi * cyp + (start.x + arc->point.x) * 0.5;
++    cy = sin_phi * cxp + cos_phi * cyp + (start.y + arc->point.y) * 0.5;
++
++    ux = (x1p - cxp) / rx;
++    uy = (y1p - cyp) / ry;
++    vx = (-x1p - cxp) / rx;
++    vy = (-y1p - cyp) / ry;
++
++    start_angle = atan2(uy, ux);
++    delta = atan2(ux * vy - uy * vx, ux * vx + uy * vy);
++    if (arc->sweepDirection == D2D1_SWEEP_DIRECTION_CLOCKWISE)
++    {
++        if (delta < 0.0)
++            delta += 2.0 * pi;
++    }
++    else if (delta > 0.0)
++    {
++        delta -= 2.0 * pi;
++    }
++
++    segment_count = ceil(fabs(delta) / (pi * 0.5));
++    if (!segment_count)
++        segment_count = 1;
++    if (segment_count > ARRAY_SIZE(beziers))
++        segment_count = ARRAY_SIZE(beziers);
++
++    step = delta / segment_count;
++    for (i = 0; i < segment_count; ++i)
++    {
++        double a0 = start_angle + i * step;
++        double a1 = a0 + step;
++
++        alpha = 4.0 / 3.0 * tan(step * 0.25);
++        d2d_arc_evaluate(cx, cy, rx, ry, cos_phi, sin_phi, a0, &p0, &t0);
++        d2d_arc_evaluate(cx, cy, rx, ry, cos_phi, sin_phi, a1, &p1, &t1);
++
++        beziers[i].point1.x = p0.x + alpha * t0.x;
++        beziers[i].point1.y = p0.y + alpha * t0.y;
++        beziers[i].point2.x = p1.x - alpha * t1.x;
++        beziers[i].point2.y = p1.y - alpha * t1.y;
++        beziers[i].point3 = p1;
++    }
++
++    beziers[segment_count - 1].point3 = arc->point;
++
++    old_segment_count = geometry->u.path.segment_count;
++    d2d_geometry_sink_AddBeziers(iface, beziers, segment_count);
++    if (geometry->u.path.state != D2D_GEOMETRY_STATE_ERROR)
++    {
++        geometry->u.path.segment_count = old_segment_count + 1;
++        TRACE("AviUtl2 AddArc compatibility: converted arc to %u cubic Bezier segments.\n",
++                segment_count);
++    }
+ }
