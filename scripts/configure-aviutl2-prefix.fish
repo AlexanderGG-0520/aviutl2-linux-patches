@@ -90,6 +90,8 @@ require_path "$ge_proton_root/files/lib/x86_64-linux-gnu"
 require_path "$ge_proton_root/files/lib/i386-linux-gnu"
 require_path "$ge_vkd3d_dir"
 require_path "$ge_wine_dll_dir"
+require_path "$ge_proton_root/files/lib/wine/x86_64-windows/dwrite.dll"
+require_path "$ge_proton_root/files/lib/wine/x86_64-windows/d2d1.dll"
 require_path "$prefix/user.reg"
 require_path "$prefix/system.reg"
 require_path "$prefix/userdef.reg"
@@ -200,7 +202,8 @@ for specification in \
     'dxgi=native,builtin' \
     'd3d10core=native,builtin' \
     'd3dcompiler_47=native,builtin' \
-    'dwrite=builtin'
+    'dwrite=builtin' \
+    'd2d1=builtin'
 
     set -l parts \
         (string split -m 1 '=' -- "$specification")
@@ -251,6 +254,11 @@ run_wine \
     reg query "$reg_overrides" \
     /v dwrite
 or die "dwrite override verification failed"
+
+run_wine \
+    reg query "$reg_overrides" \
+    /v d2d1
+or die "d2d1 override verification failed"
 
 run_wine \
     reg query "$reg_x11" \
