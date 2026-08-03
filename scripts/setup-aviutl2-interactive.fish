@@ -22,7 +22,7 @@ set -g REQUESTED_GE_ROOT ''
 set -g JOBS ''
 
 set -g DLL_OVERRIDES \
-    'nvcuda,nvcuvid,nvencodeapi64=n;d3d11,dxgi,d3d10core=n,b;d3dcompiler_47=n,b;dwrite=b'
+    'nvcuda,nvcuvid,nvencodeapi64=n;d3d11,dxgi,d3d10core=n,b;d3dcompiler_47=n,b;dwrite,d2d1=b'
 
 set -g STOCK_DWRITE_SHA256 \
     '6d92b541c36f2157be264e5803497ab8f17777c1f575e6704fe3450d00f00e32'
@@ -47,7 +47,8 @@ for module in \
     45-catalog-doc-flow.fish \
     46-catalog-registration-gate.fish \
     47-catalog-fish-wrapper.fish \
-    90-main.fish
+    90-main.fish \
+    91-d2d1-addarc.fish
 
     set -l module_path "$MODULE_DIR/$module"
 
