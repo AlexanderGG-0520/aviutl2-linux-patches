@@ -35,6 +35,7 @@ for module in \
     06-package-managers.fish \
     06a-preserve-arch-ime.fish \
     07-dwrite-provenance.fish \
+    08-lsmash-codecs.fish \
     10-artifacts.fish \
     20-deploy.fish \
     30-verify.fish \
