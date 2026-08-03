@@ -1,6 +1,6 @@
 --- a/dlls/d2d1/geometry.c
 +++ b/dlls/d2d1/geometry.c
-@@ -1,8 +1,32 @@
+@@ -3362,20 +3362,153 @@
 +static void d2d_arc_evaluate(double cx, double cy, double rx, double ry,
 +        double cos_phi, double sin_phi, double angle, D2D1_POINT_2F *point, D2D1_POINT_2F *tangent)
 +{
@@ -34,7 +34,7 @@
  
      if (geometry->u.path.state != D2D_GEOMETRY_STATE_FIGURE)
      {
-@@ -10,11 +34,119 @@
+         d2d_geometry_set_error(geometry, D2DERR_WRONG_STATE);
          return;
      }
  
