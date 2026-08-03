@@ -4,7 +4,7 @@ set -g SCRIPT_NAME (basename (status filename))
 set -g SCRIPT_DIR (dirname (status filename))
 
 function usage
-    echo "Usage: $SCRIPT_NAME --root PATH --prefix PATH --ge-proton-root PATH --dxvk-config PATH"
+    echo "Usage: $SCRIPT_NAME --root PATH --prefix PATH --ge-proton-root PATH --dxvk-config PATH [--wine-debug VALUE]"
 end
 
 function die
@@ -24,19 +24,13 @@ function normalize_absolute --argument-names label input
     string replace -r '/+$' '' -- "$input"
 end
 
-function require_path --argument-names path
-    test -e "$path"
-    or die "missing launch prerequisite: $path"
-
-    echo "OK: $path"
-end
-
 argparse \
     'h/help' \
     'r/root=' \
     'p/prefix=' \
     'g/ge-proton-root=' \
     'd/dxvk-config=' \
+    'w/wine-debug=' \
     -- $argv
 or begin
     usage >&2
@@ -71,6 +65,18 @@ set -l ge_proton_root \
 
 set -l dxvk_config \
     (normalize_absolute --dxvk-config "$_flag_dxvk_config")
+
+set -l wine_debug \
+    '+timestamp,+pid,+tid,+loaddll,+seh'
+
+if set -q _flag_wine_debug
+    set wine_debug (string trim -- "$_flag_wine_debug")
+    test -n "$wine_debug"
+    or die '--wine-debug requires a nonempty value'
+
+    string match -rq '[\r\n]' -- "$wine_debug"
+    and die '--wine-debug must be a single line'
+end
 
 set -l wine \
     "$ge_proton_root/files/bin/wine"
@@ -171,7 +177,8 @@ printf '%s\n' \
     "GE_DWRITE_SHA256=$dwrite_sha256" \
     "GE_LD_LIBRARY_PATH=$ge_libs" \
     "GE_WINEDLLPATH=$ge_winedllpath" \
-    "AVIUTL2_EXE=$aviutl2_exe"
+    "AVIUTL2_EXE=$aviutl2_exe" \
+    "WINEDEBUG_VALUE=$wine_debug"
 
 fish \
     "$configure_script" \
@@ -230,6 +237,7 @@ begin
         "GE_WINEDLLPATH=$ge_winedllpath" \
         "AVIUTL2_EXE=$aviutl2_exe" \
         "DXVK_CONFIG_FILE=$dxvk_config" \
+        "WINEDEBUG_VALUE=$wine_debug" \
         "DIAGNOSTIC_STARTED_AT="(date --iso-8601=seconds)
 
     env \
@@ -240,7 +248,7 @@ begin
         WINEDLLOVERRIDES="$dll_overrides" \
         DXVK_CONFIG_FILE="$dxvk_config" \
         DXVK_LOG_LEVEL=warn \
-        WINEDEBUG='+timestamp,+pid,+tid,+loaddll,+seh' \
+        WINEDEBUG="$wine_debug" \
         "$wine" \
         "$aviutl2_exe"
 end > "$launch_log" 2>&1
@@ -259,7 +267,7 @@ echo "aviutl2_log_path=$launch_log"
 
 echo
 echo "=== diagnostic metadata ==="
-head -n 10 "$launch_log"
+head -n 12 "$launch_log"
 
 echo
 echo "=== log tail ==="
