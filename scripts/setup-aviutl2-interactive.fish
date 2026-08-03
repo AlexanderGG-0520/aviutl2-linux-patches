@@ -42,6 +42,7 @@ for module in \
     31-gui-reedit-gate.fish \
     45-catalog-doc-flow.fish \
     46-catalog-registration-gate.fish \
+    47-catalog-fish-wrapper.fish \
     90-main.fish
 
     set -l module_path "$MODULE_DIR/$module"
