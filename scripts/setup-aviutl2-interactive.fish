@@ -40,6 +40,7 @@ for module in \
     20-deploy.fish \
     30-verify.fish \
     31-gui-reedit-gate.fish \
+    32-rendering-media-gate.fish \
     45-catalog-doc-flow.fish \
     46-catalog-registration-gate.fish \
     47-catalog-fish-wrapper.fish \
