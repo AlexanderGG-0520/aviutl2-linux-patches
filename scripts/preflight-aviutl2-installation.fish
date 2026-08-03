@@ -36,6 +36,11 @@ function require_path --argument-names path
     echo "OK: $path"
 end
 
+function require_command --argument-names command_name
+    command -q "$command_name"
+    or die "required command not found: $command_name"
+end
+
 argparse \
     'h/help' \
     'r/root=' \
@@ -58,6 +63,10 @@ or die "--root is required"
 
 set -q _flag_ge_proton_root
 or die "--ge-proton-root is required"
+
+for command_name in strings grep sha256sum
+    require_command "$command_name"
+end
 
 set -l root \
     (normalize_absolute --root "$_flag_root")
@@ -128,9 +137,48 @@ for path in \
     "$nvidia_wrapper_dir/nvencodeapi64.dll" \
     "$lsmash_artifact_dir/lwinput.aui2" \
     "$lsmash_artifact_dir/lsmash.ini" \
+    "$lsmash_artifact_dir/SHA256SUMS" \
     "$dxvk_config_file"
 
     require_path "$path"
 end
 
+pushd "$lsmash_artifact_dir" >/dev/null
+sha256sum -c SHA256SUMS >/dev/null
+set -l lsmash_checksum_status $status
+popd >/dev/null
+
+test $lsmash_checksum_status -eq 0
+or die "L-SMASH Works artifact checksum verification failed"
+
+set -l lsmash_binary "$lsmash_artifact_dir/lwinput.aui2"
+set -l lsmash_config "$lsmash_artifact_dir/lsmash.ini"
+
+begin
+    strings -a -n 5 "$lsmash_binary"
+    strings -a --encoding=l -n 5 "$lsmash_binary"
+end | grep -q 'L-SMASH Works File Reader for AviUtl2 r1284 by Mr-Ojii'
+or die "L-SMASH Works artifact does not identify itself as r1284"
+
+strings -a -n 5 "$lsmash_binary" | grep -q -- '--enable-cuvid'
+or die "L-SMASH Works artifact lacks --enable-cuvid"
+
+for decoder in av1_cuvid hevc_cuvid
+    strings -a -n 5 "$lsmash_binary" \
+        | grep -q -- "--enable-decoder=$decoder"
+    or die "L-SMASH Works artifact lacks $decoder"
+end
+
+grep -qx 'libavsmash_disabled=1' "$lsmash_config"
+or die "L-SMASH Works config must disable libavsmash"
+
+grep -qx 'libav_disabled=0' "$lsmash_config"
+or die "L-SMASH Works config must enable libav"
+
+grep -qx \
+    'preferred_decoders=av1_cuvid,hevc_cuvid' \
+    "$lsmash_config"
+or die "L-SMASH Works config must branch between AV1 and HEVC CUVID"
+
+echo "OK: L-SMASH Works AV1/HEVC CUVID artifact"
 echo "Installation artifact preflight completed successfully."
