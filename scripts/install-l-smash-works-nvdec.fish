@@ -1,7 +1,8 @@
 #!/usr/bin/env fish
 
-# Install a validated patched L-SMASH Works r1284 artifact into an existing
-# AviUtl2 Wine prefix while protecting it from AviUtl2 Catalog bulk updates.
+# Install a validated patched L-SMASH Works r1284 AV1/HEVC NVDEC artifact into
+# an existing AviUtl2 Wine prefix while protecting it from AviUtl2 Catalog
+# bulk updates.
 #
 # This script intentionally does NOT modify installed.json or hash-cache.json.
 
@@ -120,8 +121,8 @@ if pgrep -af 'AviUtl2_Catalog\.exe|aviutl2\.exe' >/dev/null 2>&1
     die "AviUtl2 or AviUtl2 Catalog appears to be running; close it first"
 end
 
-# Artifact validation. SHA-256 is intentionally not required to equal the
-# original Alex build because the absolute build prefix is embedded in FFmpeg.
+# Artifact validation. SHA-256 is intentionally not required to equal an
+# earlier build because the absolute build prefix is embedded in FFmpeg.
 begin
     strings -a -n 5 "$built_aui2"
     strings -a --encoding=l -n 5 "$built_aui2"
@@ -131,8 +132,11 @@ or die "artifact does not identify itself as L-SMASH Works r1284"
 strings -a -n 5 "$built_aui2" | grep -q -- '--enable-cuvid'
 or die "artifact lacks the FFmpeg --enable-cuvid marker"
 
-strings -a -n 5 "$built_aui2" | grep -q -- '--enable-decoder=av1_cuvid'
-or die "artifact lacks the FFmpeg av1_cuvid marker"
+for decoder in av1_cuvid hevc_cuvid
+    strings -a -n 5 "$built_aui2" \
+        | grep -q -- "--enable-decoder=$decoder"
+    or die "artifact lacks the FFmpeg $decoder marker"
+end
 
 grep -qx 'libavsmash_disabled=1' "$built_ini"
 or die "lsmash.ini must contain libavsmash_disabled=1"
@@ -140,8 +144,8 @@ or die "lsmash.ini must contain libavsmash_disabled=1"
 grep -qx 'libav_disabled=0' "$built_ini"
 or die "lsmash.ini must contain libav_disabled=0"
 
-grep -qx 'preferred_decoders=av1_cuvid' "$built_ini"
-or die "lsmash.ini must contain preferred_decoders=av1_cuvid"
+grep -qx 'preferred_decoders=av1_cuvid,hevc_cuvid' "$built_ini"
+or die "lsmash.ini must prefer av1_cuvid and hevc_cuvid"
 
 set -l installed_before (file_sha_or_missing "$installed")
 set -l hash_cache_before (file_sha_or_missing "$hash_cache")
@@ -237,6 +241,7 @@ set -l active_sha256 (sha256sum "$active_aui2" | string split ' ')[1]
 note "Installation completed"
 echo "Active plugin: $active_aui2"
 echo "SHA-256: $active_sha256"
+echo "Preferred decoders: av1_cuvid,hevc_cuvid"
 echo "Catalog pause ID: $package_id"
 echo "installed.json: unchanged ($installed_after)"
 echo "hash-cache.json: unchanged ($hash_cache_after)"
