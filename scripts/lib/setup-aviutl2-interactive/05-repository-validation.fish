@@ -9,6 +9,7 @@ function validate_installation_repository
     for path in \
         "$REPO/docs/INSTALLATION.md" \
         "$REPO/docs/PACKAGE-MANAGERS.md" \
+        "$REPO/config/lsmash.ini" \
         "$REPO/scripts/build-dwrite-clean.fish" \
         "$REPO/scripts/install-dwrite.fish" \
         "$REPO/scripts/build-dxvk-aviutl2.sh" \
@@ -38,6 +39,11 @@ function validate_installation_repository
         fish -n "$script"
         or die "invalid Fish syntax: $script"
     end
+
+    grep -qx \
+        'preferred_decoders=av1_cuvid,hevc_cuvid' \
+        "$REPO/config/lsmash.ini"
+    or die 'config/lsmash.ini must prefer av1_cuvid and hevc_cuvid'
 
     bash -n "$REPO/scripts/build-dxvk-aviutl2.sh"
     or die 'DXVK builder Bash syntax validation failed'
