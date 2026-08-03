@@ -1,15 +1,65 @@
 diff --git a/src/d3d11/d3d11_device.cpp b/src/d3d11/d3d11_device.cpp
 --- a/src/d3d11/d3d11_device.cpp
 +++ b/src/d3d11/d3d11_device.cpp
-@@ -26,6 +26,7 @@
- 
+@@ -26,5 +26,6 @@
  #include "../wsi/wsi_window.h"
  
 +#include "../util/util_env.h"
  #include "../util/util_shared_res.h"
  
  namespace dxvk {
-@@ -1547,5 +1548,22 @@ namespace dxvk {
+@@ -225,12 +226,40 @@
+ 
+     HRESULT hr = D3D11CommonTexture::NormalizeTextureProperties(&desc);
+ 
++    static const bool isAviUtl2
++      = env::getExeName() == "aviutl2.exe";
++
++    const auto logAviUtl2TextureFailure = [&] (const char* stage) {
++      if (!isAviUtl2)
++        return;
++
++      Logger::warn(str::format(
++        "AviUtl2 diagnostic: CreateTexture2D failed during ", stage,
++        "\n  Width: ", desc.Width,
++        "\n  Height: ", desc.Height,
++        "\n  MipLevels: ", desc.MipLevels,
++        "\n  ArraySize: ", desc.ArraySize,
++        "\n  Format: ", static_cast<uint32_t>(desc.Format),
++        "\n  SampleCount: ", desc.SampleDesc.Count,
++        "\n  SampleQuality: ", desc.SampleDesc.Quality,
++        "\n  Usage: ", static_cast<uint32_t>(desc.Usage),
++        "\n  BindFlags: ", desc.BindFlags,
++        "\n  CPUAccessFlags: ", desc.CPUAccessFlags,
++        "\n  MiscFlags: ", desc.MiscFlags,
++        "\n  TextureLayout: ", static_cast<uint32_t>(desc.TextureLayout),
++        "\n  InitialData: ", pInitialData != nullptr));
++    };
++
+     if ((desc.MiscFlags & D3D11_RESOURCE_MISC_TILED)
+-     && !m_deviceFeatures.GetTiledResourcesTier())
++     && !m_deviceFeatures.GetTiledResourcesTier()) {
++      logAviUtl2TextureFailure("tiled-resource validation");
+       return E_INVALIDARG;
++    }
+ 
+-    if (FAILED(hr))
++    if (FAILED(hr)) {
++      logAviUtl2TextureFailure("property normalization");
+       return hr;
++    }
+ 
+     if (!ppTexture2D)
+       return S_FALSE;
+@@ -241,6 +270,7 @@
+       *ppTexture2D = texture.ref();
+       return S_OK;
+     } catch (const DxvkError& e) {
++      logAviUtl2TextureFailure("resource creation");
+       Logger::err(e.message());
+       return E_INVALIDARG;
+     }
+@@ -1547,5 +1577,22 @@
    HRESULT STDMETHODCALLTYPE D3D11Device::CheckFormatSupport(
            DXGI_FORMAT Format,
            UINT*       pFormatSupport) {
