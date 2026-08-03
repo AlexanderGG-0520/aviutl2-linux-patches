@@ -48,7 +48,8 @@ for module in \
     46-catalog-registration-gate.fish \
     47-catalog-fish-wrapper.fish \
     90-main.fish \
-    91-d2d1-addarc.fish
+    91-d2d1-addarc.fish \
+    92-d2d1-patch-format-validation.fish
 
     set -l module_path "$MODULE_DIR/$module"
 
