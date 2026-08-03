@@ -119,6 +119,9 @@ or die "patch not found: $patch_file"
 test -f "$lsmash_ini"
 or die "configuration not found: $lsmash_ini"
 
+grep -qx 'preferred_decoders=av1_cuvid,hevc_cuvid' "$lsmash_ini"
+or die "configuration must prefer both av1_cuvid and hevc_cuvid"
+
 set -l expected_patch_sha256 7c4b410fa4ffa5223b63522f27e9e2534bac550d2fa038c1aee94ed6de5ae0d2
 set -l actual_patch_sha256 (sha256sum "$patch_file" | string split ' ')[1]
 test "$actual_patch_sha256" = "$expected_patch_sha256"
@@ -465,7 +468,7 @@ for module_name in dav1d vpx libgme vpl
     or die "pkg-config module unavailable: $module_name"
 end
 
-note "Building FFmpeg with AV1 CUVID"
+note "Building FFmpeg with AV1 and HEVC CUVID"
 cd "$deps_dir/FFmpeg"
 or die "cannot enter FFmpeg source"
 
@@ -495,6 +498,7 @@ env \
     --enable-libvpl \
     --enable-cuvid \
     --enable-decoder=av1_cuvid \
+    --enable-decoder=hevc_cuvid \
     --pkg-config=x86_64-w64-mingw32-pkg-config \
     --extra-cflags="-I$prefix/include" \
     --extra-ldflags="-L$prefix/lib" \
@@ -513,6 +517,9 @@ or die "FFmpeg CONFIG_FFNVCODEC is not enabled"
 
 grep -q '^CONFIG_AV1_CUVID_DECODER=yes$' ffbuild/config.mak
 or die "FFmpeg CONFIG_AV1_CUVID_DECODER is not enabled"
+
+grep -q '^CONFIG_HEVC_CUVID_DECODER=yes$' ffbuild/config.mak
+or die "FFmpeg CONFIG_HEVC_CUVID_DECODER is not enabled"
 
 make -j "$jobs"
 or die "FFmpeg build failed"
@@ -588,8 +595,11 @@ or die "the built plugin does not identify itself as r1284"
 strings -a -n 5 "$built_aui2" | grep -q -- '--enable-cuvid'
 or die "the built plugin does not contain the expected FFmpeg --enable-cuvid marker"
 
-strings -a -n 5 "$built_aui2" | grep -q -- '--enable-decoder=av1_cuvid'
-or die "the built plugin does not contain the expected av1_cuvid configure marker"
+for decoder in av1_cuvid hevc_cuvid
+    strings -a -n 5 "$built_aui2" \
+        | grep -q -- "--enable-decoder=$decoder"
+    or die "the built plugin does not contain the expected $decoder configure marker"
+end
 
 cp -a "$built_aui2" "$output_dir/lwinput.aui2"
 or die "failed to copy lwinput.aui2 to output"
@@ -599,9 +609,6 @@ or die "failed to copy lsmash.ini to output"
 
 set -l output_sha256 (sha256sum "$output_dir/lwinput.aui2" | string split ' ')[1]
 set -l output_size (stat -c '%s' "$output_dir/lwinput.aui2")
-set -l reference_sha256 fce81e0257a6730ada0729ffddfdb51d1528f8b4bdfb61488a7d01b074ab0fc3
-set -l reference_size 26945536
-set -l reference_xxh3 87dcdf17b419392c8172b843ab26e0a9
 
 begin
     echo "L-SMASH Works NVDEC build provenance"
@@ -609,6 +616,8 @@ begin
     echo "work_dir=$work_dir"
     echo "prefix=$prefix"
     echo "jobs=$jobs"
+    echo "enabled_cuvid_decoders=av1_cuvid,hevc_cuvid"
+    echo "preferred_decoders=av1_cuvid,hevc_cuvid"
     echo
     echo "source_commits:"
     echo "L-SMASH-Works=$lsw_patched_commit"
@@ -625,9 +634,6 @@ begin
     echo "artifact:"
     echo "size=$output_size"
     echo "sha256=$output_sha256"
-    echo "reference_size=$reference_size"
-    echo "reference_sha256=$reference_sha256"
-    echo "reference_xxh3_128=$reference_xxh3"
     echo
     echo "tool_versions:"
     x86_64-w64-mingw32-gcc --version | head -n 1
@@ -650,19 +656,9 @@ note "Build completed"
 echo "Output directory: $output_dir"
 echo "lwinput.aui2 size: $output_size"
 echo "lwinput.aui2 SHA-256: $output_sha256"
-echo "Reference size: $reference_size"
-echo "Reference SHA-256: $reference_sha256"
 echo
-
-if test "$output_sha256" = "$reference_sha256"
-    echo "RESULT: byte-for-byte match with the original validated artifact"
-else
-    echo "RESULT: not a byte-for-byte match with the original artifact"
-    echo "This is expected when the absolute build prefix or toolchain version differs."
-    echo "The script already verified the pinned source commit, r1284 identity,"
-    echo "and embedded AV1 CUVID configuration. Runtime validation is still required."
-end
-
+echo "RESULT: pinned r1284 artifact with AV1/HEVC CUVID decoder support"
+echo "Runtime validation with representative AV1 and HEVC inputs is still required."
 echo
 echo "The plugin has NOT been installed into any Wine prefix."
 echo "Pause Mr-Ojii.L-SMASH-Works in AviUtl2 Catalog before installing it."
