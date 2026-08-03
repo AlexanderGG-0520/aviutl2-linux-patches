@@ -24,6 +24,13 @@ function normalize_absolute --argument-names label input
     string replace -r '/+$' '' -- "$input"
 end
 
+function require_path --argument-names path
+    test -e "$path"
+    or die "missing launch prerequisite: $path"
+
+    echo "OK: $path"
+end
+
 argparse \
     'h/help' \
     'r/root=' \
