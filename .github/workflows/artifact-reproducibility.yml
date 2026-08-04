@@ -1,0 +1,332 @@
+name: Artifact clean-build reproducibility
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/artifact-reproducibility.yml"
+      - "scripts/**/*.fish"
+      - "scripts/**/*.sh"
+      - "patches/wine/**"
+      - "patches/dxvk/**"
+  pull_request:
+    paths:
+      - ".github/workflows/artifact-reproducibility.yml"
+      - "scripts/**/*.fish"
+      - "scripts/**/*.sh"
+      - "patches/wine/**"
+      - "patches/dxvk/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: artifact-reproducibility-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# This workflow proves that the pinned sources and repository scripts can
+# regenerate the artifacts from empty GitHub-hosted runner workspaces.
+# It does not claim bit-for-bit deterministic output across toolchain versions.
+
+jobs:
+  validate-repository:
+    name: Validate repository inputs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install validation dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            fish \
+            git \
+            patch \
+            python3
+
+      - name: Validate Fish syntax
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          while IFS= read -r -d '' script; do
+            echo "fish -n $script"
+            fish -n "$script"
+          done < <(find scripts -type f -name '*.fish' -print0 | sort -z)
+
+      - name: Validate Bash syntax
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          while IFS= read -r -d '' script; do
+            echo "bash -n $script"
+            bash -n "$script"
+          done < <(find scripts -type f -name '*.sh' -print0 | sort -z)
+
+      - name: Validate Python syntax
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mapfile -d '' scripts_to_check < <(
+            find scripts -type f -name '*.py' -print0 | sort -z
+          )
+          if ((${#scripts_to_check[@]})); then
+            python3 -m py_compile "${scripts_to_check[@]}"
+          fi
+
+      - name: Validate patch syntax
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          shopt -s nullglob
+          patches=(patches/wine/*.patch patches/dxvk/*.patch)
+          ((${#patches[@]} > 0))
+          for patch_file in "${patches[@]}"; do
+            echo "git apply --numstat $patch_file"
+            git apply --numstat -- "$patch_file" >/dev/null
+          done
+
+      - name: Reject deprecated DWrite clean-room entrypoint
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test ! -e scripts/build-dwrite-clean-room.sh
+          ! grep -R --line-number --fixed-strings \
+            'build-dwrite-clean-room.sh' \
+            .github scripts docs \
+            --exclude='artifact-reproducibility.yml'
+
+      - name: Check whitespace errors
+        run: git diff --check HEAD^
+
+  build-wine-graphics:
+    name: Build DWrite and D2D1 from empty workspace
+    needs: validate-repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Wine build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            autoconf \
+            binutils \
+            bison \
+            build-essential \
+            curl \
+            file \
+            fish \
+            flex \
+            gettext \
+            git \
+            libfreetype-dev \
+            libx11-dev \
+            mingw-w64 \
+            patch \
+            pkg-config \
+            tar
+
+      - name: Record Wine toolchain
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          {
+            uname -a
+            fish --version
+            x86_64-w64-mingw32-gcc --version
+            make --version
+            autoconf --version
+          } | tee "$RUNNER_TEMP/wine-toolchain.txt"
+
+      - name: Build patched DWrite
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          fish scripts/build-dwrite-clean.fish \
+            "$RUNNER_TEMP/wine-graphics" \
+            2 \
+            2>&1 | tee "$RUNNER_TEMP/build-dwrite-driver.log"
+
+      - name: Build patched D2D1
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          fish scripts/build-d2d1-addarc.fish \
+            "$RUNNER_TEMP/wine-graphics" \
+            2 \
+            2>&1 | tee "$RUNNER_TEMP/build-d2d1-driver.log"
+
+      - name: Verify Wine graphics artifacts
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          work="$RUNNER_TEMP/wine-graphics"
+          dwrite="$work/build/dlls/dwrite/x86_64-windows/dwrite.dll"
+          d2d1="$work/build/dlls/d2d1/x86_64-windows/d2d1.dll"
+
+          test -s "$dwrite"
+          test -s "$d2d1"
+          test -s "$work/PROVENANCE.txt"
+          test -s "$work/D2D1-PROVENANCE.txt"
+          test -s "$work/SHA256SUMS"
+          test -s "$work/D2D1-SHA256SUMS"
+
+          sha256sum -c "$work/SHA256SUMS"
+          sha256sum -c "$work/D2D1-SHA256SUMS"
+
+          file "$dwrite" "$d2d1" | tee "$RUNNER_TEMP/wine-artifact-file.txt"
+          grep -Fq 'WINE_COMMIT=31af7f983b2e345d11340b120ae3a39d88c9338a' \
+            "$work/PROVENANCE.txt"
+          grep -Fq 'WINE_COMMIT=31af7f983b2e345d11340b120ae3a39d88c9338a' \
+            "$work/D2D1-PROVENANCE.txt"
+          grep -Fq 'BASELINE_LAYOUT_BLOB=aefb49296b350c94372a3c793b1cafc7c2672e87' \
+            "$work/PROVENANCE.txt"
+          grep -Fq 'BASELINE_GEOMETRY_BLOB=633919afa4fd73818522336f8c6e0d0fb7e77fda' \
+            "$work/D2D1-PROVENANCE.txt"
+
+      - name: Upload Wine graphics artifacts and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wine-graphics-clean-build-${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            ${{ runner.temp }}/wine-graphics/PROVENANCE.txt
+            ${{ runner.temp }}/wine-graphics/SHA256SUMS
+            ${{ runner.temp }}/wine-graphics/D2D1-PROVENANCE.txt
+            ${{ runner.temp }}/wine-graphics/D2D1-SHA256SUMS
+            ${{ runner.temp }}/wine-graphics/build/dlls/dwrite/x86_64-windows/dwrite.dll
+            ${{ runner.temp }}/wine-graphics/build/dlls/d2d1/x86_64-windows/d2d1.dll
+            ${{ runner.temp }}/wine-graphics/logs/
+            ${{ runner.temp }}/wine-toolchain.txt
+            ${{ runner.temp }}/wine-artifact-file.txt
+            ${{ runner.temp }}/build-dwrite-driver.log
+            ${{ runner.temp }}/build-d2d1-driver.log
+
+  build-dxvk:
+    name: Build patched DXVK from empty workspace
+    needs: validate-repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install DXVK build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            binutils-mingw-w64-x86-64 \
+            build-essential \
+            file \
+            g++-mingw-w64-x86-64-posix \
+            gcc-mingw-w64-x86-64-posix \
+            git \
+            glslang-tools \
+            meson \
+            ninja-build \
+            pkg-config
+
+      - name: Select POSIX MinGW toolchain
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          sudo update-alternatives --set \
+            x86_64-w64-mingw32-gcc \
+            /usr/bin/x86_64-w64-mingw32-gcc-posix
+          sudo update-alternatives --set \
+            x86_64-w64-mingw32-g++ \
+            /usr/bin/x86_64-w64-mingw32-g++-posix
+
+          cat > "$RUNNER_TEMP/mingw-thread-check.cpp" <<'EOF'
+          #include <condition_variable>
+          #include <mutex>
+          int main()
+          {
+              std::mutex mutex;
+              std::condition_variable condition;
+              (void)mutex;
+              (void)condition;
+              return 0;
+          }
+          EOF
+
+          x86_64-w64-mingw32-g++ \
+            -std=c++17 \
+            -c "$RUNNER_TEMP/mingw-thread-check.cpp" \
+            -o "$RUNNER_TEMP/mingw-thread-check.o"
+
+      - name: Record DXVK toolchain
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          {
+            uname -a
+            meson --version
+            ninja --version
+            glslangValidator --version
+            x86_64-w64-mingw32-gcc --version
+            x86_64-w64-mingw32-g++ --version
+          } | tee "$RUNNER_TEMP/dxvk-toolchain.txt"
+
+      - name: Build patched DXVK
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash scripts/build-dxvk-aviutl2.sh \
+            --work-dir "$RUNNER_TEMP/dxvk-source" \
+            --output-dir "$RUNNER_TEMP/dxvk-output" \
+            2>&1 | tee "$RUNNER_TEMP/build-dxvk-driver.log"
+
+      - name: Verify DXVK artifacts
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          output="$RUNNER_TEMP/dxvk-output"
+
+          for dll in d3d11.dll dxgi.dll d3d10core.dll; do
+            test -s "$output/$dll"
+          done
+          test -s "$output/SHA256SUMS"
+          test -s "$output/BUILD-METADATA"
+
+          (
+            cd "$output"
+            sha256sum -c SHA256SUMS
+          )
+
+          grep -Fq 'base_commit=c3dd74be6baec53786d4e064a572185b70347a17' \
+            "$output/BUILD-METADATA"
+          grep -aFq 'AviUtl2 compatibility' "$output/d3d11.dll"
+          file \
+            "$output/d3d11.dll" \
+            "$output/dxgi.dll" \
+            "$output/d3d10core.dll" \
+            | tee "$RUNNER_TEMP/dxvk-artifact-file.txt"
+
+      - name: Upload DXVK artifacts and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dxvk-clean-build-${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            ${{ runner.temp }}/dxvk-output/d3d11.dll
+            ${{ runner.temp }}/dxvk-output/dxgi.dll
+            ${{ runner.temp }}/dxvk-output/d3d10core.dll
+            ${{ runner.temp }}/dxvk-output/SHA256SUMS
+            ${{ runner.temp }}/dxvk-output/BUILD-METADATA
+            ${{ runner.temp }}/dxvk-source/build.w64/meson-logs/
+            ${{ runner.temp }}/dxvk-source/build.w64/meson-info/
+            ${{ runner.temp }}/dxvk-toolchain.txt
+            ${{ runner.temp }}/dxvk-artifact-file.txt
+            ${{ runner.temp }}/build-dxvk-driver.log
