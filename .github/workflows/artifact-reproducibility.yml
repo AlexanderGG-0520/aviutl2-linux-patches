@@ -5,14 +5,18 @@ on:
   push:
     paths:
       - ".github/workflows/artifact-reproducibility.yml"
+      - "scripts/*.fish"
       - "scripts/**/*.fish"
+      - "scripts/*.sh"
       - "scripts/**/*.sh"
       - "patches/wine/**"
       - "patches/dxvk/**"
   pull_request:
     paths:
       - ".github/workflows/artifact-reproducibility.yml"
+      - "scripts/*.fish"
       - "scripts/**/*.fish"
+      - "scripts/*.sh"
       - "scripts/**/*.sh"
       - "patches/wine/**"
       - "patches/dxvk/**"
@@ -93,13 +97,15 @@ jobs:
         run: |
           set -Eeuo pipefail
           test ! -e scripts/build-dwrite-clean-room.sh
-          ! grep -R --line-number --fixed-strings \
+          ! grep -R \
+            --line-number \
+            --fixed-strings \
+            --exclude='artifact-reproducibility.yml' \
             'build-dwrite-clean-room.sh' \
-            .github scripts docs \
-            --exclude='artifact-reproducibility.yml'
+            .github scripts
 
-      - name: Check whitespace errors
-        run: git diff --check HEAD^
+      - name: Check committed whitespace errors
+        run: git diff-tree --check --no-commit-id --root -r HEAD
 
   build-wine-graphics:
     name: Build DWrite and D2D1 from empty workspace
