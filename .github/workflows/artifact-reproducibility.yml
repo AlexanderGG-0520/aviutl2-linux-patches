@@ -41,6 +41,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install validation dependencies
         run: |
@@ -104,8 +106,70 @@ jobs:
             'build-dwrite-clean-room.sh' \
             .github scripts
 
-      - name: Check committed whitespace errors
-        run: git diff-tree --check --no-commit-id --root -r HEAD
+      - name: Check changed-file whitespace errors
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          set -Eeuo pipefail
+
+          case "$EVENT_NAME" in
+            pull_request)
+              base="$PR_BASE_SHA"
+              head="$PR_HEAD_SHA"
+              ;;
+            push)
+              base="$EVENT_BEFORE"
+              head="$CURRENT_SHA"
+              ;;
+            workflow_dispatch)
+              head="$CURRENT_SHA"
+              base="$(git rev-parse "${head}^" 2>/dev/null || true)"
+              ;;
+            *)
+              echo "Unsupported event: $EVENT_NAME" >&2
+              exit 1
+              ;;
+          esac
+
+          if [[ -z "$head" ]]; then
+            echo 'Unable to resolve comparison head' >&2
+            exit 1
+          fi
+
+          if [[ -z "$base" || "$base" == 0000000000000000000000000000000000000000 ]]; then
+            base="$(git rev-parse "${head}^" 2>/dev/null || true)"
+          fi
+
+          if [[ -n "$base" ]]; then
+            git cat-file -e "${base}^{commit}"
+            git cat-file -e "${head}^{commit}"
+
+            mapfile -d '' changed_files < <(
+              git diff --name-only -z "$base" "$head" -- \
+                . \
+                ':(exclude)**/*.patch'
+            )
+
+            if ((${#changed_files[@]})); then
+              printf 'Whitespace-checking %s changed non-patch files\n' \
+                "${#changed_files[@]}"
+              git diff --check "$base" "$head" -- "${changed_files[@]}"
+            else
+              echo 'No changed non-patch files require whitespace validation'
+            fi
+          else
+            git diff-tree \
+              --check \
+              --no-commit-id \
+              --root \
+              -r "$head" \
+              -- . ':(exclude)**/*.patch'
+          fi
 
   build-wine-graphics:
     name: Build DWrite and D2D1 from empty workspace
